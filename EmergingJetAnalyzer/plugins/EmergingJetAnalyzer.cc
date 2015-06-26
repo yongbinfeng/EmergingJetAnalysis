@@ -39,6 +39,7 @@
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 #include "DataFormats/DTRecHit/interface/DTRecSegment4DCollection.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
@@ -54,6 +55,10 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+
+// track association
+#include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
+#include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 
 #include "TH2F.h"
 #include "TH1F.h"
@@ -76,6 +81,10 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
       virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
       virtual void endJob() override;
 
+      TrackDetectorAssociator   m_trackAssociator;
+      TrackAssociatorParameters m_trackParameters;
+      edm::ParameterSet         m_trackParameterSet;
+
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
@@ -84,7 +93,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
       // ----------member data ---------------------------
       edm::Service<TFileService> fs;
 
-			edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+      TH1F * h_dr_jet_track;
 
       TH2F * h_ptWtPixHits_vs_chargeFraction;
       TH2F * h_ptWtPixHits_vs_emFraction;
@@ -115,6 +124,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
       TH1F * h_jet_chf_trackFrac05;
       TH1F * h_jet_nhf_trackFrac05;
 
+      TH1F * h_pTxIPxSig;
+
       TH1F * h_rVtx;
       TH1F * h_chi2Vtx;
       TH1F * h_nTracksVtx;
@@ -124,7 +135,6 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
       TH1F * h_jet_phf_trackFrac05;
 
       TH1F * h_jetIpTracks;
-      TH1F * h_trackDrJet;
       TH1F * h_jetMatchedVertices;
       TH1F * h_vertexDrJet;
       TH1F * h_jetDispMuons;
@@ -147,6 +157,18 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
       TH1F * h_medianLogIpSig;
       TH1F * h_medianIp;
+
+      TH1F * h_pTdispTracks;
+
+      TH1F * h_deltaEtaJetTrack;
+      TH1F * h_deltaPhiJetTrack;
+
+      TH1F * h_jetPromptTracks;
+      TH1F * h_jetDispTracks;
+
+      TH1F * h_rDecayGen;
+
+      TH1F * h_logTagsPerEvent;
 };
 
 //
@@ -160,17 +182,28 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 //
 // constructors and destructor
 //
-EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig)
-
+EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig) :
+      m_trackParameterSet(iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters")) 
 {
    //now do what ever initialization is needed
 
+    edm::ConsumesCollector iC = consumesCollector();
+    m_trackParameters.loadParameters( m_trackParameterSet, iC );
+    m_trackAssociator.useDefaultPropagator();
 //    h_ptWtPixHits_vs_chargeFraction = fs->make<TH2F>( "h_ptWtPixHits_vs_chargeFraction"  , ";p_{T} wt. PIX hits;charge fraction", 10,  0., 4., 10, 0., 1. );
 //    h_ptWtPixHits_vs_emFraction = fs->make<TH2F>( "h_ptWtPixHits_vs_emFraction"  , ";p_{T} wt. PIX hits;EM fraction", 10,  0., 4., 10, 0., 1. );
 
 //    h_ptWtD0 = fs->make<TH1F>( "h_ptWtD0",";p_{T} weighted d0 [cm];" , 25, -3., 3.);
 //    h_ptWtD0_trackFrac05 = fs->make<TH1F>( "h_ptWtD0_trackFrac05",";p_{T} weighted d0 [cm];" , 25, -3., 3.);
 //    h_jetEtaPhi = fs->make<TH2F>( "h_jetEtaPhi" , ";jet #eta;jet #phi;" , 25, -2.5, 2.5, 25, -TMath::Pi(), TMath::Pi() );
+
+    h_pTxIPxSig = fs->make<TH1F> ("h_pTxIPxSig",";pT #times IP #times IPsig;", 40.,-4.,10.);
+
+    h_deltaEtaJetTrack = fs->make<TH1F> ("h_deltaEtaJetTrack", ";d#eta(jet, trk);", 40, 0.,1.5);
+    h_deltaPhiJetTrack = fs->make<TH1F> ("h_deltaPhiJetTrack", ";d#phi(jet, trk);", 40, 0.,1.5);
+
+    h_pTdispTracks = fs->make<TH1F> ("h_pTdispTracks", ";p_{T} of displaced tracks;",40,0.,200.);
+    h_dr_jet_track = fs->make<TH1F> ("h_dr_jet_track", ";dR(jet, track);",20,0.,TMath::Pi()/2);
 
     h_nVtxInEvent = fs->make<TH1F>( "h_nVtxInEvent",  ";nVtx;",101,-0.5,100.5);
     h_rVtx      = fs->make<TH1F>("h_rVtx",";vertex r [cm];",101,-0.5,100.5);
@@ -179,13 +212,16 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig)
     h_massVtx   = fs->make<TH1F>("h_massVtx",";mass [GeV];",20,0.,10.);
     h_ptVtx     = fs->make<TH1F>("h_ptVtx",";pT [GeV];",50,0.,100.);
 
+    h_jetPromptTracks = fs->make<TH1F>("h_jetPromptTracks", ";N prompt tracks;", 40, -0.5, 39.5);
+    h_jetDispTracks = fs->make<TH1F>("h_jetDispTracks", ";N prompt tracks;", 40, -0.5, 39.5);
+
 //    h_rVtxGenTracks = fs->make<TH1F>( "h_rVtxGenTracks", ";vertex r [cm];",300.,0.,150.);
+    h_logTagsPerEvent = fs->make<TH1F>("h_logTagsPerEvent",";N_{tags};",10,-0.5,9.5);
 
     h_jetPtVsIndex = fs->make<TH2F>( "h_jetPtVsIndex", ";p_{T} [GeV];index", 100,0.,1000.,4,-0.5,3.5);
     h_jetIpTracks  = fs->make<TH1F>("h_jetIpTracks",";N disp trks;",20,-0.5,19.5);
     h_jetMatchedVertices  = fs->make<TH1F>("h_jetMatchedVertices",";N disp vtx;",20,-0.5,19.5);
     h_jetDispMuons  = fs->make<TH1F>("h_jetDispMuons",";N disp STA #mu;",20,-0.5,19.5);
-    h_trackDrJet   = fs->make<TH1F>("h_trackDrJet",";#DeltaR(track, jet);",20.,0.,1.5);
     h_vertexDrJet   = fs->make<TH1F>("h_vertexDrJet",";#DeltaR(track, jet);",20.,0.,1.5);
     h_muonDrJet   = fs->make<TH1F>("h_muonDrJet",";#DeltaR(track, jet);",20.,0.,1.5);
     h_eventIpTracks  = fs->make<TH1F>("h_eventIpTracks",";N disp trks;",50,-0.5,99.5);
@@ -226,16 +262,16 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig)
     h_logTrackDxy   = fs->make<TH1F>("h_logTrackDxy",";log(dxy);",100.,-3.,3.);
     h_logTrackDz    = fs->make<TH1F>("h_logTrackDz", ";log(dz);", 100.,-3.,3.);
 
-    h_medianLogIpSig = fs->make<TH1F>("h_medianLogIpSig",";median log(ipSig);",100.,-3.,3.);
+    h_medianLogIpSig = fs->make<TH1F>("h_medianLogIpSig",";median log(ipSig);",20.,-2.,8.);
     h_medianIp       = fs->make<TH1F>("h_medianIp",      ";median IP;",        100.,-3.,3.);
+
+    h_rDecayGen      = fs->make<TH1F>("h_rDecayGen",   ";gen decay r [cm];" , 100, 0., 500.);
 
 //    h_jet_cef_trackFrac05     = fs->make<TH1F>("h_jet_cef_trackFrac05",";charged EM fraction;",20,0.,1.);
 //    h_jet_nef_trackFrac05     = fs->make<TH1F>("h_jet_nef_trackFrac05",";neutral EM fraction;",20,0.,1.);
 //    h_jet_chf_trackFrac05     = fs->make<TH1F>("h_jet_chf_trackFrac05",";charged had fraction;",20,0.,1.);
 //    h_jet_nhf_trackFrac05     = fs->make<TH1F>("h_jet_nhf_trackFrac05",";neutral had fraction;",20,0.,1.);
 //    h_jet_phf_trackFrac05     = fs->make<TH1F>("h_jet_phf_trackFrac05",";photon fraction;",20,0.,1.);
-
-	jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
     
 }
 
@@ -259,11 +295,13 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 {
    using namespace edm;
 
+   float ipCut = 0.05;
+
    edm::ESHandle<TransientTrackBuilder> theB;
    iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
    edm::Handle<reco::PFJetCollection> pfjetH;
-   iEvent.getByToken(jetCollectionToken_, pfjetH);
+   iEvent.getByLabel("ak5PFJets", pfjetH);
 
 //   Handle<reco::BeamSpot> theBeamSpotHandle;
 //   iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);
@@ -290,6 +328,22 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    edm::Handle<reco::VertexCollection> primary_vertices;
    iEvent.getByLabel("offlinePrimaryVerticesWithBS",primary_vertices);
    const reco::Vertex& primary_vertex = primary_vertices->at(0);
+
+   
+   edm::Handle<reco::GenParticleCollection> genParticlesH;
+   iEvent.getByLabel("genParticles", genParticlesH);
+
+
+   for (reco::GenParticleCollection::const_iterator gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
+       if (gp->numberOfMothers() < 1) continue;
+       if (fabs(gp->mother()->pdgId()) != 4900111) continue;
+//        std::cout << "genParticle pdgId, status = " << gp->status() << "\t" << gp->pdgId() << std::endl;
+//        std::cout << "             mass = " << gp->mass() << std::endl;
+//        std::cout << "               pT = " << gp->pt()   << std::endl;
+//        std::cout << "      r, eta, phi = " << gp->vertex().r() << "\t" << gp->vertex().eta() << "\t" << gp->vertex().phi() << std::endl;
+       h_rDecayGen->Fill(gp->vertex().r());
+   }
+  
 
    /*
    edm::Handle<reco::GenParticleCollection> genParticlesH;
@@ -321,78 +375,19 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    //
    */
 
-   std::vector<reco::TransientTrack> ipTracks;
-   std::vector<float> logIpSig;
-   std::vector<float> ipVector;
-   float ipSig = 3.;
-   int ip0_1 = 0.;
-   int ip1_0 = 0.;
-   int ip10_ = 0.;
-   float logSum = 0.;
-   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk < generalTracks.end(); ++itk) {
-       if (itk->track().pt() < 1.) continue;
-       auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
-       h_logTrackDz->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-       h_logTrackDxy->Fill(TMath::Log(dxy_ipv.second.value()));
-//       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-       if (dxy_ipv.second.value() < 0.05) continue;
-       if (dxy_ipv.second.significance() < ipSig) continue;
-       logIpSig.push_back(TMath::Log(dxy_ipv.second.significance()));
-       ipVector.push_back(dxy_ipv.second.value());
-       logSum += TMath::Log(dxy_ipv.second.significance());
-//       if (itk->track().dxy(*theBeamSpot) < 0.05 && itk->track().dxy(*theBeamSpot) > -0.05) continue;
-//       if (itk->track().dxy(*theBeamSpot) / itk->track().dxyError() < ipSig) continue;
-//       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot) << std::endl;
-//       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot) / itk->track().dxyError() << std::endl;
+//   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk < generalTracks.end(); ++itk) {
+//   }
 
-       ipTracks.push_back(*itk);
-       if (dxy_ipv.second.value() > 0.1) ip0_1++; 
-       if (dxy_ipv.second.value() > 1.0) ip1_0++; 
-       if (dxy_ipv.second.value() > 10.) ip10_++; 
-   }
-
-   std::sort(logIpSig.begin(),logIpSig.end());
-   std::sort(ipVector.begin(),   ipVector.end());
-   if (logIpSig.size() != 0) {
-        h_medianLogIpSig->Fill(logIpSig[logIpSig.size()/2]);
-        h_medianIp->Fill(ipVector[ipVector.size()/2]);
-   }
-
-   h_eventIpTracks0_1->Fill(ip0_1);
-   h_eventIpTracks1_0->Fill(ip1_0);
-   h_eventIpTracks10_->Fill(ip10_);
-
-   h_eventSumLogIp->Fill(logSum);
 
    // try my own vertex reco
 
 
-   AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
-   std::vector<TransientVertex> theVertices = avr.vertices(ipTracks);
-   std::vector<TLorentzVector>  vertexVectors;
-   for (size_t ivtx = 0; ivtx < theVertices.size(); ++ivtx) {
-        if (theVertices[ivtx].normalisedChiSquared() > 15.) continue;
-        h_rVtx->Fill(theVertices[ivtx].position().perp());
-        h_chi2Vtx->Fill(theVertices[ivtx].normalisedChiSquared());
-        h_nTracksVtx->Fill(theVertices[ivtx].refittedTracks().size());
-        TLorentzVector cand;
-        // loop over the tracks
-        for (std::vector<reco::TransientTrack>::const_iterator itk = theVertices[ivtx].refittedTracks().begin(); itk != theVertices[ivtx].refittedTracks().end(); ++itk) {
-            TrajectoryStateClosestToPoint trajectory = itk->trajectoryStateClosestToPoint(theVertices[ivtx].position());
-//            int charge = itk->track().charge();
-            GlobalVector momentum = trajectory.momentum();
-            TLorentzVector trackVector;  trackVector.SetPtEtaPhiM(momentum.perp(), momentum.eta(), momentum.phi(), 0.13957);
-            cand += trackVector;
-        }
-        vertexVectors.push_back(cand);
-        h_massVtx->Fill(cand.M());
-        h_ptVtx->Fill(cand.Pt());
-   }
-   h_nVtxInEvent->Fill(theVertices.size());
-
 //   return;
    
    int ijet = 0;
+   int nLogTaggedJets = 0;
+   float logTagCut    = 2.;
+   float logSum = 0.;
    for ( reco::PFJetCollection::const_iterator jet = pfjetH->begin(); jet != pfjetH->end(); ++jet ) {
 
        if (jet->pt() < 50.) continue;
@@ -406,50 +401,149 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
        //std::cout << "\t neutralEM:  " << jet->neutralEmEnergyFraction() << std::endl;
        //std::cout << "\tneutralHad:  " << jet->neutralHadronEnergyFraction() << std::endl;
        float trackFrac = 0.;
-       for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
+       int matchedTracks = 0;
+//       int pfTracks = jet->getTrackRefs().size();
+       /* for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
            reco::TransientTrack itk = theB->build(*ijt);
            if (itk.track().pt() < 1.) continue;
            auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(itk, primary_vertex);
            //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-           if (dxy_ipv.second.value() > 0.05) continue;
+           if (dxy_ipv.second.value() > ipCut) continue;
            if (dxy_ipv.second.significance() > ipSig) continue;
 
            trackFrac += itk.track().pt();
+       } */
+       // now loop over the displaced tracks, checking which match the jet geometrically
+       std::vector<float> logIpSig;
+       std::vector<float> ipVector;
+       float ipSig = 3.;
+       int ip0_1 = 0.;
+       int ip1_0 = 0.;
+       int ip10_ = 0.;
+       int promptTracks = 0;
+       int dispTracks   = 0;
+       float pTxIPxSig = 0.;
+       std::vector<reco::TransientTrack> ipTracks;
+       for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
+
+           if (itk->track().pt() < 1.) continue;
+
+           TLorentzVector trackVector; 
+           trackVector.SetPxPyPzE(
+                   itk->innermostMeasurementState().globalPosition().x() - primary_vertex.position().x(), 
+                   itk->innermostMeasurementState().globalPosition().y() - primary_vertex.position().y(), 
+                   itk->innermostMeasurementState().globalPosition().z() - primary_vertex.position().z(), 
+                   itk->track().p());
+           if (trackVector.DeltaR(jetVector) > 0.5) continue;
+           ++promptTracks;
+           TrackDetMatchInfo info = m_trackAssociator.associate(iEvent, iSetup, itk->track(), m_trackParameters);
+           TLorentzVector impactVector; impactVector.SetPtEtaPhiM(itk->track().pt(),info.trkGlobPosAtEcal.eta(),info.trkGlobPosAtEcal.phi(),0.);
+
+//           std::cout << "Impact point at ECAL eta, phi, dR " 
+//               << info.trkGlobPosAtEcal.eta() << "\t" 
+//               << info.trkGlobPosAtEcal.phi() << "\t" 
+//               << jetVector.DeltaR(impactVector) << std::endl;
+//           if (jetVector.DeltaR(impactVector) > 0.4) continue;
+
+           auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
+           h_logTrackDz->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
+           h_logTrackDxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())));
+           logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
+           ipVector.push_back(fabs(dxy_ipv.second.value()));
+           logSum += dxy_ipv.second.significance();
+
+           //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+           if (dxy_ipv.second.value() < ipCut) continue;
+           if (dxy_ipv.second.significance() < ipSig) continue;
+           pTxIPxSig += itk->track().pt() * dxy_ipv.second.value() * dxy_ipv.second.significance() / jet->pt();
+           --promptTracks;
+           ++dispTracks;
+           h_dr_jet_track->Fill(jetVector.DeltaR(impactVector));
+           h_deltaEtaJetTrack->Fill(fabs(jetVector.Eta() - impactVector.Eta()));
+           h_deltaPhiJetTrack->Fill(fabs(jetVector.DeltaPhi(impactVector)));
+           trackFrac += itk->track().pt();
+           //       if (itk->track().dxy(*theBeamSpot) < ipCut && itk->track().dxy(*theBeamSpot) > -ipCut) continue;
+           //       if (itk->track().dxy(*theBeamSpot) / itk->track().dxyError() < ipSig) continue;
+           //       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot) << std::endl;
+           //       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot) / itk->track().dxyError() << std::endl;
+
+           ipTracks.push_back(*itk);
+
+//           std::cout << "dxy_ipv.second.value() " << dxy_ipv.second.value() << std::endl;
+
+           h_pTdispTracks->Fill(itk->track().pt());
+           if (dxy_ipv.second.value() > 0.1) ip0_1++; 
+           if (dxy_ipv.second.value() > 1.0) ip1_0++; 
+           if (dxy_ipv.second.value() > 10.) ip10_++; 
+
+           ++matchedTracks;
+       }
+       h_jetPromptTracks->Fill(promptTracks);
+       h_jetDispTracks->Fill(dispTracks);
+       h_eventIpTracks0_1->Fill(ip0_1);
+       h_eventIpTracks1_0->Fill(ip1_0);
+       h_eventIpTracks10_->Fill(ip10_);
+
+       std::sort(logIpSig.begin(),logIpSig.end());
+       std::sort(ipVector.begin(),   ipVector.end());
+       if (logIpSig.size() != 0) {
+           h_medianLogIpSig->Fill(logIpSig[logIpSig.size()/2]);
+           h_medianIp->Fill(ipVector[ipVector.size()/2]);
+           if (logIpSig[logIpSig.size()/2] > logTagCut) {
+                ++nLogTaggedJets;
+           }
        }
        trackFrac /= jet->pt();
        h_trackFrac->Fill(trackFrac);
 
-       // now try to match the displaced tracks to this jet
-       int matchedTracks = 0;
-//       for (std::vector<reco::TransientTrack>::iterator itk = ipTracks.begin(); itk < ipTracks.end(); ++itk) {
+       h_pTxIPxSig->Fill(TMath::Log(pTxIPxSig));
 
-//           if (!itk->innermostMeasurementState().isValid()) continue;
-//           TLorentzVector trackVector; trackVector.SetPtEtaPhiM(itk->innermostMeasurementState().globalPosition().perp(), itk->innermostMeasurementState().globalPosition().eta(), itk->innermostMeasurementState().globalPosition().phi(), 0.13957);
-//           h_trackDrJet->Fill(trackVector.DeltaR(jetVector));
-//           if (trackVector.DeltaR(jetVector) < 0.5) ++matchedTracks;
-
-//       }
        h_jetIpTracks->Fill(matchedTracks);
+   
+       
+       AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
+       std::vector<TransientVertex> theVertices = avr.vertices(ipTracks);
+       std::vector<TLorentzVector>  vertexVectors;
+       for (size_t ivtx = 0; ivtx < theVertices.size(); ++ivtx) {
+           if (theVertices[ivtx].normalisedChiSquared() > 15.) continue;
+           h_rVtx->Fill(theVertices[ivtx].position().perp());
+           h_chi2Vtx->Fill(theVertices[ivtx].normalisedChiSquared());
+           h_nTracksVtx->Fill(theVertices[ivtx].refittedTracks().size());
+           TLorentzVector cand;
+           // loop over the tracks
+           for (std::vector<reco::TransientTrack>::const_iterator itk = theVertices[ivtx].refittedTracks().begin(); itk != theVertices[ivtx].refittedTracks().end(); ++itk) {
+               TrajectoryStateClosestToPoint trajectory = itk->trajectoryStateClosestToPoint(theVertices[ivtx].position());
+               //            int charge = itk->track().charge();
+               GlobalVector momentum = trajectory.momentum();
+               TLorentzVector trackVector;  trackVector.SetPtEtaPhiM(momentum.perp(), momentum.eta(), momentum.phi(), 0.13957);
+               cand += trackVector;
+           }
+           vertexVectors.push_back(cand);
+           h_massVtx->Fill(cand.M());
+           h_ptVtx->Fill(cand.Pt());
+       }
+       h_nVtxInEvent->Fill(theVertices.size());
+
 
        // same with the vertices
        int matchedVertices = 0;
        for (std::vector<TransientVertex>::iterator ivtx = theVertices.begin(); ivtx != theVertices.end(); ++ivtx) {
-            TLorentzVector vertexPosition;  vertexPosition.SetPtEtaPhiM(ivtx->position().perp(),ivtx->position().eta(),ivtx->position().phi(),0.);
-            h_vertexDrJet->Fill(vertexPosition.DeltaR(jetVector));
-            if (vertexPosition.DeltaR(jetVector) < 0.5) ++matchedVertices;
+           TLorentzVector vertexPosition;  vertexPosition.SetPtEtaPhiM(ivtx->position().perp(),ivtx->position().eta(),ivtx->position().phi(),0.);
+           h_vertexDrJet->Fill(vertexPosition.DeltaR(jetVector));
+           if (vertexPosition.DeltaR(jetVector) < 0.5) ++matchedVertices;
        }
        h_jetMatchedVertices->Fill(matchedVertices);
-       
+
        // displaced standalone muons
        int matchedMuons = 0;
-//       for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
+       //       for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
 
-//           if (!itk->innermostMeasurementState().isValid()) continue;
-//           TLorentzVector trackVector; trackVector.SetPtEtaPhiM(itk->innermostMeasurementState().globalPosition().perp(), itk->innermostMeasurementState().globalPosition().eta(), itk->innermostMeasurementState().globalPosition().phi(), 0.13957);
-//           h_muonDrJet->Fill(trackVector.DeltaR(jetVector));
-//           if (trackVector.DeltaR(jetVector) < 0.5) ++matchedMuons;
+       //           if (!itk->innermostMeasurementState().isValid()) continue;
+       //           TLorentzVector trackVector; trackVector.SetPtEtaPhiM(itk->innermostMeasurementState().globalPosition().perp(), itk->innermostMeasurementState().globalPosition().eta(), itk->innermostMeasurementState().globalPosition().phi(), 0.13957);
+       //           h_muonDrJet->Fill(trackVector.DeltaR(jetVector));
+       //           if (trackVector.DeltaR(jetVector) < 0.5) ++matchedMuons;
 
-//       }
+       //       }
        h_jetDispMuons->Fill(matchedMuons);
 
 
@@ -467,19 +561,21 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
    int dispMuons = 0;
    for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
-//        std::cout << "Displaced muon pt eta phi dxy " 
-//            << "\t" << itk->track().pt()
-//            << "\t" << itk->track().eta()
-//            << "\t" << itk->track().phi()
-//            << "\t" << itk->track().dxy()
-//            << std::endl;
-        ++dispMuons;
+       //        std::cout << "Displaced muon pt eta phi dxy " 
+       //            << "\t" << itk->track().pt()
+       //            << "\t" << itk->track().eta()
+       //            << "\t" << itk->track().phi()
+       //            << "\t" << itk->track().dxy()
+       //            << std::endl;
+       ++dispMuons;
    }
 
 
-   h_eventIpTracks->Fill(ipTracks.size());
-   h_eventVertices->Fill(theVertices.size());
+   //   h_eventIpTracks->Fill(ipTracks.size());
+//   h_eventVertices->Fill(theVertices.size());
    h_eventDispMuons->Fill(dispMuons);
+   h_logTagsPerEvent->Fill(nLogTaggedJets);
+   h_eventSumLogIp->Fill(TMath::Log(logSum));
    return;
 
 
@@ -488,24 +584,24 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
 
 // ------------ method called once each job just before starting event loop  ------------
-void 
+    void 
 EmergingJetAnalyzer::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
-void 
+    void 
 EmergingJetAnalyzer::endJob() 
 {
 }
 
 // ------------ method called when starting to processes a run  ------------
 /*
-void 
-EmergingJetAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
+   void 
+   EmergingJetAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+   {
+   }
+ */
 
 // ------------ method called when ending the processing of a run  ------------
 /*

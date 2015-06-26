@@ -2,20 +2,33 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("Demo")
 
-
-process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
-process.load("Configuration.Geometry.GeometryIdeal_cff")
-process.load("Configuration.StandardSequences.MagneticField_cff")
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
+process.load('FWCore.MessageService.MessageLogger_cfi')
+process.load('Configuration.EventContent.EventContentCosmics_cff')
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
+process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_0T_cff')
+process.load('Configuration.StandardSequences.RawToDigi_Data_cff')
+process.load('Configuration.StandardSequences.L1Reco_cff')
+process.load('Configuration.StandardSequences.ReconstructionCosmics_cff')
+process.load('Configuration.StandardSequences.EndOfProcess_cff')
+#process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+process.load('SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff')
 
-# Other statements
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc_FULL', '')
 
+from TrackingTools.TrackAssociator.default_cfi import *
+
+# Other statements
+
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -123,7 +136,8 @@ process.source = cms.Source("PoolSource",
     )
 )
 
-process.demo = cms.EDAnalyzer('EmergingJetAnalyzer'
+process.demo = cms.EDAnalyzer('EmergingJetAnalyzer',
+        TrackAssociatorParameterBlock
 )
 
 process.TFileService = cms.Service("TFileService", fileName = cms.string("histo_B.root") )

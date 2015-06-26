@@ -7,4 +7,6 @@
 <use name="TrackingTools/TransientTrack"/>
 <use name="TrackingTools/Records"/>
 <use name="RecoVertex/AdaptiveVertexFinder"/>
+<use name="TrackingTools/TrackAssociator"/>
+
 <flags EDM_PLUGIN="1"/>

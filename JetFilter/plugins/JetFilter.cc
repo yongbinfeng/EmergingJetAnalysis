@@ -5,10 +5,10 @@
 // 
 /**\class JetFilter JetFilter.cc EmergingAnalysis/JetFilter/plugins/JetFilter.cc
 
- Description: [one line class summary]
+Description: [one line class summary]
 
- Implementation:
-     [Notes on implementation]
+Implementation:
+[Notes on implementation]
 */
 //
 // Original Author:  Young Ho Shin
@@ -56,43 +56,43 @@ using std::vector;
 //
 
 class JetFilter : public edm::EDFilter {
-   public:
-      explicit JetFilter(const edm::ParameterSet&);
-      ~JetFilter();
+  public:
+    explicit JetFilter(const edm::ParameterSet&);
+    ~JetFilter();
 
-      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
-   private:
-      virtual void beginJob() override;
-      virtual bool filter(edm::Event&, const edm::EventSetup&) override;
-      virtual void endJob() override;
-      
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+  private:
+    virtual void beginJob() override;
+    virtual bool filter(edm::Event&, const edm::EventSetup&) override;
+    virtual void endJob() override;
 
-      // ----------member data ---------------------------
-      ////////////////////////////////////////
-      // inputs
-      ////////////////////////////////////////
-			edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
-      std::vector<double> minPts_;  // minPts_[i] corresponds to the i-th minimum pt-cut
-      std::vector<double> maxEtas_; // maxEtas_[i] corresponds to the i-th max eta-cut
-      std::vector<StringCutObjectSelector<reco::PFJet> > stringCutSelectors_; // String cuts for the i-th jet
-      int nCuts_;
+    //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+    //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
+    //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+    //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-      // Generic cuts for the jets that don't pass the previous criteria
-      StringCutObjectSelector<reco::PFJet> additionalCutSelector_;
+    // ----------member data ---------------------------
+    ////////////////////////////////////////
+    // inputs
+    ////////////////////////////////////////
+    edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    std::vector<double> minPts_;  // minPts_[i] corresponds to the i-th minimum pt-cut
+    std::vector<double> maxEtas_; // maxEtas_[i] corresponds to the i-th max eta-cut
+    std::vector<StringCutObjectSelector<reco::PFJet> > stringCutSelectors_; // String cuts for the i-th jet
+    int nCuts_;
 
-      ////////////////////////////////////////
-      // outputs
-      ////////////////////////////////////////
-      std::auto_ptr< reco::PFJetCollection > selectedJets_;
-      std::vector<int> selectedJetsIndex_;
+    // Generic cuts for the jets that don't pass the previous criteria
+    StringCutObjectSelector<reco::PFJet> additionalCutSelector_;
 
-      std::unordered_map<string, TH1*> histoMap1D_;
-      std::unordered_map<string, TH2*> histoMap2D_;
+    ////////////////////////////////////////
+    // outputs
+    ////////////////////////////////////////
+    std::auto_ptr< reco::PFJetCollection > selectedJets_;
+    std::vector<int> selectedJetsIndex_;
+
+    std::unordered_map<string, TH1*> histoMap1D_;
+    std::unordered_map<string, TH2*> histoMap2D_;
 };
 
 //
@@ -109,16 +109,16 @@ class JetFilter : public edm::EDFilter {
 JetFilter::JetFilter(const edm::ParameterSet& iConfig):
   additionalCutSelector_( StringCutObjectSelector<reco::PFJet>(iConfig.getParameter<std::string>("additionalCut")) )
 {
-  std::cerr << "Construcing JetFilter\n";
-   //now do what ever initialization is needed
-	jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
-	vector<edm::ParameterSet> jetCuts(iConfig.getParameter<std::vector<edm::ParameterSet> >("jetCuts"));
-	for (auto jetCut = jetCuts.begin(); jetCut != jetCuts.end(); jetCut++) {
-		double minPt  = jetCut->getParameter<double>("minPt");
-		double maxEta = jetCut->getParameter<double>("maxEta");
-		string stringCut = jetCut->getParameter<std::string>("stringCut");
+  LogDebug("JetFilter") << "Construcing JetFilter";
+  //now do what ever initialization is needed
+  jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+  vector<edm::ParameterSet> jetCuts(iConfig.getParameter<std::vector<edm::ParameterSet> >("jetCuts"));
+  for (auto jetCut = jetCuts.begin(); jetCut != jetCuts.end(); jetCut++) {
+    double minPt  = jetCut->getParameter<double>("minPt");
+    double maxEta = jetCut->getParameter<double>("maxEta");
+    string stringCut = jetCut->getParameter<std::string>("stringCut");
     StringCutObjectSelector<reco::PFJet> stringCutSelector(stringCut);
-    std::cout << "minPt: " << minPt << std::endl;
+    LogDebug("JetFilter") << "Printing pt-cut for jets" << "minPt: " << minPt;
 
     minPts_.push_back(minPt);
     maxEtas_.push_back(maxEta);
@@ -126,24 +126,24 @@ JetFilter::JetFilter(const edm::ParameterSet& iConfig):
   }
   nCuts_ = jetCuts.size();
 
-	// additionalCutString = iConfig.getParameter<std::string>("additionalCut");
+  // additionalCutString = iConfig.getParameter<std::string>("additionalCut");
   // additionalCutSelector_ = StringCutObjectSelector<reco::PFJet>(additionalCutString);
 
-	edm::Service<TFileService> fs;
+  edm::Service<TFileService> fs;
   string name;
-	name="jetPt_jetIndex"  ; histoMap2D_.emplace( name , fs->make<TH2D>(name.c_str() , name.c_str() , 100 , 0.  , 500. , 10 , 0. , 10. )) ;
-	name="jetEta_jetIndex" ; histoMap2D_.emplace( name , fs->make<TH2D>(name.c_str() , name.c_str() , 100 , -5. , 5.   , 10 , 0. , 10. ))  ;
+  name="jetPt_jetIndex"  ; histoMap2D_.emplace( name , fs->make<TH2D>(name.c_str() , name.c_str() , 100 , 0.  , 500. , 10 , 0. , 10. )) ;
+  name="jetEta_jetIndex" ; histoMap2D_.emplace( name , fs->make<TH2D>(name.c_str() , name.c_str() , 100 , -5. , 5.   , 10 , 0. , 10. ))  ;
 
 
-	produces< reco::PFJetCollection > ("selectedJets"). setBranchAlias( "selectedJets" );
+  produces< reco::PFJetCollection > ("selectedJets"). setBranchAlias( "selectedJets" );
 }
 
 
 JetFilter::~JetFilter()
 {
- 
-   // do anything here that needs to be done at desctruction time
-   // (e.g. close files, deallocate resources etc.)
+
+  // do anything here that needs to be done at desctruction time
+  // (e.g. close files, deallocate resources etc.)
 
 }
 
@@ -153,19 +153,19 @@ JetFilter::~JetFilter()
 //
 
 // ------------ method called on each new Event  ------------
-bool
+  bool
 JetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
   bool eventPassed = false;
 
-	edm::Handle< reco::PFJetCollection > jetCollection;
-	iEvent.getByToken(jetCollectionToken_, jetCollection);
+  edm::Handle< reco::PFJetCollection > jetCollection;
+  iEvent.getByToken(jetCollectionToken_, jetCollection);
 
   std::auto_ptr< reco::PFJetCollection > selectedJets_( new reco::PFJetCollection() );
   selectedJets_->reserve(jetCollection->size());
 
-  // std::cout << "Iterating over jets\n";
+  LogDebug("JetFilter") << "Iterating over jets";
   int nJetsPassing = 0;
   int jetIndex = 0;
   for (auto it = jetCollection->begin(); it != jetCollection->end(); it++) {
@@ -209,19 +209,19 @@ JetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // iEvent.put(_dummy, "dummy");
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
-   Handle<ExampleData> pIn;
-   iEvent.getByLabel("example",pIn);
+  Handle<ExampleData> pIn;
+  iEvent.getByLabel("example",pIn);
 #endif
 
 #ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-   ESHandle<SetupData> pSetup;
-   iSetup.get<SetupRecord>().get(pSetup);
+  ESHandle<SetupData> pSetup;
+  iSetup.get<SetupRecord>().get(pSetup);
 #endif
-   return eventPassed;
+  return eventPassed;
 }
 
 // ------------ method called once each job just before starting event loop  ------------
-void 
+  void 
 JetFilter::beginJob()
 {
 }
@@ -233,36 +233,36 @@ JetFilter::endJob() {
 
 // ------------ method called when starting to processes a run  ------------
 /*
-void
-JetFilter::beginRun(edm::Run const&, edm::EventSetup const&)
-{ 
-}
-*/
- 
+   void
+   JetFilter::beginRun(edm::Run const&, edm::EventSetup const&)
+   { 
+   }
+   */
+
 // ------------ method called when ending the processing of a run  ------------
 /*
-void
-JetFilter::endRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   JetFilter::endRun(edm::Run const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method called when starting to processes a luminosity block  ------------
 /*
-void
-JetFilter::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   JetFilter::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method called when ending the processing of a luminosity block  ------------
 /*
-void
-JetFilter::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   JetFilter::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
 JetFilter::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

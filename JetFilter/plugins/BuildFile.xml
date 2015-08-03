@@ -2,7 +2,7 @@
 <use name="FWCore/PluginManager"/>
 <use name="FWCore/ParameterSet"/>
 <use name="CommonTools/UtilAlgos"/>
-<use name="CommonTools/Util"/>
+<use name="CommonTools/Utils"/>
 <use name="clhep"/>
 <use name="root"/>
 <use name="rootcore"/>

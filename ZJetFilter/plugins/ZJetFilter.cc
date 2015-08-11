@@ -5,11 +5,11 @@
 // 
 /**\class ZJetFilter ZJetFilter.cc EmergingJetAnalysis/ZJetFilter/plugins/ZJetFilter.cc
 
- Description: Selects Z+Jet events where there is exactly one hard jet back to back with the Z boson.
+Description: Selects Z+Jet events where there is exactly one hard jet back to back with the Z boson.
 
- Implementation:
-     // Requires Z boson 4-vector to be present in the event. (reco::Candidate::LorentzVector)
-     Saves selected hard jet.
+Implementation:
+// Requires Z boson 4-vector to be present in the event. (reco::Candidate::LorentzVector)
+Saves selected hard jet.
 */
 //
 // Original Author:  Young Ho Shin
@@ -39,8 +39,9 @@
 // Data formats
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
 
-#include "DataFormats/JetReco/interface/PFJetCollection.h"
+// #include "DataFormats/JetReco/interface/PFJetCollection.h"
 
 // Namespace shorthands
 using std::string;
@@ -51,29 +52,36 @@ using std::vector;
 //
 
 class ZJetFilter : public edm::EDFilter {
-   public:
-      explicit ZJetFilter(const edm::ParameterSet&);
-      ~ZJetFilter();
+  public:
+    explicit ZJetFilter(const edm::ParameterSet&);
+    ~ZJetFilter();
 
-      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
-   private:
-      virtual void beginJob() override;
-      virtual bool filter(edm::Event&, const edm::EventSetup&) override;
-      virtual void endJob() override;
-      
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+  private:
+    virtual void beginJob() override;
+    virtual bool filter(edm::Event&, const edm::EventSetup&) override;
+    virtual void endJob() override;
 
-      // ----------member data ---------------------------
-			// Retrieve once 
-			string alias_; // Alias suffix for all products
-			// Retrieve once per event
-			edm::EDGetTokenT< edm::View<reco::Candidate> > muonCollectionToken_;
-			edm::EDGetTokenT< pat::ElectronCollection > electronCollectionToken_;
-			edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+    //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
+    //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+    //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+
+    // ----------member data ---------------------------
+    // Retrieve once 
+    string alias_; // Alias suffix for all products
+    // Retrieve once per event
+    edm::EDGetTokenT< pat::MuonCollection > muonCollectionToken_;
+    edm::EDGetTokenT< pat::ElectronCollection > electronCollectionToken_;
+    edm::EDGetTokenT< pat::JetCollection > jetCollectionToken_;
+    double minPtMuon_;
+    double minPtElectron_;
+    double minZMass_;
+    double maxZMass_;
+    double maxDeltaPhi_;
+    double minPtSelectedJet_;
+    double maxPtAdditionalJets_;
 };
 
 //
@@ -93,32 +101,39 @@ typedef math::PtEtaPhiMLorentzVector PolarLorentzVector;
 //
 // constructors and destructor
 //
-ZJetFilter::ZJetFilter(const edm::ParameterSet& iConfig)
+ZJetFilter::ZJetFilter(const edm::ParameterSet& iConfig) :
+    minPtMuon_           (  iConfig.getParameter<double>("minPtMuon") ),
+    minPtElectron_       (  iConfig.getParameter<double>("minPtElectron") ),
+    minZMass_            (  iConfig.getParameter<double>("minZMass") ),
+    maxZMass_            (  iConfig.getParameter<double>("maxZMass") ),
+    maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
+    minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
+    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") )
 {
-   //now do what ever initialization is needed
+  //now do what ever initialization is needed
 
-	alias_ = iConfig.getParameter<string>("@module_label");
+  alias_ = iConfig.getParameter<string>("@module_label");
 
-	muonCollectionToken_ = consumes< edm::View<reco::Candidate> > (iConfig.getParameter<edm::InputTag>("srcMuons"));
-	electronCollectionToken_ = consumes< pat::ElectronCollection > (iConfig.getParameter<edm::InputTag>("srcElectrons"));
-	jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+  muonCollectionToken_ = consumes< pat::MuonCollection > (iConfig.getParameter<edm::InputTag>("srcMuons"));
+  electronCollectionToken_ = consumes< pat::ElectronCollection > (iConfig.getParameter<edm::InputTag>("srcElectrons"));
+  jetCollectionToken_ = consumes< pat::JetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
 
   //Register products
-	produces< bool > ("zValidity")  . setBranchAlias( string("zValidity_").append(alias_) );
-	produces< PolarLorentzVector > ("zP4")  . setBranchAlias( string("zP4_").append(alias_) );
-
-	produces< reco::PFJetCollection > ("jetSelected")  . setBranchAlias( string("jetSelected_").append(alias_) );
-	produces< vector<double> > ("deltaR")  . setBranchAlias( string("deltaR_").append(alias_) );
-	produces< vector<double> > ("deltaPhi")  . setBranchAlias( string("deltaPhi_").append(alias_) );
-	produces< bool > ("eventPassed")  . setBranchAlias( string("eventPassed_").append(alias_) );
+  // produces< bool > ("zValidity")  . setBranchAlias( string("zValidity_").append(alias_) );
+  produces< PolarLorentzVector > ("zP4")  . setBranchAlias( string("zP4_").append(alias_) );
+  //
+  // produces< pat::JetCollection > ("jetSelected")  . setBranchAlias( string("jetSelected_").append(alias_) );
+  // produces< vector<double> > ("deltaR")  . setBranchAlias( string("deltaR_").append(alias_) );
+  // produces< vector<double> > ("deltaPhi")  . setBranchAlias( string("deltaPhi_").append(alias_) );
+  // produces< bool > ("eventPassed")  . setBranchAlias( string("eventPassed_").append(alias_) );
 }
 
 
 ZJetFilter::~ZJetFilter()
 {
- 
-   // do anything here that needs to be done at desctruction time
-   // (e.g. close files, deallocate resources etc.)
+
+  // do anything here that needs to be done at desctruction time
+  // (e.g. close files, deallocate resources etc.)
 
 }
 
@@ -128,64 +143,102 @@ ZJetFilter::~ZJetFilter()
 //
 
 // ------------ method called on each new Event  ------------
-bool
+  bool
 ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
 
-	edm::Handle< edm::View<reco::Candidate> > muonCollection;
-	iEvent.getByToken(muonCollectionToken_, muonCollection);
-	edm::Handle< pat::ElectronCollection > electronCollection;
-	iEvent.getByToken(electronCollectionToken_, electronCollection);
-	edm::Handle< reco::PFJetCollection > jetCollection;
-	iEvent.getByToken(jetCollectionToken_, jetCollection);
+  edm::Handle< pat::MuonCollection > muonCollection;
+  iEvent.getByToken(muonCollectionToken_, muonCollection);
+  edm::Handle< pat::ElectronCollection > electronCollection;
+  iEvent.getByToken(electronCollectionToken_, electronCollection);
+  edm::Handle< pat::JetCollection > jetCollection;
+  iEvent.getByToken(jetCollectionToken_, jetCollection);
 
   ////////////////////////////////////////////////////////////
   // Calculate zP4 with electrons/muons
   ////////////////////////////////////////////////////////////
-	bool zValidity = false;
-	PolarLorentzVector zP4;
+  bool zValidity = false;
+  PolarLorentzVector zP4;
 
-	auto electrons = electronCollection.product();
-	// int electronCount = 0;
-	// for (auto electron = electrons->begin(); electron != electrons->end(); electron++) {
-	// 	if ( electron->electronID("eidLoose") > 0 ) electronCount++;
-	// }
-	if ( electrons->size() >= 2 ) {
-		RecoLorentzVector zP4_;
-		zP4_ = electrons->at(0).p4() + electrons->at(1).p4();
-		if ( 80 < zP4_.mass() && zP4_.mass() < 100 ) {
-			zP4 = zP4_;
-			zValidity = true;
-		}
-	}
+  // Construct zP4 from electrons
+  {
+    // Select good leptons
+    auto leptons = electronCollection.product();
+    int nGoodLepton = 0;
+    pat::ElectronCollection goodLeptons;
+    // Lepton-specific criteria
+    for ( auto it = leptons->begin(); it != leptons->end(); it++ ) {
+      auto lepton = *it;
+      if ( lepton.pt() < minPtElectron_ ) continue;
+      if ( abs(lepton.eta()) > 2.5 ) continue;
+      if ( lepton.electronID("cutBasedElectronID-CSA14-PU20bx25-V0-standalone-medium") < 1 ) continue;
+      nGoodLepton++;
+      goodLeptons.push_back(lepton);
+    }
 
-	auto muons = muonCollection.product();
-	if ( muons->size() >= 2 ) {
-		RecoLorentzVector zP4_;
-		zP4_ = muons->at(0).p4() + muons->at(1).p4();
-		if ( 80 < zP4_.mass() && zP4_.mass() < 100 ) {
-			zP4 = zP4_;
-			zValidity = true;
-		}
-	}
+    if ( goodLeptons.size() >= 2 ) {
+      // Assuming collection is sorted by pt
+      RecoLorentzVector zP4_;
+      zP4_ = goodLeptons[0].p4() + goodLeptons[1].p4();
+      LogTrace("ZJetFilter") << "Printing Z mass: " << zP4_.mass();
+      if ( minZMass_ < zP4_.mass() && zP4_.mass() < maxZMass_ ) {
+        zP4 = zP4_;
+        zValidity = true;
+      }
+    }
+  }
 
-	std::auto_ptr< bool > _zValidity( new bool (zValidity) );
-	iEvent.put(_zValidity, "zValidity");
-	std::auto_ptr< PolarLorentzVector > _zP4( new PolarLorentzVector (zP4) );
-	iEvent.put(_zP4, "zP4");
+  {
+    // Select good leptons
+    auto leptons = muonCollection.product();
+    int nGoodLepton = 0;
+    pat::MuonCollection goodLeptons;
+    // Lepton-specific criteria
+    for ( auto it = leptons->begin(); it != leptons->end(); it++ ) {
+      auto lepton = *it;
+      if ( lepton.pt() < minPtElectron_ ) continue;
+      if ( abs(lepton.eta()) > 2.5 ) continue;
+      if ( !lepton.muonID("AllGlobalMuons") ) continue;
+      nGoodLepton++;
+      goodLeptons.push_back(lepton);
+    }
+
+    if ( goodLeptons.size() >= 2 ) {
+      // Assuming collection is sorted by pt
+      RecoLorentzVector zP4_;
+      zP4_ = goodLeptons[0].p4() + goodLeptons[1].p4();
+      LogTrace("ZJetFilter") << "Printing Z mass: " << zP4_.mass();
+      if ( minZMass_ < zP4_.mass() && zP4_.mass() < maxZMass_ ) {
+        zP4 = zP4_;
+        zValidity = true;
+      }
+    }
+  }
+
+  // LogTrace("ZJetFilter") << "Printing electron pts.";
+  // for ( auto it = electrons->begin(); it != electrons->end(); it++ ) {
+  //   auto electron = *it;
+  //   LogTrace("ZJetFilter") << electron.pt();
+  // }
+
+
+  // std::auto_ptr< bool > _zValidity( new bool (zValidity) );
+  // iEvent.put(_zValidity, "zValidity");
+  // std::auto_ptr< PolarLorentzVector > _zP4( new PolarLorentzVector (zP4) );
+  // iEvent.put(_zP4, "zP4");
 
   ////////////////////////////////////////////////////////////
   // Check if there is a jet opposite to Z
   // Veto presence of additional hard jets
   ////////////////////////////////////////////////////////////
   bool eventPassed = false;
-  reco::PFJetCollection jetToSave;
+  pat::JetCollection jetToSave;
   vector<double> deltaRs;
   vector<double> deltaPhis;
   if (zValidity) {
     auto jets = jetCollection.product();
-    reco::PFJetCollection::const_iterator jetSelected = jets->end();
+    pat::JetCollection::const_iterator jetSelected = jets->end();
     // Loop over jets to find first jet that is within dR cut of -zP4
     int iJet = 0;
     for ( auto jet = jets->begin(); jet!= jets->end(); jet++ ) {
@@ -194,7 +247,7 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       // std::cout << "dR: " << dR << " \n";
       // std::cout << "jet->pt(): " << jet->pt() << " \n";
       // std::cout << iJet << "\t" << dR << " \t" << jet->pt() << " \n";
-      if ( dPhi < 0.4 && jet->pt() > 50 ) {
+      if ( dPhi < maxDeltaPhi_ && jet->pt() > minPtSelectedJet_ ) {
         eventPassed = true;
         jetSelected = jet;
         jetToSave.push_back(*jet);
@@ -209,27 +262,28 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       if ( jet == jetSelected ) {
         continue;
       }
-      else if ( jet->pt() > 50 ) {
+      else if ( jet->pt() > maxPtAdditionalJets_ ) {
         eventPassed = false;
         break;
       }
     }
   }
+  LogTrace("ZJetFilter") << "eventPassed: " << eventPassed;
 
-	std::auto_ptr< reco::PFJetCollection > _jetToSave( new reco::PFJetCollection (jetToSave) );
-	iEvent.put(_jetToSave, "jetSelected");
-	std::auto_ptr< vector<double> > _deltaRs( new vector<double> (deltaRs) );
-	iEvent.put(_deltaRs, "deltaR");
-	std::auto_ptr< vector<double> > _deltaPhis( new vector<double> (deltaPhis) );
-	iEvent.put(_deltaPhis, "deltaPhi");
-	std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
-	iEvent.put(_eventPassed, "eventPassed");
+  // std::auto_ptr< reco::PFJetCollection > _jetToSave( new reco::PFJetCollection (jetToSave) );
+  // iEvent.put(_jetToSave, "jetSelected");
+  // std::auto_ptr< vector<double> > _deltaRs( new vector<double> (deltaRs) );
+  // iEvent.put(_deltaRs, "deltaR");
+  // std::auto_ptr< vector<double> > _deltaPhis( new vector<double> (deltaPhis) );
+  // iEvent.put(_deltaPhis, "deltaPhi");
+  // std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
+  // iEvent.put(_eventPassed, "eventPassed");
 
-	return eventPassed;
+  return eventPassed;
 }
 
 // ------------ method called once each job just before starting event loop  ------------
-void 
+  void 
 ZJetFilter::beginJob()
 {
 }
@@ -241,36 +295,36 @@ ZJetFilter::endJob() {
 
 // ------------ method called when starting to processes a run  ------------
 /*
-void
-ZJetFilter::beginRun(edm::Run const&, edm::EventSetup const&)
-{ 
-}
-*/
- 
+   void
+   ZJetFilter::beginRun(edm::Run const&, edm::EventSetup const&)
+   { 
+   }
+   */
+
 // ------------ method called when ending the processing of a run  ------------
 /*
-void
-ZJetFilter::endRun(edm::Run const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   ZJetFilter::endRun(edm::Run const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method called when starting to processes a luminosity block  ------------
 /*
-void
-ZJetFilter::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   ZJetFilter::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method called when ending the processing of a luminosity block  ------------
 /*
-void
-ZJetFilter::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
-{
-}
-*/
- 
+   void
+   ZJetFilter::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+   {
+   }
+   */
+
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
 ZJetFilter::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

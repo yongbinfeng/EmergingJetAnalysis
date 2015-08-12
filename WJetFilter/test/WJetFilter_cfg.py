@@ -35,7 +35,9 @@ options.maxEvents = -1 # -1 means all events
 # options.inputFiles= 'root://xrootd-cms.infn.it//store/mc/Phys14DR/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
 # options.inputFiles= 'file:/afs/cern.ch/work/y/yoshin/public/RunIISpring15DR74/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
 # options.inputFiles= '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/RECO/150715_195547/0000/aodsim_10.root'
-options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
+# options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
+# options.inputFiles= '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
+options.inputFiles= '/store/data/Run2015A/SingleMuon/AOD/PromptReco-v1/000/248/036/00000/787C46EA-5714-E511-863E-02163E014609.root'
 options.outputFile = ''
 options.register ('crab',
                   0, # default value
@@ -119,14 +121,14 @@ process = miniAOD_customizeAllMC(process)
 ############################################################
 # Private modules
 ############################################################
-process.zJetFilter = cms.EDFilter("ZJetFilter",
+process.wJetFilter = cms.EDFilter("WJetFilter",
     srcMuons = cms.InputTag("slimmedMuons"),
     srcElectrons = cms.InputTag("slimmedElectrons"),
     srcJets = cms.InputTag("slimmedJets"),
+    srcMET = cms.InputTag("slimmedMETs"),
     minPtMuon = cms.double(20.0),
-    minPtElectron = cms.double(30.0),
-    minZMass = cms.double(80.0),
-    maxZMass = cms.double(100.0),
+    minPtElectron = cms.double(20.0),
+    minPtMET = cms.double(20.0),
     maxDeltaPhi = cms.double(0.4),
     minPtSelectedJet = cms.double(50.0),
     maxPtAdditionalJets = cms.double(50.0),
@@ -184,7 +186,7 @@ process.TFileService = cms.Service("TFileService",
 #     printVertex = cms.untracked.bool(False)
 #   )
 #
-process.p = cms.Path( process.zJetFilter )
+process.p = cms.Path( process.wJetFilter )
 
 
 
@@ -198,6 +200,8 @@ process.p = cms.Path( process.zJetFilter )
 
 
 
+
+from Configuration.EventContent.EventContent_cff import AODSIMEventContent
 
 process.out = cms.OutputModule("PoolOutputModule",
     compressionAlgorithm = cms.untracked.string('LZMA'),
@@ -213,6 +217,7 @@ process.out = cms.OutputModule("PoolOutputModule",
         SelectEvents = cms.vstring('p')
     )
 )
+
 if options.outputFile=='.root' or options.outputFile.find('_numEvent')==0:
     print """
 ############################################################
@@ -230,8 +235,8 @@ Writing to """ + options.outputFile + """
 
 process.MessageLogger = cms.Service("MessageLogger",
     destinations = cms.untracked.vstring('cout'),
-    categories = cms.untracked.vstring('ZJetFilter'),
-    debugModules = cms.untracked.vstring('zJetFilter'),
+    categories = cms.untracked.vstring('WJetFilter'),
+    debugModules = cms.untracked.vstring('wJetFilter'),
     cout         = cms.untracked.PSet(
         threshold = cms.untracked.string('DEBUG'),
         # DEBUG = cms.untracked.int32(0),

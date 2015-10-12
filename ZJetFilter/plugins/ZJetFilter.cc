@@ -36,6 +36,13 @@ Saves selected hard jet.
 #include <TVector3.h>
 #include <Math/VectorUtil.h>
 
+// For creating/writing histograms
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "TTree.h"
+#include "TH1.h"
+#include "TH2.h"
+
 // Data formats
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
@@ -69,6 +76,7 @@ class ZJetFilter : public edm::EDFilter {
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
     // ----------member data ---------------------------
+    // Inputs
     // Retrieve once 
     string alias_; // Alias suffix for all products
     // Retrieve once per event
@@ -82,6 +90,19 @@ class ZJetFilter : public edm::EDFilter {
     double maxDeltaPhi_;
     double minPtSelectedJet_;
     double maxPtAdditionalJets_;
+
+    // Outputs
+    TTree* outputTree;
+    struct outputClass {
+      public:
+        double m_ee;
+        double m_uu;
+        vector<double> jets_pt;
+        vector<double> jets_eta;
+        vector<double> jets_phi;
+        vector<double> jets_dPhi_Z;
+    };
+    outputClass output;
 };
 
 //
@@ -108,7 +129,8 @@ ZJetFilter::ZJetFilter(const edm::ParameterSet& iConfig) :
     maxZMass_            (  iConfig.getParameter<double>("maxZMass") ),
     maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
-    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") )
+    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
+    output( {0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
   //now do what ever initialization is needed
 
@@ -126,6 +148,15 @@ ZJetFilter::ZJetFilter(const edm::ParameterSet& iConfig) :
   // produces< vector<double> > ("deltaR")  . setBranchAlias( string("deltaR_").append(alias_) );
   // produces< vector<double> > ("deltaPhi")  . setBranchAlias( string("deltaPhi_").append(alias_) );
   // produces< bool > ("eventPassed")  . setBranchAlias( string("eventPassed_").append(alias_) );
+
+  edm::Service<TFileService> fs;
+  outputTree = fs->make<TTree>("ZJetFilterTree", "ZJetFilterTree");
+  outputTree->Branch("m_ee"        , &output.m_ee        ) ;
+  outputTree->Branch("m_uu"        , &output.m_uu        ) ;
+  outputTree->Branch("jets_pt"     , &output.jets_pt     ) ;
+  outputTree->Branch("jets_eta"    , &output.jets_eta    ) ;
+  outputTree->Branch("jets_phi"    , &output.jets_phi    ) ;
+  outputTree->Branch("jets_dPhi_Z" , &output.jets_dPhi_Z ) ;
 }
 
 
@@ -158,12 +189,15 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   ////////////////////////////////////////////////////////////
   // Calculate zP4 with electrons/muons
   ////////////////////////////////////////////////////////////
-  bool zValidity = false;
+  bool zValidity_ee = false;
+  bool zValidity_uu = false;
   PolarLorentzVector zP4;
 
   // Construct zP4 from electrons
   {
     // Select good leptons
+    bool& zValidity = zValidity_ee;
+    auto& m_ll = output.m_ee;
     auto leptons = electronCollection.product();
     int nGoodLepton = 0;
     pat::ElectronCollection goodLeptons;
@@ -182,6 +216,7 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       RecoLorentzVector zP4_;
       zP4_ = goodLeptons[0].p4() + goodLeptons[1].p4();
       LogTrace("ZJetFilter") << "Printing Z mass: " << zP4_.mass();
+      m_ll = zP4_.mass();
       if ( minZMass_ < zP4_.mass() && zP4_.mass() < maxZMass_ ) {
         zP4 = zP4_;
         zValidity = true;
@@ -191,6 +226,8 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   {
     // Select good leptons
+    bool& zValidity = zValidity_uu;
+    auto& m_ll = output.m_uu;
     auto leptons = muonCollection.product();
     int nGoodLepton = 0;
     pat::MuonCollection goodLeptons;
@@ -209,6 +246,7 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       RecoLorentzVector zP4_;
       zP4_ = goodLeptons[0].p4() + goodLeptons[1].p4();
       LogTrace("ZJetFilter") << "Printing Z mass: " << zP4_.mass();
+      m_ll = zP4_.mass();
       if ( minZMass_ < zP4_.mass() && zP4_.mass() < maxZMass_ ) {
         zP4 = zP4_;
         zValidity = true;
@@ -236,7 +274,7 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   pat::JetCollection jetToSave;
   vector<double> deltaRs;
   vector<double> deltaPhis;
-  if (zValidity) {
+  if (zValidity_ee | zValidity_uu) {
     auto jets = jetCollection.product();
     pat::JetCollection::const_iterator jetSelected = jets->end();
     // Loop over jets to find first jet that is within dR cut of -zP4
@@ -279,6 +317,7 @@ ZJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
   // iEvent.put(_eventPassed, "eventPassed");
 
+  outputTree->Fill();
   return eventPassed;
 }
 

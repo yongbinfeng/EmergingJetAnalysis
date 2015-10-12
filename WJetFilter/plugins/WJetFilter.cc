@@ -42,6 +42,7 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TTree.h"
 
 // Data formats
 #include "DataFormats/PatCandidates/interface/Muon.h"
@@ -75,7 +76,9 @@ class WJetFilter : public edm::EDFilter {
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
     // ----------member data ---------------------------
+    // Inputs
     string alias_; // Alias suffix for all products
+    bool isData_;
     // Retrieve once per event
     edm::EDGetTokenT< pat::MuonCollection > muonCollectionToken_;
     edm::EDGetTokenT< pat::ElectronCollection > electronCollectionToken_;
@@ -84,12 +87,30 @@ class WJetFilter : public edm::EDFilter {
     double minPtMuon_;
     double minPtElectron_;
     double minPtMET_;
+    double minDeltaR_;
     double maxDeltaPhi_;
     double minPtSelectedJet_;
     double maxPtAdditionalJets_;
 
+    // Outputs
     std::unordered_map<string, TH1*> histoMap1D_;
     std::unordered_map<string, TH2*> histoMap2D_;
+
+    TTree* outputTree;
+    struct outputClass {
+      public:
+        double met_pt;
+        double met_phi;
+        double lepton_pt;
+        double lepton_eta;
+        double lepton_phi;
+        double mT_e;
+        double mT_u;
+        vector<double> jets_pt;
+        vector<double> jets_eta;
+        vector<double> jets_phi;
+    };
+    outputClass output;
 };
 
 //
@@ -113,11 +134,14 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
     minPtMuon_           (  iConfig.getParameter<double>("minPtMuon") ),
     minPtElectron_       (  iConfig.getParameter<double>("minPtElectron") ),
     minPtMET_            (  iConfig.getParameter<double>("minPtMET") ),
+    minDeltaR_           (  iConfig.getParameter<double>("minDeltaR") ),
     maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
-    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") )
+    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
+    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
+  LogTrace("WJetFilter") << "Constructing WJetFilter";
 
   alias_ = iConfig.getParameter<string>("@module_label");
 
@@ -130,15 +154,53 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   // produces< bool > ("zValidity")  . setBranchAlias( string("zValidity_").append(alias_) );
   // produces< PolarLorentzVector > ("zP4")  . setBranchAlias( string("zP4_").append(alias_) );
   //
-  // produces< pat::JetCollection > ("jetSelected")  . setBranchAlias( string("jetSelected_").append(alias_) );
+  // produces< reco::PFJetCollection > (alias_)  . setBranchAlias( alias_ );
+  produces< reco::PFJetCollection > ();
   // produces< vector<double> > ("deltaR")  . setBranchAlias( string("deltaR_").append(alias_) );
   // produces< vector<double> > ("deltaPhi")  . setBranchAlias( string("deltaPhi_").append(alias_) );
   // produces< bool > ("eventPassed")  . setBranchAlias( string("eventPassed_").append(alias_) );
 
   edm::Service<TFileService> fs;
   string name;
+  name="eventCountPreFilter"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
+  name="eventCountPostFilter" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
+
+  name="genHt"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5000.) );
+
+  name="pt_met"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 1000.) );
+
   name="mT_e"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 200.) );
   name="mT_mu" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 200.) );
+
+  name="nGoodLepton" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 20 , 0., 20.) );
+  name="nSelectedJet" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 20 , 0., 20.) );
+
+  name="pt_jetIndex"  ; histoMap2D_.emplace( name , fs->make<TH2D>(name.c_str() , name.c_str() , 100 , 0.  , 1000. , 10 , 0. , 10. )) ;
+
+  name="pt_selectedJet" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 200.) );
+
+  name="dPhi_jet_met"    ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5.) ) ;
+  name="dPhi_jet_lepton" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5.) ) ;
+  name="dPhi_jet_w"      ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5.) ) ;
+
+  for ( auto const & it : histoMap1D_ ) {
+    it.second->Sumw2();
+  }
+  for ( auto const & it : histoMap2D_ ) {
+    it.second->Sumw2();
+  }
+
+  outputTree = fs->make<TTree>("WJetFilterTree", "WJetFilterTree");
+  outputTree->Branch("met_pt"     , &output.met_pt     ) ;
+  outputTree->Branch("met_phi"    , &output.met_phi    ) ;
+  outputTree->Branch("lepton_pt"  , &output.lepton_pt  ) ;
+  outputTree->Branch("lepton_eta" , &output.lepton_eta ) ;
+  outputTree->Branch("lepton_phi" , &output.lepton_phi ) ;
+  outputTree->Branch("mT_e"       , &output.mT_e       ) ;
+  outputTree->Branch("mT_u"       , &output.mT_u       ) ;
+  outputTree->Branch("jets_pt"    , &output.jets_pt    ) ;
+  outputTree->Branch("jets_eta"   , &output.jets_eta   ) ;
+  outputTree->Branch("jets_phi"   , &output.jets_phi   ) ;
 }
 
 
@@ -160,6 +222,22 @@ bool
 WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  output.met_pt     = -10;
+  output.met_phi    = -10;
+  output.lepton_pt  = -10;
+  output.lepton_eta = -10;
+  output.lepton_phi = -10;
+  output.mT_e       = -10;
+  output.mT_u       = -10;
+  output.jets_pt.clear();
+  output.jets_eta.clear();
+  output.jets_phi.clear();
+
+  histoMap1D_["eventCountPreFilter"]->Fill(1.);
+
+  edm::Handle<double> genHt_;
+  iEvent.getByLabel("genJetFilter", "genHt", genHt_);
+  histoMap1D_["genHt"]->Fill(*genHt_);
 
   bool eventPassed = false;
   edm::Handle< pat::MuonCollection > muonCollection;
@@ -171,18 +249,22 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle< pat::METCollection > metCollection;
   iEvent.getByToken(metCollectionToken_, metCollection);
   auto met = (metCollection->at(0));
+  histoMap1D_["pt_met"]->Fill(met.pt());
   if ( met.pt() < minPtMET_ ) return eventPassed;
+  output.met_pt = met.pt();
+  output.met_phi = met.phi();
 
   ////////////////////////////////////////////////////////////
   // Calculate mT with electrons/muons
   ////////////////////////////////////////////////////////////
 
   // Construct zP4 from electrons
+  pat::ElectronCollection goodElectrons;
+  int nGoodLepton = 0;
   {
+    pat::ElectronCollection& goodLeptons = goodElectrons;
     // Select good leptons
     auto leptons = electronCollection.product();
-    int nGoodLepton = 0;
-    pat::ElectronCollection goodLeptons;
     // Lepton-specific criteria
     for ( auto it = leptons->begin(); it != leptons->end(); it++ ) {
       auto lepton = *it;
@@ -193,19 +275,23 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       goodLeptons.push_back(lepton);
     }
 
-    if ( goodLeptons.size() >= 1 ) {
-      float dPhi = ROOT::Math::VectorUtil::DeltaPhi( met.p4(), goodLeptons[0].p4() );
+    if ( goodLeptons.size() == 1 ) {
+      float dPhi = TMath::Abs( ROOT::Math::VectorUtil::DeltaPhi( met.p4(), goodLeptons[0].p4() ) );
       double mT = TMath::Sqrt( 2. * goodLeptons[0].pt() * met.pt() * ( 1 - TMath::Cos(dPhi) ) );
-      LogTrace("ZJetFilter") << "mT_e: " << mT;
+      LogTrace("WJetFilter") << "mT_e: " << mT;
       histoMap1D_["mT_e"]->Fill(mT);
+      output.mT_e = mT;
+      output.lepton_pt   = goodLeptons[0].pt();
+      output.lepton_eta = goodLeptons[0].eta();
+      output.lepton_phi = goodLeptons[0].phi();
     }
   }
 
+  pat::MuonCollection goodMuons;
   {
+    pat::MuonCollection& goodLeptons = goodMuons;
     // Select good leptons
     auto leptons = muonCollection.product();
-    int nGoodLepton = 0;
-    pat::MuonCollection goodLeptons;
     // Lepton-specific criteria
     for ( auto it = leptons->begin(); it != leptons->end(); it++ ) {
       auto lepton = *it;
@@ -216,18 +302,91 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       goodLeptons.push_back(lepton);
     }
 
-    if ( goodLeptons.size() >= 1 ) {
-      float dPhi = ROOT::Math::VectorUtil::DeltaPhi( met.p4(), goodLeptons[0].p4() );
+    if ( goodLeptons.size() == 1 ) {
+      float dPhi = TMath::Abs( ROOT::Math::VectorUtil::DeltaPhi( met.p4(), goodLeptons[0].p4() ) );
       double mT = TMath::Sqrt( 2. * goodLeptons[0].pt() * met.pt() * ( 1 - TMath::Cos(dPhi) ) );
-      LogTrace("ZJetFilter") << "mT_mu " << mT;
+      LogTrace("WJetFilter") << "mT_mu " << mT;
       histoMap1D_["mT_mu"]->Fill(mT);
+      output.mT_u = mT;
+      output.lepton_pt   = goodLeptons[0].pt();
+      output.lepton_eta = goodLeptons[0].eta();
+      output.lepton_phi = goodLeptons[0].phi();
     }
   }
 
-  // LogTrace("ZJetFilter") << "Printing electron pts.";
+  // LogTrace("WJetFilter") << "nGoodLepton " << nGoodLepton;
+  histoMap1D_["nGoodLepton"]->Fill(nGoodLepton);
+  if ( nGoodLepton != 1 ) return false;
+  RecoLorentzVector goodLeptonP4; 
+  if ( goodMuons.size()==1 ) goodLeptonP4 = goodMuons[0].p4();
+  else goodLeptonP4 = goodElectrons[0].p4();
+  
+
+  auto jets = jetCollection.product();
+  reco::PFJetCollection selectedJet;
+  // LogTrace("WJetFilter") << "Number of jets in event: " << jets->size();
+  int nJetSelected = 0;
+  int jetIndex = 0;
+  for ( auto jet = jets->begin(); jet!= jets->end(); jet++ ) {
+
+    if ( ROOT::Math::VectorUtil::DeltaR( goodLeptonP4, jet->p4() ) < minDeltaR_ ) continue;
+    if (jet->pt() < minPtSelectedJet_) continue;
+    const reco::Candidate* recoJet = jet->originalObject();
+    if ( recoJet && jet->isPFJet() ) {
+      if ( const reco::PFJet* pfJet = dynamic_cast<const reco::PFJet*>(recoJet) ) {
+        selectedJet.push_back( *pfJet );
+        nJetSelected++;
+        histoMap1D_["pt_selectedJet"]->Fill( pfJet->pt() );
+        histoMap2D_["pt_jetIndex"]->Fill( pfJet->pt(), jetIndex );
+        // Store jet info in Tree for first four selected jets
+        if ( nJetSelected <= 4 ) {
+          LogTrace("WJetFilter") << "jet_pt: " << jet->pt();
+          output.jets_pt.push_back(jet->pt());
+          output.jets_eta.push_back(jet->eta());
+          output.jets_phi.push_back(jet->phi());
+        }
+      }
+    }
+
+    jetIndex++;
+  }
+  
+  LogTrace("WJetFilter") << "nJetSelected " << nJetSelected;
+  histoMap1D_["nSelectedJet"]->Fill(selectedJet.size());
+
+  outputTree->Fill();
+
+  // if ( selectedJet.size() == 0 ) return false;
+  if ( selectedJet.size() != 1 ) return false;
+  auto jet = selectedJet[0];
+  float dPhi_jet_met = ROOT::Math::VectorUtil::DeltaPhi( met.p4(), jet.p4() );
+  histoMap1D_["dPhi_jet_met"]->Fill(dPhi_jet_met);
+  auto wp4 = goodLeptonP4 + met.p4();
+  float dPhi_jet_lepton = ROOT::Math::VectorUtil::DeltaPhi( goodLeptonP4, jet.p4() );
+  histoMap1D_["dPhi_jet_lepton"]->Fill(dPhi_jet_lepton);
+  float dPhi_jet_w = ROOT::Math::VectorUtil::DeltaPhi( wp4, jet.p4() );
+  histoMap1D_["dPhi_jet_w"]->Fill(dPhi_jet_w);
+
+  histoMap1D_["eventCountPostFilter"]->Fill(1.);
+
+    // float dPhi = ROOT::Math::VectorUtil::DeltaPhi( met.p4(), jet.p4() );
+    // const reco::Candidate* recoJet = jet->originalObject();
+    // if (!recoJet) LogTrace("WJetFilter") << "originalObject empty!";
+    // else {
+    //   if ( const reco::PFJet* pfJet = dynamic_cast<const reco::PFJet*>(recoJet) ) {
+    //     LogTrace("WJetFilter") << "originalObject successfully casted to PFJet!";
+    //   }
+    //   else {
+    //     LogTrace("WJetFilter") << "originalObject could not be casted to PFJet!";
+    //   }
+    // }
+  // }
+
+
+  // LogTrace("WJetFilter") << "Printing electron pts.";
   // for ( auto it = electrons->begin(); it != electrons->end(); it++ ) {
   //   auto electron = *it;
-  //   LogTrace("ZJetFilter") << electron.pt();
+  //   LogTrace("WJetFilter") << electron.pt();
   // }
 
 
@@ -236,10 +395,10 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // std::auto_ptr< PolarLorentzVector > _zP4( new PolarLorentzVector (zP4) );
   // iEvent.put(_zP4, "zP4");
 
-  // LogTrace("ZJetFilter") << "eventPassed: " << eventPassed;
+  // LogTrace("WJetFilter") << "eventPassed: " << eventPassed;
 
-  // std::auto_ptr< reco::PFJetCollection > _jetToSave( new reco::PFJetCollection (jetToSave) );
-  // iEvent.put(_jetToSave, "jetSelected");
+  std::auto_ptr< reco::PFJetCollection > _selectedJet( new reco::PFJetCollection (selectedJet) );
+  iEvent.put(_selectedJet);
   // std::auto_ptr< vector<double> > _deltaRs( new vector<double> (deltaRs) );
   // iEvent.put(_deltaRs, "deltaR");
   // std::auto_ptr< vector<double> > _deltaPhis( new vector<double> (deltaPhis) );
@@ -247,7 +406,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
   // iEvent.put(_eventPassed, "eventPassed");
 
-  return eventPassed;
+  return true;
 }
 
 // ------------ method called once each job just before starting event loop  ------------

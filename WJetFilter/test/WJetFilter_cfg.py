@@ -3,6 +3,7 @@
 # - Default value for inputFiles
 # - Global Tag (between releases)
 # - datasets.py import location
+# - data/MC
 ############################################################
 
 import FWCore.ParameterSet.Config as cms
@@ -37,7 +38,7 @@ options.maxEvents = -1 # -1 means all events
 # options.inputFiles= '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/RECO/150715_195547/0000/aodsim_10.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
-options.inputFiles= '/store/data/Run2015A/SingleMuon/AOD/PromptReco-v1/000/248/036/00000/787C46EA-5714-E511-863E-02163E014609.root'
+options.inputFiles= '/store/data/Run2015B/SingleMuon/AOD/PromptReco-v1/000/251/168/00000/02132736-CB26-E511-8127-02163E01386E.root'
 options.outputFile = ''
 options.register ('crab',
                   0, # default value
@@ -45,6 +46,12 @@ options.register ('crab',
                   VarParsing.VarParsing.varType.int,          # string, int, or float
                   "Set to 1 to run on CRAB.")
 options.crab = 0
+options.register ('data',
+                  0, # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.int,          # string, int, or float
+                  "Set to 1 for data.")
+options.data = 0
 
 
 # get and parse the command line arguments
@@ -65,8 +72,12 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 
 
 ### ===========================================================
-from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc')
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
+from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
+if options.data:
+    process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
+else:
+    process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9', '')
 
 process.source = cms.Source("PoolSource",
 		# fileNames = cms.untracked.vstring("file:input.root"),
@@ -74,6 +85,10 @@ process.source = cms.Source("PoolSource",
 )
 # if options.inputFiles :
 process.source.fileNames = cms.untracked.vstring(options.inputFiles)
+
+if options.data and not options.crab:
+    import FWCore.PythonUtilities.LumiList as LumiList
+    process.source.lumisToProcess = LumiList.LumiList(filename = 'goodList.json').getVLuminosityBlockRange()
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(options.maxEvents)
@@ -107,15 +122,20 @@ process.maxEvents = cms.untracked.PSet(
 ############################################################
 # Recreate miniAOD
 ############################################################
-process.load('Configuration.StandardSequences.PATMC_cff')
-
-# customisation of the process.
-
-# Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC 
-
-#call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-process = miniAOD_customizeAllMC(process)
+if options.data: 
+    # customisation of the process.
+    process.load('Configuration.StandardSequences.PAT_cff')
+    # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+    from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData 
+    #call to customisation function miniAOD_customizeAllData imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+    process = miniAOD_customizeAllData(process)
+else: 
+    # customisation of the process.
+    process.load('Configuration.StandardSequences.PATMC_cff')
+    # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+    from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC 
+    #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+    process = miniAOD_customizeAllMC(process)
 ############################################################
 
 ############################################################

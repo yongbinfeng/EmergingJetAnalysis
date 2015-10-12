@@ -15,6 +15,7 @@ process.source = cms.Source("PoolSource",
 
 process.demo = cms.EDAnalyzer('EmergingJetAnalyzer'
 )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("histo.root") )
 
 
 process.p = cms.Path(process.demo)

@@ -298,6 +298,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       if ( lepton.pt() < minPtElectron_ ) continue;
       if ( abs(lepton.eta()) > 2.5 ) continue;
       if ( !lepton.muonID("AllGlobalMuons") ) continue;
+      if ( (lepton.trackIso() + lepton.caloIso()) / lepton.pt() > 0.2 ) continue;
       nGoodLepton++;
       goodLeptons.push_back(lepton);
     }

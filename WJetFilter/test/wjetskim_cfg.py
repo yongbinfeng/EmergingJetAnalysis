@@ -36,10 +36,10 @@ options.maxEvents = -1 # -1 means all events
 # options.inputFiles= 'root://xrootd-cms.infn.it//store/mc/Phys14DR/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
 # options.inputFiles= 'file:/afs/cern.ch/work/y/yoshin/public/RunIISpring15DR74/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
 # options.inputFiles= '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/RECO/150715_195547/0000/aodsim_10.root'
-options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
+# options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/60000/78519985-C817-E511-BDD1-008CFA0A565C.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/10198812-0816-E511-A2B5-AC853D9DAC1D.root'
-# options.inputFiles= '/store/data/Run2015B/SingleMuon/AOD/PromptReco-v1/000/251/168/00000/02132736-CB26-E511-8127-02163E01386E.root'
+options.inputFiles= '/store/data/Run2015B/SingleMuon/AOD/PromptReco-v1/000/251/168/00000/02132736-CB26-E511-8127-02163E01386E.root'
 options.outputFile = ''
 options.register ('crab',
                   0, # default value
@@ -142,7 +142,10 @@ else:
 ############################################################
 # Private modules
 ############################################################
+process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
+
 process.wJetFilter = cms.EDFilter("WJetFilter",
+    isData = cms.bool( False ),
     srcMuons = cms.InputTag("slimmedMuons"),
     srcElectrons = cms.InputTag("slimmedElectrons"),
     srcJets = cms.InputTag("slimmedJets"),
@@ -155,6 +158,7 @@ process.wJetFilter = cms.EDFilter("WJetFilter",
     minPtSelectedJet = cms.double(20.0),
     maxPtAdditionalJets = cms.double(20.0),
 )
+if options.data: process.wJetFilter.isData = cms.bool( True )
 
 process.genJetFilter = cms.EDFilter("GenJetFilter",
     srcJets = cms.InputTag("ak4GenJets"),
@@ -219,11 +223,19 @@ process.TFileService = cms.Service("TFileService",
 #   )
 #
 process.p = cms.Path(
+    process.eventCountPreFilter*
+    # process.triggerSelection*
     process.genJetFilter*
     process.wJetFilter
     # process.emergingJetAnalyzer
 )
 
+if options.data: 
+    process.p = cms.Path(
+        process.eventCountPreFilter*
+        # process.triggerSelection*
+        process.wJetFilter
+    )
 
 
 ############################################################
@@ -260,7 +272,7 @@ process.out = cms.OutputModule("PoolOutputModule",
 #     )
 # )
 process.out.outputCommands = cms.untracked.vstring(
-    'keep *_genJetFilter_*_*',
+    # 'keep *_genJetFilter_*_*',
     'keep *_wJetFilter_*_*',
     'keep *_emergingJetAnalyzer_*_*',
 )

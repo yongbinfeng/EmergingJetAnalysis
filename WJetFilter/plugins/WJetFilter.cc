@@ -104,6 +104,7 @@ class WJetFilter : public edm::EDFilter {
         double lepton_pt;
         double lepton_eta;
         double lepton_phi;
+        double lepton_relIso;
         double mT_e;
         double mT_u;
         vector<double> jets_pt;
@@ -131,6 +132,7 @@ typedef math::PtEtaPhiMLorentzVector PolarLorentzVector;
 // constructors and destructor
 //
 WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
+    isData_              (  iConfig.getParameter<bool  >("isData") ),
     minPtMuon_           (  iConfig.getParameter<double>("minPtMuon") ),
     minPtElectron_       (  iConfig.getParameter<double>("minPtElectron") ),
     minPtMET_            (  iConfig.getParameter<double>("minPtMET") ),
@@ -138,7 +140,7 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
     maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
     maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
-    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
+    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
   LogTrace("WJetFilter") << "Constructing WJetFilter";
@@ -165,7 +167,9 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   name="eventCountPreFilter"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
   name="eventCountPostFilter" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
 
-  name="genHt"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5000.) );
+  if ( !isData_ ) {
+    name="genHt"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5000.) );
+  }
 
   name="pt_met"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 1000.) );
 
@@ -191,16 +195,17 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   }
 
   outputTree = fs->make<TTree>("WJetFilterTree", "WJetFilterTree");
-  outputTree->Branch("met_pt"     , &output.met_pt     ) ;
-  outputTree->Branch("met_phi"    , &output.met_phi    ) ;
-  outputTree->Branch("lepton_pt"  , &output.lepton_pt  ) ;
-  outputTree->Branch("lepton_eta" , &output.lepton_eta ) ;
-  outputTree->Branch("lepton_phi" , &output.lepton_phi ) ;
-  outputTree->Branch("mT_e"       , &output.mT_e       ) ;
-  outputTree->Branch("mT_u"       , &output.mT_u       ) ;
-  outputTree->Branch("jets_pt"    , &output.jets_pt    ) ;
-  outputTree->Branch("jets_eta"   , &output.jets_eta   ) ;
-  outputTree->Branch("jets_phi"   , &output.jets_phi   ) ;
+  outputTree->Branch("met_pt"        , &output.met_pt        ) ;
+  outputTree->Branch("met_phi"       , &output.met_phi       ) ;
+  outputTree->Branch("lepton_pt"     , &output.lepton_pt     ) ;
+  outputTree->Branch("lepton_eta"    , &output.lepton_eta    ) ;
+  outputTree->Branch("lepton_phi"    , &output.lepton_phi    ) ;
+  outputTree->Branch("lepton_relIso" , &output.lepton_relIso ) ;
+  outputTree->Branch("mT_e"          , &output.mT_e          ) ;
+  outputTree->Branch("mT_u"          , &output.mT_u          ) ;
+  outputTree->Branch("jets_pt"       , &output.jets_pt       ) ;
+  outputTree->Branch("jets_eta"      , &output.jets_eta      ) ;
+  outputTree->Branch("jets_phi"      , &output.jets_phi      ) ;
 }
 
 
@@ -222,22 +227,25 @@ bool
 WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
-  output.met_pt     = -10;
-  output.met_phi    = -10;
-  output.lepton_pt  = -10;
-  output.lepton_eta = -10;
-  output.lepton_phi = -10;
-  output.mT_e       = -10;
-  output.mT_u       = -10;
+  output.met_pt        = -10;
+  output.met_phi       = -10;
+  output.lepton_pt     = -10;
+  output.lepton_eta    = -10;
+  output.lepton_phi    = -10;
+  output.lepton_relIso = -10;
+  output.mT_e          = -10;
+  output.mT_u          = -10;
   output.jets_pt.clear();
   output.jets_eta.clear();
   output.jets_phi.clear();
 
   histoMap1D_["eventCountPreFilter"]->Fill(1.);
 
-  edm::Handle<double> genHt_;
-  iEvent.getByLabel("genJetFilter", "genHt", genHt_);
-  histoMap1D_["genHt"]->Fill(*genHt_);
+  if ( !isData_ ) {
+    edm::Handle<double> genHt_;
+    iEvent.getByLabel("genJetFilter", "genHt", genHt_);
+    histoMap1D_["genHt"]->Fill(*genHt_);
+  }
 
   bool eventPassed = false;
   edm::Handle< pat::MuonCollection > muonCollection;
@@ -271,6 +279,8 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       if ( lepton.pt() < minPtElectron_ ) continue;
       if ( abs(lepton.eta()) > 2.5 ) continue;
       if ( lepton.electronID("cutBasedElectronID-CSA14-PU20bx25-V0-standalone-medium") < 1 ) continue;
+      double relIso = (lepton.trackIso() + lepton.caloIso()) / lepton.pt();
+      output.lepton_relIso = relIso;
       nGoodLepton++;
       goodLeptons.push_back(lepton);
     }
@@ -298,7 +308,9 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       if ( lepton.pt() < minPtElectron_ ) continue;
       if ( abs(lepton.eta()) > 2.5 ) continue;
       if ( !lepton.muonID("AllGlobalMuons") ) continue;
-      if ( (lepton.trackIso() + lepton.caloIso()) / lepton.pt() > 0.2 ) continue;
+      double relIso = (lepton.trackIso() + lepton.caloIso()) / lepton.pt();
+      output.lepton_relIso = relIso;
+      if ( relIso > 0.2 ) continue;
       nGoodLepton++;
       goodLeptons.push_back(lepton);
     }

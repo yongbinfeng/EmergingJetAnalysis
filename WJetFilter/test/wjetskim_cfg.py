@@ -144,6 +144,25 @@ else:
 ############################################################
 process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
 
+process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
+    triggerConditions = cms.vstring(
+        'HLT_Ele27_eta2p1_WPLoose_Gsf_v*',
+        'HLT_Ele27_eta2p1_WPTight_Gsf_v*',
+        'HLT_Ele27_eta2p1_WP75_Gsf_v*',
+        'HLT_Ele32_eta2p1_WP75_Gsf_v*',
+        'HLT_IsoMu20_v*',
+        'HLT_IsoMu20_eta2p1_v*',
+        'HLT_IsoMu24_eta2p1_v*',
+    ),
+    hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+    l1tResults = cms.InputTag( "gtDigis" ),
+    l1tIgnoreMask = cms.bool( False ),
+    l1techIgnorePrescales = cms.bool( False ),
+    daqPartitions = cms.uint32( 1 ),
+    throw = cms.bool( False )
+)
+
+
 process.wJetFilter = cms.EDFilter("WJetFilter",
     isData = cms.bool( False ),
     srcMuons = cms.InputTag("slimmedMuons"),
@@ -224,7 +243,7 @@ process.TFileService = cms.Service("TFileService",
 #
 process.p = cms.Path(
     process.eventCountPreFilter*
-    # process.triggerSelection*
+    process.triggerSelection*
     process.genJetFilter*
     process.wJetFilter
     # process.emergingJetAnalyzer
@@ -233,7 +252,7 @@ process.p = cms.Path(
 if options.data: 
     process.p = cms.Path(
         process.eventCountPreFilter*
-        # process.triggerSelection*
+        process.triggerSelection*
         process.wJetFilter
     )
 

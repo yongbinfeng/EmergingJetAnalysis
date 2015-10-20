@@ -50,6 +50,8 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/MET.h"
 
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+
 // Namespace shorthands
 using std::string;
 using std::vector;
@@ -99,6 +101,7 @@ class WJetFilter : public edm::EDFilter {
     TTree* outputTree;
     struct outputClass {
       public:
+        double gen_weight;
         double met_pt;
         double met_phi;
         double lepton_pt;
@@ -140,7 +143,7 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
     maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
     maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
-    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
+    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
   LogTrace("WJetFilter") << "Constructing WJetFilter";
@@ -195,6 +198,7 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   }
 
   outputTree = fs->make<TTree>("WJetFilterTree", "WJetFilterTree");
+  outputTree->Branch("gen_weight"    , &output.gen_weight    ) ;
   outputTree->Branch("met_pt"        , &output.met_pt        ) ;
   outputTree->Branch("met_phi"       , &output.met_phi       ) ;
   outputTree->Branch("lepton_pt"     , &output.lepton_pt     ) ;
@@ -227,6 +231,7 @@ bool
 WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  output.gen_weight    = 1.0;
   output.met_pt        = -10;
   output.met_phi       = -10;
   output.lepton_pt     = -10;
@@ -242,6 +247,10 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   histoMap1D_["eventCountPreFilter"]->Fill(1.);
 
   if ( !isData_ ) {
+    edm::Handle<GenEventInfoProduct> evt_info;
+    iEvent.getByLabel("generator", evt_info);
+    output.gen_weight = evt_info->weight();
+
     edm::Handle<double> genHt_;
     iEvent.getByLabel("genJetFilter", "genHt", genHt_);
     histoMap1D_["genHt"]->Fill(*genHt_);

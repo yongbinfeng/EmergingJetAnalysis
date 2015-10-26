@@ -35,8 +35,8 @@ options = VarParsing.VarParsing ('analysis')
 options.maxEvents = -1 # -1 means all events
 # options.inputFiles= 'root://xrootd-cms.infn.it//store/mc/Phys14DR/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
 # options.inputFiles= 'file:/afs/cern.ch/work/y/yoshin/public/RunIISpring15DR74/DYJetsToLL_M-50_13TeV-madgraph-pythia8/AODSIM/00CC714A-F86B-E411-B99A-0025904B5FB8.root'
-options.inputFiles= '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/RECO/150715_195547/0000/aodsim_10.root'
-# options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
+# options.inputFiles= '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/RECO/150715_195547/0000/aodsim_10.root'
+options.inputFiles= '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/96EF1A5F-8115-E511-AF17-02163E0125CE.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/60000/78519985-C817-E511-BDD1-008CFA0A565C.root'
 # options.inputFiles= '/store/mc/RunIISpring15DR74/QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/10198812-0816-E511-A2B5-AC853D9DAC1D.root'
 # options.inputFiles= '/store/data/Run2015B/SingleMuon/AOD/PromptReco-v1/000/251/168/00000/02132736-CB26-E511-8127-02163E01386E.root'
@@ -78,7 +78,8 @@ from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 if options.data:
     process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
 else:
-    process.GlobalTag = GlobalTag(process.GlobalTag, '74X_mcRun2_design_v2', '')
+    # process.GlobalTag = GlobalTag(process.GlobalTag, '74X_mcRun2_design_v2', '')
+    process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9', '')
 
 process.source = cms.Source("PoolSource",
 		# fileNames = cms.untracked.vstring("file:input.root"),
@@ -176,7 +177,8 @@ process.wJetFilter = cms.EDFilter("WJetFilter",
     maxDeltaPhi = cms.double(0.4),
     minPtSelectedJet = cms.double(20.0),
     maxPtAdditionalJets = cms.double(20.0),
-    electronID = cms.string('egmGsfElectronIDs:cutBasedElectronID-Spring15-25ns-V1-standalone-loose'),
+    # electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-loose'),
+    electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium'),
 )
 if options.data: process.wJetFilter.isData = cms.bool( True )
 

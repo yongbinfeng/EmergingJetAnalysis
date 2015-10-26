@@ -93,6 +93,7 @@ class WJetFilter : public edm::EDFilter {
     double maxDeltaPhi_;
     double minPtSelectedJet_;
     double maxPtAdditionalJets_;
+    string electronID_;
 
     // Outputs
     std::unordered_map<string, TH1*> histoMap1D_;
@@ -143,6 +144,7 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
     maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
     maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
+    electronID_          (  iConfig.getParameter<string>("electronID") ),
     output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
@@ -287,7 +289,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       auto lepton = *it;
       if ( lepton.pt() < minPtElectron_ ) continue;
       if ( abs(lepton.eta()) > 2.5 ) continue;
-      if ( lepton.electronID("cutBasedElectronID-CSA14-PU20bx25-V0-standalone-medium") < 1 ) continue;
+      if ( lepton.electronID(electronID_) < 1 ) continue;
       double relIso = (lepton.trackIso() + lepton.caloIso()) / lepton.pt();
       output.lepton_relIso = relIso;
       nGoodLepton++;

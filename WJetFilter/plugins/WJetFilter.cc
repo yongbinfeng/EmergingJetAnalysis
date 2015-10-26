@@ -102,6 +102,9 @@ class WJetFilter : public edm::EDFilter {
     TTree* outputTree;
     struct outputClass {
       public:
+        int run;
+        int lumi;
+        int event;
         double gen_weight;
         double met_pt;
         double met_phi;
@@ -145,7 +148,7 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
     minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
     maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
     electronID_          (  iConfig.getParameter<string>("electronID") ),
-    output( {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
+    output( { -1, -1, -1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
   LogTrace("WJetFilter") << "Constructing WJetFilter";
@@ -200,18 +203,21 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   }
 
   outputTree = fs->make<TTree>("WJetFilterTree", "WJetFilterTree");
-  outputTree->Branch("gen_weight"    , &output.gen_weight    ) ;
-  outputTree->Branch("met_pt"        , &output.met_pt        ) ;
-  outputTree->Branch("met_phi"       , &output.met_phi       ) ;
-  outputTree->Branch("lepton_pt"     , &output.lepton_pt     ) ;
-  outputTree->Branch("lepton_eta"    , &output.lepton_eta    ) ;
-  outputTree->Branch("lepton_phi"    , &output.lepton_phi    ) ;
-  outputTree->Branch("lepton_relIso" , &output.lepton_relIso ) ;
-  outputTree->Branch("mT_e"          , &output.mT_e          ) ;
-  outputTree->Branch("mT_u"          , &output.mT_u          ) ;
-  outputTree->Branch("jets_pt"       , &output.jets_pt       ) ;
-  outputTree->Branch("jets_eta"      , &output.jets_eta      ) ;
-  outputTree->Branch("jets_phi"      , &output.jets_phi      ) ;
+  outputTree->Branch("run"            , &output.run            ) ;
+  outputTree->Branch("lumi"           , &output.lumi           ) ;
+  outputTree->Branch("event"          , &output.event          ) ;
+  outputTree->Branch("gen_weight"     , &output.gen_weight     ) ;
+  outputTree->Branch("met_pt"         , &output.met_pt         ) ;
+  outputTree->Branch("met_phi"        , &output.met_phi        ) ;
+  outputTree->Branch("lepton_pt"      , &output.lepton_pt      ) ;
+  outputTree->Branch("lepton_eta"     , &output.lepton_eta     ) ;
+  outputTree->Branch("lepton_phi"     , &output.lepton_phi     ) ;
+  outputTree->Branch("lepton_relIso"  , &output.lepton_relIso  ) ;
+  outputTree->Branch("mT_e"           , &output.mT_e           ) ;
+  outputTree->Branch("mT_u"           , &output.mT_u           ) ;
+  outputTree->Branch("jets_pt"        , &output.jets_pt        ) ;
+  outputTree->Branch("jets_eta"       , &output.jets_eta       ) ;
+  outputTree->Branch("jets_phi"       , &output.jets_phi       ) ;
 }
 
 
@@ -233,6 +239,9 @@ bool
 WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  output.run           = iEvent.id().run();
+  output.event         = iEvent.id().event();
+  output.lumi          = iEvent.id().luminosityBlock();
   output.gen_weight    = 1.0;
   output.met_pt        = -10;
   output.met_phi       = -10;

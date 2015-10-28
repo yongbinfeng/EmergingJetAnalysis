@@ -23,6 +23,7 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
+#include <cassert>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -89,6 +90,8 @@ class WJetFilter : public edm::EDFilter {
     double minPtMuon_;
     double minPtElectron_;
     double minPtMET_;
+    double minMt_;
+    double maxMt_;
     double minDeltaR_;
     double maxDeltaPhi_;
     double minPtSelectedJet_;
@@ -139,15 +142,17 @@ typedef math::PtEtaPhiMLorentzVector PolarLorentzVector;
 // constructors and destructor
 //
 WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
-    isData_              (  iConfig.getParameter<bool  >("isData") ),
-    minPtMuon_           (  iConfig.getParameter<double>("minPtMuon") ),
-    minPtElectron_       (  iConfig.getParameter<double>("minPtElectron") ),
-    minPtMET_            (  iConfig.getParameter<double>("minPtMET") ),
-    minDeltaR_           (  iConfig.getParameter<double>("minDeltaR") ),
-    maxDeltaPhi_         (  iConfig.getParameter<double>("maxDeltaPhi") ),
-    minPtSelectedJet_    (  iConfig.getParameter<double>("minPtSelectedJet") ),
-    maxPtAdditionalJets_ (  iConfig.getParameter<double>("maxPtAdditionalJets") ),
-    electronID_          (  iConfig.getParameter<string>("electronID") ),
+    isData_              ( iConfig.getParameter<bool  > ( "isData"              )  ) ,
+    minPtMuon_           ( iConfig.getParameter<double> ( "minPtMuon"           )  ) ,
+    minPtElectron_       ( iConfig.getParameter<double> ( "minPtElectron"       )  ) ,
+    minPtMET_            ( iConfig.getParameter<double> ( "minPtMET"            )  ) ,
+    minMt_               ( iConfig.getParameter<double> ( "minMt"               )  ) ,
+    maxMt_               ( iConfig.getParameter<double> ( "maxMt"               )  ) ,
+    minDeltaR_           ( iConfig.getParameter<double> ( "minDeltaR"           )  ) ,
+    maxDeltaPhi_         ( iConfig.getParameter<double> ( "maxDeltaPhi"         )  ) ,
+    minPtSelectedJet_    ( iConfig.getParameter<double> ( "minPtSelectedJet"    )  ) ,
+    maxPtAdditionalJets_ ( iConfig.getParameter<double> ( "maxPtAdditionalJets" )  ) ,
+    electronID_          ( iConfig.getParameter<string> ( "electronID"          )  ) ,
     output( { -1, -1, -1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
@@ -238,6 +243,11 @@ WJetFilter::~WJetFilter()
 bool
 WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  // eventPassed is set to false if an event fails selection,
+  // but should still be taken to end of loop (e.g. for tree filling)
+  // The alternative is to immediately return false.
+  bool eventPassed = true;
+
   using namespace edm;
   output.run           = iEvent.id().run();
   output.event         = iEvent.id().event();
@@ -267,7 +277,6 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     histoMap1D_["genHt"]->Fill(*genHt_);
   }
 
-  bool eventPassed = false;
   edm::Handle< pat::MuonCollection > muonCollection;
   iEvent.getByToken(muonCollectionToken_, muonCollection);
   edm::Handle< pat::ElectronCollection > electronCollection;
@@ -278,7 +287,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(metCollectionToken_, metCollection);
   auto met = (metCollection->at(0));
   histoMap1D_["pt_met"]->Fill(met.pt());
-  if ( met.pt() < minPtMET_ ) return eventPassed;
+  if ( met.pt() < minPtMET_ ) return false;
   output.met_pt = met.pt();
   output.met_phi = met.phi();
 
@@ -311,7 +320,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       LogTrace("WJetFilter") << "mT_e: " << mT;
       histoMap1D_["mT_e"]->Fill(mT);
       output.mT_e = mT;
-      output.lepton_pt   = goodLeptons[0].pt();
+      output.lepton_pt  = goodLeptons[0].pt();
       output.lepton_eta = goodLeptons[0].eta();
       output.lepton_phi = goodLeptons[0].phi();
     }
@@ -341,20 +350,29 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       LogTrace("WJetFilter") << "mT_mu " << mT;
       histoMap1D_["mT_mu"]->Fill(mT);
       output.mT_u = mT;
-      output.lepton_pt   = goodLeptons[0].pt();
+      output.lepton_pt  = goodLeptons[0].pt();
       output.lepton_eta = goodLeptons[0].eta();
       output.lepton_phi = goodLeptons[0].phi();
     }
   }
 
+  // Get good lepton P4
   // LogTrace("WJetFilter") << "nGoodLepton " << nGoodLepton;
   histoMap1D_["nGoodLepton"]->Fill(nGoodLepton);
   if ( nGoodLepton != 1 ) return false;
   RecoLorentzVector goodLeptonP4; 
   if ( goodMuons.size()==1 ) goodLeptonP4 = goodMuons[0].p4();
-  else goodLeptonP4 = goodElectrons[0].p4();
-  
+  else                       goodLeptonP4 = goodElectrons[0].p4();
 
+  // Require mT to pass selection cuts, but don't return until output has been filled
+  assert ( goodMuons.size()+goodElectrons.size()==1 );
+  double mT = -10;
+  if ( goodMuons.size()==1 ) mT = output.mT_u;
+  else                       mT = output.mT_e;
+  if ( mT < minMt_ || mT > maxMt_ ) eventPassed = false;
+
+  // Select jets that are more than minDeltaR_ away from the lepton,
+  // and with pt > minPtSelectedJet_
   auto jets = jetCollection.product();
   reco::PFJetCollection selectedJet;
   // LogTrace("WJetFilter") << "Number of jets in event: " << jets->size();
@@ -389,8 +407,8 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   outputTree->Fill();
 
-  // if ( selectedJet.size() == 0 ) return false;
-  if ( selectedJet.size() != 1 ) return false;
+  if ( selectedJet.size() == 0 ) return false;
+  // if ( selectedJet.size() != 1 ) return false;
   auto jet = selectedJet[0];
   float dPhi_jet_met = ROOT::Math::VectorUtil::DeltaPhi( met.p4(), jet.p4() );
   histoMap1D_["dPhi_jet_met"]->Fill(dPhi_jet_met);
@@ -439,7 +457,7 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
   // iEvent.put(_eventPassed, "eventPassed");
 
-  return true;
+  return eventPassed;
 }
 
 // ------------ method called once each job just before starting event loop  ------------

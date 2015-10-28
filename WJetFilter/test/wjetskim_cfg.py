@@ -5,6 +5,19 @@
 # - datasets.py import location
 # - data/MC
 ############################################################
+# GlobalTag switching based on version of CMSSW
+# For each version, specify global tag for MC and data as a list
+# e.g. ['MCRUN2_74_V9', '74X_dataRun2_Prompt_v2']
+import os
+cmssw_version = os.environ['CMSSW_VERSION']
+if 'CMSSW_7_4_12' in cmssw_version:
+    globalTags=['74X_mcRun2_design_v2','74X_dataRun2_Prompt_v2']
+elif 'CMSSW_7_4_1_patch4' in cmssw_version:
+    globalTags=['MCRUN2_74_V9','74X_dataRun2_Prompt_v0']
+print 'CMSSW_VERSION is %s' % cmssw_version
+print 'Using the following global tags [MC, DATA]:'
+print globalTags
+
 
 import FWCore.ParameterSet.Config as cms
 # Command line argument parsing
@@ -75,11 +88,7 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 ### ===========================================================
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-if options.data:
-    process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
-else:
-    # process.GlobalTag = GlobalTag(process.GlobalTag, '74X_mcRun2_design_v2', '')
-    process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, globalTags[options.data], '')
 
 process.source = cms.Source("PoolSource",
 		# fileNames = cms.untracked.vstring("file:input.root"),
@@ -173,14 +182,20 @@ process.wJetFilter = cms.EDFilter("WJetFilter",
     minPtMuon = cms.double(20.0),
     minPtElectron = cms.double(20.0),
     minPtMET = cms.double(20.0),
+    minMt = cms.double(50.0),
+    maxMt = cms.double(100.0),
     minDeltaR = cms.double(0.4),
-    maxDeltaPhi = cms.double(0.4),
+    maxDeltaPhi = cms.double(0.4), # Doesn't do anything
     minPtSelectedJet = cms.double(20.0),
-    maxPtAdditionalJets = cms.double(20.0),
+    maxPtAdditionalJets = cms.double(20.0), # Doesn't do anything
     # electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-loose'),
     electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium'),
 )
 if options.data: process.wJetFilter.isData = cms.bool( True )
+if 'CMSSW_7_4_12' in cmssw_version:
+    process.wJetFilter.electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-medium')
+elif 'CMSSW_7_4_1_patch4' in cmssw_version:
+    process.wJetFilter.electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium')
 
 process.genJetFilter = cms.EDFilter("GenJetFilter",
     srcJets = cms.InputTag("ak4GenJets"),
@@ -272,6 +287,7 @@ if options.data:
 
 
 from Configuration.EventContent.EventContent_cff import AODSIMEventContent
+from Configuration.EventContent.EventContent_cff import AODEventContent
 
 process.out = cms.OutputModule("PoolOutputModule",
     compressionAlgorithm = cms.untracked.string('LZMA'),
@@ -281,29 +297,33 @@ process.out = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
-    fileName = cms.untracked.string('file:aodsim.root'),
-    outputCommands = AODSIMEventContent.outputCommands,
+    fileName = cms.untracked.string('file:output.root'),
+    outputCommands = cms.untracked.vstring(),
     SelectEvents = cms.untracked.PSet(
         SelectEvents = cms.vstring('p')
     )
 )
-# process.out.outputCommands.extend(
-#     cms.untracked.vstring(
-#         'keep *_wJetFilter_*_*',
-#         'keep *_emergingJetAnalyzer_*_*',
-#     )
-# )
-process.out.outputCommands = cms.untracked.vstring(
-    # 'keep *_genJetFilter_*_*',
-    'keep *_wJetFilter_*_*',
-    'keep *_emergingJetAnalyzer_*_*',
+
+if options.data : process.out.outputCommands.extend(AODEventContent.outputCommands)
+else            : process.out.outputCommands.extend(AODSIMEventContent.outputCommands)
+
+process.out.outputCommands.extend(
+    cms.untracked.vstring(
+        'keep *_wJetFilter_*_*',
+        # 'keep *_emergingJetAnalyzer_*_*',
+    )
 )
+# process.out.outputCommands = cms.untracked.vstring(
+    # 'keep *_genJetFilter_*_*',
+    # 'keep *_wJetFilter_*_*',
+    # 'keep *_emergingJetAnalyzer_*_*',
+# )
 
 
 if options.outputFile=='.root' or options.outputFile.find('_numEvent')==0:
     print """
 ############################################################
-Warning: outputFile unspecified. Writing to aodsim.root
+Warning: outputFile unspecified. Writing to output.root
 ############################################################
 """
 else:

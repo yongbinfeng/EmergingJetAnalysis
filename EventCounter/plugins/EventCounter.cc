@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
-// Package:    EmergingAnalysis/EventCounter
+// Package:    EmergingJetAnalysis/EventCounter
 // Class:      EventCounter
 // 
-/**\class EventCounter EventCounter.cc EmergingAnalysis/EventCounter/plugins/EventCounter.cc
+/**\class EventCounter EventCounter.cc EmergingJetAnalysis/EventCounter/plugins/EventCounter.cc
 
  Description: [one line class summary]
 

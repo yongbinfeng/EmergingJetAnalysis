@@ -99,6 +99,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
       // ----------member data ---------------------------
       edm::Service<TFileService> fs;
+      edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
 
       TH1F * h_dr_jet_track;
 
@@ -329,6 +330,9 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig) :
     edm::ConsumesCollector iC = consumesCollector();
     m_trackParameters.loadParameters( m_trackParameterSet, iC );
     m_trackAssociator.useDefaultPropagator();
+
+    jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+
 //    h_ptWtPixHits_vs_chargeFraction = fs->make<TH2F>( "h_ptWtPixHits_vs_chargeFraction"  , ";p_{T} wt. PIX hits;charge fraction", 10,  0., 4., 10, 0., 1. );
 //    h_ptWtPixHits_vs_emFraction = fs->make<TH2F>( "h_ptWtPixHits_vs_emFraction"  , ";p_{T} wt. PIX hits;EM fraction", 10,  0., 4., 10, 0., 1. );
 
@@ -567,8 +571,8 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
    iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
    edm::Handle<reco::PFJetCollection> pfjetH;
-//   iEvent.getByLabel("ak8PFJetsCHS", pfjetH);
-   iEvent.getByLabel("ak4PFJetsCHS", pfjetH);
+   // iEvent.getByLabel("ak4PFJetsCHS", pfjetH);
+   iEvent.getByToken(jetCollectionToken_, pfjetH);
 
    Handle<reco::BeamSpot> theBeamSpotHandle;
    iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);

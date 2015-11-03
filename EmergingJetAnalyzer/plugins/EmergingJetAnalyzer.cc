@@ -109,6 +109,11 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
     emjet::OutputTree otree;
 
+    // Retrieve once per event
+    // Intermediate objects used for calculations
+    edm::ESHandle<TransientTrackBuilder> theB;
+    edm::Handle<reco::VertexCollection> primary_vertices;
+
     TH1F * h_dr_jet_track;
 
     TH1F * h_genHT;
@@ -570,7 +575,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::ESHandle<GlobalTrackingGeometry> theTrackingGeometry;
   iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry);
 
-  edm::ESHandle<TransientTrackBuilder> theB;
+  // edm::ESHandle<TransientTrackBuilder> theB;
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
   edm::Handle<reco::PFJetCollection> pfjetH;
@@ -600,7 +605,6 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::PFMETCollection> pfmet;
   iEvent.getByLabel("pfMet",pfmet);
 
-  edm::Handle<reco::VertexCollection> primary_vertices;
   iEvent.getByLabel("offlinePrimaryVerticesWithBS",primary_vertices);
   const reco::Vertex& primary_vertex = primary_vertices->at(0);
 
@@ -1271,20 +1275,21 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   descriptions.addDefault(desc);
 }
 
-// template<class T> // T ~ reco::PFJet
 void
 EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
-  // // Calculate nPromptTracks
-  // int nPromptTracks = 0;
-  // for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
-  //   reco::TransientTrack itk = theB->build(*ijt);
-  //   if (itk.track().pt() < 1.) continue;
-  //   auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
-  //   if (d3d_ipv.second.significance() < 3.) nPromptTracks++;
-  //   //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-  //   //           if (dxy_ipv.second.value() > ipCut) continue;
-  // } 
+  const reco::Vertex& primary_vertex = primary_vertices->at(0);
+
+  // Calculate nPromptTracks
+  int nPromptTracks = 0;
+  for (reco::TrackRefVector::iterator ijt = jet.getTrackRefs().begin(); ijt != jet.getTrackRefs().end(); ++ijt) {
+    reco::TransientTrack itk = theB->build(*ijt);
+    if (itk.track().pt() < 1.) continue;
+    auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
+    if (d3d_ipv.second.significance() < 3.) nPromptTracks++;
+    //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+    //           if (dxy_ipv.second.value() > ipCut) continue;
+  } 
 
   otree.jets_pt            .push_back( jet.pt()                          );
   otree.jets_eta           .push_back( jet.eta()                         );

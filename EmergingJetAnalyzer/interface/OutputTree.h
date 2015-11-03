@@ -30,7 +30,7 @@ namespace emjet
       vector<float>  jets_chf;
       vector<float>  jets_nhf;
       vector<float>  jets_phf;
-      vector<int>    jets_promptTracks;
+      vector<int>    jets_nPromptTracks;
       vector<int>    jets_dispTracks;
       vector<int>    jets_nSV;
       vector<float>  jets_medianLogIpSig;
@@ -57,7 +57,7 @@ emjet::OutputTree::Init() {
   jets_chf            .clear();
   jets_nhf            .clear();
   jets_phf            .clear();
-  jets_promptTracks   .clear();
+  jets_nPromptTracks   .clear();
   jets_dispTracks     .clear();
   jets_nSV            .clear();
   jets_medianLogIpSig .clear();
@@ -83,7 +83,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_chf"            , &jets_chf            ) ;
   tree->Branch("jets_nhf"            , &jets_nhf            ) ;
   tree->Branch("jets_phf"            , &jets_phf            ) ;
-  tree->Branch("jets_promptTracks"   , &jets_promptTracks   ) ;
+  tree->Branch("jets_nPromptTracks"   , &jets_nPromptTracks   ) ;
   tree->Branch("jets_dispTracks"     , &jets_dispTracks     ) ;
   tree->Branch("jets_nSV"            , &jets_nSV            ) ;
   tree->Branch("jets_medianLogIpSig" , &jets_medianLogIpSig ) ;

@@ -92,7 +92,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
     // ---------- helper functions ---------------------------
     // Take a single PFJet and add to output tree
-    void fillSingleJet(reco::PFJet*);
+    void fillSingleJet(const reco::PFJet&);
 
     TrackDetectorAssociator   m_trackAssociator;
     TrackAssociatorParameters m_trackParameters;
@@ -813,6 +813,8 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   int nMatchedGen = 0;
   for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); ++jet ) {
 
+    fillSingleJet(*jet);
+
 
     //       if (jet->pt() < 50.) continue;
     //       if (fabs(jet->eta()) > 2.5) continue;
@@ -1269,18 +1271,30 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   descriptions.addDefault(desc);
 }
 
+// template<class T> // T ~ reco::PFJet
 void
-EmergingJetAnalyzer::fillSingleJet(reco::PFJet* jet) {
+EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
-  otree.jets_pt            .push_back( jet->pt()                          );
-  otree.jets_eta           .push_back( jet->eta()                         );
-  otree.jets_phi           .push_back( jet->phi()                         );
-  otree.jets_cef           .push_back( jet->chargedEmEnergyFraction()     );
-  otree.jets_nef           .push_back( jet->neutralEmEnergyFraction()     );
-  otree.jets_chf           .push_back( jet->chargedHadronEnergyFraction() );
-  otree.jets_nhf           .push_back( jet->neutralHadronEnergyFraction() );
-  otree.jets_phf           .push_back( jet->photonEnergyFraction()        );
-  // otree.jets_promptTracks  .push_back( promptTracks                       );
+  // // Calculate nPromptTracks
+  // int nPromptTracks = 0;
+  // for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
+  //   reco::TransientTrack itk = theB->build(*ijt);
+  //   if (itk.track().pt() < 1.) continue;
+  //   auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
+  //   if (d3d_ipv.second.significance() < 3.) nPromptTracks++;
+  //   //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+  //   //           if (dxy_ipv.second.value() > ipCut) continue;
+  // } 
+
+  otree.jets_pt            .push_back( jet.pt()                          );
+  otree.jets_eta           .push_back( jet.eta()                         );
+  otree.jets_phi           .push_back( jet.phi()                         );
+  otree.jets_cef           .push_back( jet.chargedEmEnergyFraction()     );
+  otree.jets_nef           .push_back( jet.neutralEmEnergyFraction()     );
+  otree.jets_chf           .push_back( jet.chargedHadronEnergyFraction() );
+  otree.jets_nhf           .push_back( jet.neutralHadronEnergyFraction() );
+  otree.jets_phf           .push_back( jet.photonEnergyFraction()        );
+  // otree.jets_nPromptTracks  .push_back( nPromptTracks                       );
   // otree.jets_dispTracks    .push_back( dispTracks                         );
   // otree.jets_nSV           .push_back( matchedVertices                    );
   // otree.jets_medianLogIpSig.push_back( medianIpSig                        );

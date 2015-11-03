@@ -113,6 +113,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // Intermediate objects used for calculations
     edm::ESHandle<TransientTrackBuilder> theB;
     edm::Handle<reco::VertexCollection> primary_vertices;
+    std::vector<reco::TransientTrack> generalTracks;
+    const reco::BeamSpot* theBeamSpot;
 
     TH1F * h_dr_jet_track;
 
@@ -585,20 +587,17 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   Handle<reco::BeamSpot> theBeamSpotHandle;
   iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);
-  const reco::BeamSpot* theBeamSpot = theBeamSpotHandle.product();
+  theBeamSpot = theBeamSpotHandle.product();
 
   //   edm::Handle<reco::CaloJetCollection> caloJetH;
   //   iEvent.getByLabel("ak5CaloJets", caloJetH);
 
   edm::Handle<reco::TrackCollection> genTrackH;
   iEvent.getByLabel("generalTracks", genTrackH);
-
-  std::vector<reco::TransientTrack> generalTracks;
   generalTracks = theB->build(genTrackH);
 
   edm::Handle<reco::TrackCollection> sdmH;
   iEvent.getByLabel("displacedStandAloneMuons",sdmH);
-
   std::vector<reco::TransientTrack> standaloneDisplacedMuons;
   standaloneDisplacedMuons = theB->build(sdmH);
 
@@ -1277,19 +1276,125 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
 
 void
 EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
-
+  // Shared objects
   const reco::Vertex& primary_vertex = primary_vertices->at(0);
+  TLorentzVector jetVector; jetVector.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
 
   // Calculate nPromptTracks
   int nPromptTracks = 0;
-  for (reco::TrackRefVector::iterator ijt = jet.getTrackRefs().begin(); ijt != jet.getTrackRefs().end(); ++ijt) {
-    reco::TransientTrack itk = theB->build(*ijt);
-    if (itk.track().pt() < 1.) continue;
-    auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
-    if (d3d_ipv.second.significance() < 3.) nPromptTracks++;
-    //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-    //           if (dxy_ipv.second.value() > ipCut) continue;
-  } 
+  {
+    const float maxSigPromptTrack = 3.;
+    for (reco::TrackRefVector::iterator ijt = jet.getTrackRefs().begin(); ijt != jet.getTrackRefs().end(); ++ijt) {
+      reco::TransientTrack itk = theB->build(*ijt);
+      if (itk.track().pt() < 1.) continue;
+      auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
+      if (d3d_ipv.second.significance() < maxSigPromptTrack) nPromptTracks++;
+      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+      //           if (dxy_ipv.second.value() > ipCut) continue;
+    } 
+  }
+
+  // Calculate nDispTracks
+  int nDispTracks   = 0;
+  {
+    std::vector<float> ipVector;
+    float ipSig = 3.;
+    int ip0_1 = 0.;
+    int ip1_0 = 0.;
+    int ip10_ = 0.;
+    float pTxIPxSig = 0.;
+    std::vector<reco::TransientTrack> ipTracks;
+    float trackFrac = 0.;
+
+    math::XYZVector jetMomentum = jet.momentum();
+    GlobalVector direction(jetMomentum.x(), jetMomentum.y(), jetMomentum.z());
+
+    int misshits = 0;
+    float tot_dsz = 0.;
+    std::vector<float> r_pca;
+    std::vector<float> logIpSig;
+    float sum_Lxy = 0.;
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
+
+      if (itk->track().pt() < 1.) continue;
+
+      auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
+
+      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+
+      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, 
+          direction, itk->field());
+
+      GlobalPoint closestPoint;
+      if (pca.isValid()) {
+        closestPoint = pca.globalPosition();
+      } else {
+        continue;
+      }
+
+      TLorentzVector trackVector;
+      trackVector.SetPxPyPzE(
+          closestPoint.x() - primary_vertex.position().x(),
+          closestPoint.y() - primary_vertex.position().y(),
+          closestPoint.z() - primary_vertex.position().z(),
+          itk->track().p());
+      if (pca.isValid()) {
+        h_jetPCAdist->Fill( trackVector.DeltaR(jetVector) , closestPoint.perp() );
+      }
+      h_pca_dr_jet->Fill(trackVector.DeltaR(jetVector));
+      h_pca_r->Fill(closestPoint.perp());
+      if (trackVector.DeltaR(jetVector) > 0.4) continue;
+      h_trackPtInJet->Fill(itk->track().pt());
+      ipVector.push_back(fabs(dxy_ipv.second.value()));
+      logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
+
+      misshits += itk->track().numberOfLostHits();
+      tot_dsz += itk->track().dsz(theBeamSpot->position());
+
+      if (pca.isValid()) {
+        r_pca.push_back(closestPoint.perp()); 
+        h_rPCA->Fill(closestPoint.perp());
+      }
+
+      //           if (dxy_ipv.second.value() < ipCut) continue;
+      if (dxy_ipv.second.significance() < ipSig) continue;
+
+      h_dz_vs_dxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
+      h_logTrackDz->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
+      h_logTrackDxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())));
+      // logSum += dxy_ipv.second.significance();
+
+      Measurement1D ip2d = dxy_ipv.second;
+      float r = 100*3.3*itk->track().pt()/3.8;
+      float gLxy = ip2d.value()/sin(itk->track().phi()-jet.phi())*(1-2.5*fabs(ip2d.value())/r);
+
+      sum_Lxy += gLxy;
+
+      //           pTxIPxSig += itk->track().pt() * dxy_ipv.second.value() * dxy_ipv.second.significance() / jet->pt();
+      pTxIPxSig += itk->track().pt() * dxy_ipv.second.significance() ;
+      //           --promptTracks;
+      ++nDispTracks;
+      //           h_dr_jet_track->Fill(jetVector.DeltaR(impactVector));
+      //           h_deltaEtaJetTrack->Fill(fabs(jetVector.Eta() - impactVector.Eta()));
+      //           h_deltaPhiJetTrack->Fill(fabs(jetVector.DeltaPhi(impactVector)));
+      trackFrac += itk->track().pt();
+      //       if (itk->track().dxy(*theBeamSpot) < ipCut && itk->track().dxy(*theBeamSpot) > -ipCut) continue;
+      //       if (itk->track().dxy(*theBeamSpot) / itk->track().dxyError() < ipSig) continue;
+      //       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot) << std::endl;
+      //       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot) / itk->track().dxyError() << std::endl;
+
+      ipTracks.push_back(*itk);
+
+      //           std::cout << "dxy_ipv.second.value() " << dxy_ipv.second.value() << std::endl;
+
+      if (dxy_ipv.second.value() > 0.1) ip0_1++; 
+      if (dxy_ipv.second.value() > 1.0) ip1_0++; 
+      if (dxy_ipv.second.value() > 10.) ip10_++; 
+
+    }
+    trackFrac /= jet.pt();
+  }
+
 
   otree.jets_pt            .push_back( jet.pt()                          );
   otree.jets_eta           .push_back( jet.eta()                         );
@@ -1299,8 +1404,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_chf           .push_back( jet.chargedHadronEnergyFraction() );
   otree.jets_nhf           .push_back( jet.neutralHadronEnergyFraction() );
   otree.jets_phf           .push_back( jet.photonEnergyFraction()        );
-  // otree.jets_nPromptTracks  .push_back( nPromptTracks                       );
-  // otree.jets_dispTracks    .push_back( dispTracks                         );
+  otree.jets_nPromptTracks .push_back( nPromptTracks                       );
+  otree.jets_nDispTracks   .push_back( nDispTracks                         );
   // otree.jets_nSV           .push_back( matchedVertices                    );
   // otree.jets_medianLogIpSig.push_back( medianIpSig                        );
   // otree.jets_missHits      .push_back( misshits                           );

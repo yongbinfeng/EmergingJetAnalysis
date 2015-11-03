@@ -83,13 +83,16 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     ~EmergingJetAnalyzer();
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-    OutputTree otree;
 
 
   private:
     virtual void beginJob() override;
     virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
     virtual void endJob() override;
+
+    // ---------- helper functions ---------------------------
+    // Take a single PFJet and add to output tree
+    void fillSingleJet(reco::PFJet*);
 
     TrackDetectorAssociator   m_trackAssociator;
     TrackAssociatorParameters m_trackParameters;
@@ -103,6 +106,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // ----------member data ---------------------------
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+
+    emjet::OutputTree otree;
 
     TH1F * h_dr_jet_track;
 
@@ -246,7 +251,6 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     bool isData_;
 
     TTree * t_tree;
-    int t_run, t_event, t_ls, t_bx;
 
     float t_met;
 
@@ -480,12 +484,7 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig) :
   //    h_jet_phf_trackFrac05     = fs->make<TH1F>("h_jet_phf_trackFrac05",";photon fraction;",20,0.,1.);
 
   t_tree           = fs->make<TTree>("emergingJetsTree","emergingJetsTree");
-  t_tree->Branch("run",&t_run);
-  t_tree->Branch("event",&t_event);
-  t_tree->Branch("LS",&t_ls);
-  t_tree->Branch("BX",&t_bx);
-
-  t_tree->Branch("met",&t_met);
+  otree.Branch(t_tree);
 
   t_tree->Branch("jet0_pt", &jet0_pt);
   t_tree->Branch("jet0_eta", &jet0_eta);
@@ -563,9 +562,10 @@ EmergingJetAnalyzer::~EmergingJetAnalyzer()
 EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
+  // Reset output tree to default values
+  otree.Init();
 
   //   float ipCut = 0.05;
-
 
   edm::ESHandle<GlobalTrackingGeometry> theTrackingGeometry;
   iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry);
@@ -701,10 +701,10 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   }
 
-  t_run   = iEvent.id().run();
-  t_event = iEvent.id().event();
-  t_ls    = iEvent.id().luminosityBlock();
-  t_bx    = iEvent.bunchCrossing();
+  otree.run   = iEvent.id().run();
+  otree.event = iEvent.id().event();
+  otree.lumi  = iEvent.id().luminosityBlock();
+  otree.bx    = iEvent.bunchCrossing();
 
   int muonRecHits = 0;
 
@@ -752,8 +752,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   h_nSV_disp->Fill(disp_SV);
 
-  h_MET->Fill(pfmet->begin()->et());
-  t_met = pfmet->begin()->et();
+  otree.met_pt = pfmet->begin()->pt();
+  otree.met_phi = pfmet->begin()->phi();
+  h_MET->Fill(otree.met_pt);
   float dphi = 999.;
   for (reco::PFJetCollection::iterator ijet = selectedJets.begin(); ijet != selectedJets.end(); ++ijet) {
     float dphi_i = ijet->phi() - pfmet->begin()->phi();
@@ -1266,6 +1267,10 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   edm::ParameterSetDescription desc;
   desc.setUnknown();
   descriptions.addDefault(desc);
+}
+
+void
+EmergingJetAnalyzer::fillSingleJet(reco::PFJet* jet) {
 }
 
 //define this as a plug-in

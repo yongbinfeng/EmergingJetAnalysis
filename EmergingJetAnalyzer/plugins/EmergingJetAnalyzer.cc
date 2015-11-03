@@ -608,26 +608,6 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //   /*
   //   */
 
-  int nJetsPassing = 0;
-  reco::PFJetCollection selectedJets;
-
-  for ( reco::PFJetCollection::const_iterator jet = pfjetH->begin(); jet != pfjetH->end(); ++jet ) {
-    if (nJetsPassing == 0 && fabs(jet->eta()) < 2.5 && jet->pt() > 400) {
-      nJetsPassing++;
-      selectedJets.push_back(*jet);
-    } else if (nJetsPassing == 1 && fabs(jet->eta()) < 2.5 && jet->pt() > 200) {
-      nJetsPassing++;
-      selectedJets.push_back(*jet);
-    } else if (nJetsPassing == 2 && fabs(jet->eta()) < 2.5 && jet->pt() > 125) {
-      nJetsPassing++;
-      selectedJets.push_back(*jet);
-    } else if (nJetsPassing == 3 && fabs(jet->eta()) < 2.5 && jet->pt() > 50) {
-      nJetsPassing++;
-      selectedJets.push_back(*jet);
-    }    
-  }
-  if (nJetsPassing < 4) return;
-
   float dx, dy;
   int disp_SV = 0;
   reco::VertexCollection theVertices;

@@ -71,6 +71,8 @@ Implementation:
 #include "TH1F.h"
 #include "TMath.h"
 #include "TLorentzVector.h"
+
+#include "EmergingJetAnalysis/EmergingJetAnalyzer/interface/OutputTree.h"
 //
 // class declaration
 //
@@ -81,6 +83,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     ~EmergingJetAnalyzer();
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    OutputTree otree;
 
 
   private:
@@ -573,6 +576,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::PFJetCollection> pfjetH;
   // iEvent.getByLabel("ak4PFJetsCHS", pfjetH);
   iEvent.getByToken(jetCollectionToken_, pfjetH);
+  auto selectedJets = *pfjetH;
 
   Handle<reco::BeamSpot> theBeamSpotHandle;
   iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);

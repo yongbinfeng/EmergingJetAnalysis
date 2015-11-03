@@ -1271,6 +1271,22 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
 
 void
 EmergingJetAnalyzer::fillSingleJet(reco::PFJet* jet) {
+
+  otree.jets_pt            .push_back( jet->pt()                          );
+  otree.jets_eta           .push_back( jet->eta()                         );
+  otree.jets_phi           .push_back( jet->phi()                         );
+  otree.jets_cef           .push_back( jet->chargedEmEnergyFraction()     );
+  otree.jets_nef           .push_back( jet->neutralEmEnergyFraction()     );
+  otree.jets_chf           .push_back( jet->chargedHadronEnergyFraction() );
+  otree.jets_nhf           .push_back( jet->neutralHadronEnergyFraction() );
+  otree.jets_phf           .push_back( jet->photonEnergyFraction()        );
+  // otree.jets_promptTracks  .push_back( promptTracks                       );
+  // otree.jets_dispTracks    .push_back( dispTracks                         );
+  // otree.jets_nSV           .push_back( matchedVertices                    );
+  // otree.jets_medianLogIpSig.push_back( medianIpSig                        );
+  // otree.jets_missHits      .push_back( misshits                           );
+  // otree.jets_muonHits      .push_back( dtHits+cscHits                     );
+
 }
 
 //define this as a plug-in

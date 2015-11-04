@@ -57,8 +57,8 @@ emjet::OutputTree::Init() {
   jets_chf            .clear();
   jets_nhf            .clear();
   jets_phf            .clear();
-  jets_nPromptTracks   .clear();
-  jets_nDispTracks     .clear();
+  jets_nPromptTracks  .clear();
+  jets_nDispTracks    .clear();
   jets_nSV            .clear();
   jets_medianLogIpSig .clear();
   jets_missHits       .clear();
@@ -83,8 +83,8 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_chf"            , &jets_chf            ) ;
   tree->Branch("jets_nhf"            , &jets_nhf            ) ;
   tree->Branch("jets_phf"            , &jets_phf            ) ;
-  tree->Branch("jets_nPromptTracks"   , &jets_nPromptTracks   ) ;
-  tree->Branch("jets_nDispTracks"     , &jets_nDispTracks     ) ;
+  tree->Branch("jets_nPromptTracks"  , &jets_nPromptTracks   ) ;
+  tree->Branch("jets_nDispTracks"    , &jets_nDispTracks     ) ;
   tree->Branch("jets_nSV"            , &jets_nSV            ) ;
   tree->Branch("jets_medianLogIpSig" , &jets_medianLogIpSig ) ;
   tree->Branch("jets_missHits"       , &jets_missHits       ) ;

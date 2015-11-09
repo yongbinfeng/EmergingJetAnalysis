@@ -819,7 +819,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   ////////////////////////////////////////////////////////////
   for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); ++jet ) {
 
-    fillSingleJet(*jet);
+    // fillSingleJet(*jet);
 
 
     //       if (jet->pt() < 50.) continue;
@@ -869,7 +869,12 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // Count tracks with IP significance < 3
     int promptTracks = 0;
     for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
-      reco::TransientTrack itk = theB->build(*ijt);
+      std::cout << "Logging1\n";
+      reco::TrackRef track = *ijt;
+      std::cout << "Logging2\n";
+      std::cout << "track->pt(): " << track->pt() << std::endl;
+      std::cout << "Logging3\n";
+      reco::TransientTrack itk = theB->build(track);
       if (itk.track().pt() < 1.) continue;
       auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
       if (d3d_ipv.second.significance() < 3.) promptTracks++;
@@ -945,12 +950,17 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
         continue;
       }
 
+      // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates
+      if ( ! ( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) )
+      continue;
+
       TLorentzVector trackVector;
       trackVector.SetPxPyPzE(
           closestPoint.x() - primary_vertex.position().x(),
           closestPoint.y() - primary_vertex.position().y(),
           closestPoint.z() - primary_vertex.position().z(),
           itk->track().p());
+
       if (pca.isValid()) {
         h_jetPCAdist->Fill( trackVector.DeltaR(jetVector) , closestPoint.perp() );
       }
@@ -1313,7 +1323,15 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   float medianLogIpSig = 0.;
   int nTags = 0;
   const float logTagCut    = 2.;
+  // per track variables, reuse for efficiency
+  std::vector<float> vec_ipXY;
+  std::vector<float> vec_ipZ;
+  std::vector<float> vec_ipXYSig;
   {
+    vec_ipXY    .clear();
+    vec_ipZ     .clear();
+    vec_ipXYSig .clear();
+
     std::vector<float> ipVector;
     int ip0_1 = 0.;
     int ip1_0 = 0.;
@@ -1335,6 +1353,10 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       if (itk->track().pt() < 1.) continue;
 
       auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
+      float ipXY = fabs(dxy_ipv.second.value());
+      float ipXYSig = fabs(dxy_ipv.second.significance());
+      vec_ipXY.push_back(ipXY);
+      vec_ipXYSig.push_back(ipXYSig);
 
       //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
 
@@ -1403,7 +1425,6 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   }
 
 
-
   otree.jets_pt             .push_back( jet.pt()                          );
   otree.jets_eta            .push_back( jet.eta()                         );
   otree.jets_phi            .push_back( jet.phi()                         );
@@ -1418,6 +1439,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_medianLogIpSig .push_back( medianLogIpSig                    );
   // otree.jets_missHits       .push_back( misshits                           );
   // otree.jets_muonHits       .push_back( dtHits+cscHits                     );
+  otree.tracks_ipXY         .push_back(vec_ipXY                           );
+  otree.tracks_ipXYSig      .push_back(vec_ipXYSig                        );
+
 
 }
 

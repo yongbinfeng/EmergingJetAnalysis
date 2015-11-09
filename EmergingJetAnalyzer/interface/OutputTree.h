@@ -36,6 +36,10 @@ namespace emjet
       vector<float>  jets_medianLogIpSig;
       vector<int>    jets_missHits;
       vector<int>    jets_muonHits;
+      // per track
+      vector< vector<float> > tracks_ipXY;
+      vector< vector<float> > tracks_ipZ;
+      vector< vector<float> > tracks_ipXYSig;
   };
 }
 
@@ -63,6 +67,10 @@ emjet::OutputTree::Init() {
   jets_medianLogIpSig .clear();
   jets_missHits       .clear();
   jets_muonHits       .clear();
+  // per track
+  tracks_ipXY         .clear();
+  tracks_ipZ          .clear();
+  tracks_ipXYSig      .clear();
 }
 
 void
@@ -83,12 +91,16 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_chf"            , &jets_chf            ) ;
   tree->Branch("jets_nhf"            , &jets_nhf            ) ;
   tree->Branch("jets_phf"            , &jets_phf            ) ;
-  tree->Branch("jets_nPromptTracks"  , &jets_nPromptTracks   ) ;
-  tree->Branch("jets_nDispTracks"    , &jets_nDispTracks     ) ;
+  tree->Branch("jets_nPromptTracks"  , &jets_nPromptTracks  ) ;
+  tree->Branch("jets_nDispTracks"    , &jets_nDispTracks    ) ;
   tree->Branch("jets_nSV"            , &jets_nSV            ) ;
   tree->Branch("jets_medianLogIpSig" , &jets_medianLogIpSig ) ;
   tree->Branch("jets_missHits"       , &jets_missHits       ) ;
   tree->Branch("jets_muonHits"       , &jets_muonHits       ) ;
+  // per track
+  tree->Branch("tracks_ipXY"         , &tracks_ipXY         ) ;
+  tree->Branch("tracks_ipZ"          , &tracks_ipZ          ) ;
+  tree->Branch("tracks_ipXYSig"      , &tracks_ipXYSig      ) ;
 }
 
 #endif

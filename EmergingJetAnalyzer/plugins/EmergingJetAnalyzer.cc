@@ -819,7 +819,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   ////////////////////////////////////////////////////////////
   for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); ++jet ) {
 
-    // fillSingleJet(*jet);
+    fillSingleJet(*jet);
 
 
     //       if (jet->pt() < 50.) continue;
@@ -868,12 +868,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     //       int pfTracks = jet->getTrackRefs().size();
     // Count tracks with IP significance < 3
     int promptTracks = 0;
-    for (reco::TrackRefVector::iterator ijt = jet->getTrackRefs().begin(); ijt != jet->getTrackRefs().end(); ++ijt) {
-      std::cout << "Logging1\n";
+    reco::TrackRefVector trackRefs = jet->getTrackRefs();
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
       reco::TrackRef track = *ijt;
-      std::cout << "Logging2\n";
-      std::cout << "track->pt(): " << track->pt() << std::endl;
-      std::cout << "Logging3\n";
       reco::TransientTrack itk = theB->build(track);
       if (itk.track().pt() < 1.) continue;
       auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
@@ -1201,7 +1198,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   std::sort(vec_medianIpSig.begin(), vec_medianIpSig.end());
   //   h_medianLogIpSig_2highest->Fill(vec_medianIpSig[0] + vec_medianIpSig[1]);
-  h_medianLogIpSig_2highest->Fill(vec_medianIpSig[3] + vec_medianIpSig[2]);
+  // h_medianLogIpSig_2highest->Fill(vec_medianIpSig[3] + vec_medianIpSig[2]);
 
   std::sort(vec_promptTracks.begin(), vec_promptTracks.end());
   //   h_jetPromptTracks_2lowest->Fill(vec_promptTracks[vec_promptTracks.size()-1]+vec_promptTracks[vec_promptTracks.size()-2]);
@@ -1211,8 +1208,8 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //   for (std::vector<float>::iterator ir = vec_medianRpca.begin(); ir != vec_medianRpca.end(); ++ir) {
   //       std::cout << *ir << std::endl;
   //   }
-  h_median_rPCA->Fill(vec_medianRpca[2]);  if (vec_medianRpca[2] > 0.5) nTags++;
-  h_median_rPCA->Fill(vec_medianRpca[3]);  if (vec_medianRpca[3] > 0.5) nTags++;
+  // h_median_rPCA->Fill(vec_medianRpca[2]);  if (vec_medianRpca[2] > 0.5) nTags++;
+  // h_median_rPCA->Fill(vec_medianRpca[3]);  if (vec_medianRpca[3] > 0.5) nTags++;
 
   // check out the standalone muons
 
@@ -1308,7 +1305,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   // Calculate nPromptTracks
   int nPromptTracks = 0;
   {
-    for (reco::TrackRefVector::iterator ijt = jet.getTrackRefs().begin(); ijt != jet.getTrackRefs().end(); ++ijt) {
+    reco::TrackRefVector trackRefs = jet.getTrackRefs();
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
       reco::TransientTrack itk = theB->build(*ijt);
       if (itk.track().pt() < 1.) continue;
       auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
@@ -1363,12 +1361,17 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, 
           direction, itk->field());
 
+      // Skip tracks with invalid point-of-closest-approach
       GlobalPoint closestPoint;
       if (pca.isValid()) {
         closestPoint = pca.globalPosition();
       } else {
         continue;
       }
+
+      // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates
+      if ( ! ( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) )
+        continue;
 
       TLorentzVector trackVector;
       trackVector.SetPxPyPzE(
@@ -1422,6 +1425,20 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
         ++nTags;
       }
     }
+  }
+
+  // Calculate jet alpha_max
+  double alpha_max = 0.;
+  {
+    reco::TrackRefVector trackRefs = jet.getTrackRefs();
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+      reco::TransientTrack itk = theB->build(*ijt);
+      if (itk.track().pt() < 1.) continue;
+      auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
+      if (d3d_ipv.second.significance() < maxSigPromptTrack) nPromptTracks++;
+      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
+      //           if (dxy_ipv.second.value() > ipCut) continue;
+    } 
   }
 
 

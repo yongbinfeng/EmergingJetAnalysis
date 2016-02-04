@@ -178,7 +178,7 @@ process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
     isData = cms.untracked.bool(True),
 )
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("output.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("output_W.root") )
 
 # process.p = cms.Path(process.jetFilter*process.emergingJetAnalyzer)
 process.p = cms.Path(process.emergingJetAnalyzer)

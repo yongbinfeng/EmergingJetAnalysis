@@ -1431,15 +1431,32 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   double alpha_max = 0.;
   {
     reco::TrackRefVector trackRefs = jet.getTrackRefs();
+    // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+    double jet_pt_sum = 0.;
     for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-      reco::TransientTrack itk = theB->build(*ijt);
-      if (itk.track().pt() < 1.) continue;
-      auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
-      if (d3d_ipv.second.significance() < maxSigPromptTrack) nPromptTracks++;
-      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-      //           if (dxy_ipv.second.value() > ipCut) continue;
-    } 
+      jet_pt_sum += (*ijt)->pt();
+    } // End of track loop
+
+    auto ipv_chosen = primary_vertices->end(); // iterator to chosen primary vertex
+    double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+    // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+    for (auto ipv = primary_vertices->begin(); ipv != primary_vertices->end(); ++ipv) {
+      double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+      // std::cout << "New vertex\n";
+      for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+        double trackWeight = ipv->trackWeight(*ijt);
+        // std::cout << "Track weight: " << trackWeight << std::endl;
+        if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+      } // End of track loop
+      if (vertex_pt_sum > max_vertex_pt_sum) {
+        max_vertex_pt_sum = vertex_pt_sum;
+        ipv_chosen = ipv;
+        // Calculate alpha
+        alpha_max = vertex_pt_sum / jet_pt_sum;
+      }
+    } // End of vertex loop
   }
+  std::cout<< "Jet alpha_max: " << alpha_max << std::endl;
 
 
   otree.jets_pt             .push_back( jet.pt()                          );
@@ -1456,6 +1473,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_medianLogIpSig .push_back( medianLogIpSig                    );
   // otree.jets_missHits       .push_back( misshits                           );
   // otree.jets_muonHits       .push_back( dtHits+cscHits                     );
+  otree.jets_alphaMax       .push_back( alpha_max                     );
   otree.tracks_ipXY         .push_back(vec_ipXY                           );
   otree.tracks_ipXYSig      .push_back(vec_ipXYSig                        );
 

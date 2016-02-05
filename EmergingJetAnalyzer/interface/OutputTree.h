@@ -36,6 +36,7 @@ namespace emjet
       vector<float>  jets_medianLogIpSig;
       vector<int>    jets_missHits;
       vector<int>    jets_muonHits;
+      vector<float>  jets_alphaMax;
       // per track
       vector< vector<float> > tracks_ipXY;
       vector< vector<float> > tracks_ipZ;
@@ -67,6 +68,7 @@ emjet::OutputTree::Init() {
   jets_medianLogIpSig .clear();
   jets_missHits       .clear();
   jets_muonHits       .clear();
+  jets_alphaMax       .clear();
   // per track
   tracks_ipXY         .clear();
   tracks_ipZ          .clear();
@@ -97,6 +99,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_medianLogIpSig" , &jets_medianLogIpSig ) ;
   tree->Branch("jets_missHits"       , &jets_missHits       ) ;
   tree->Branch("jets_muonHits"       , &jets_muonHits       ) ;
+  tree->Branch("jets_alphaMax"       , &jets_alphaMax       ) ;
   // per track
   tree->Branch("tracks_ipXY"         , &tracks_ipXY         ) ;
   tree->Branch("tracks_ipZ"          , &tracks_ipZ          ) ;

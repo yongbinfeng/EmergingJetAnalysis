@@ -114,6 +114,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     edm::ESHandle<TransientTrackBuilder> theB;
     edm::Handle<reco::VertexCollection> primary_vertices;
     std::vector<reco::TransientTrack> generalTracks;
+    edm::Handle<reco::GenParticleCollection> genParticlesH;
     const reco::BeamSpot* theBeamSpot;
 
     TH1F * h_dr_jet_track;
@@ -640,9 +641,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     iEvent.getByLabel("genMetTrue", genMetH);
     h_genHT->Fill(genMetH->at(0).sumEt());
 
-    edm::Handle<reco::GenParticleCollection> genParticlesH;
     iEvent.getByLabel("genParticles", genParticlesH);
-
 
     for (reco::GenParticleCollection::const_iterator gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
       if (gp->numberOfMothers() < 1) continue;
@@ -1299,6 +1298,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   // Shared objects
   const reco::Vertex& primary_vertex = primary_vertices->at(0);
   TLorentzVector jetVector; jetVector.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
+  // std::cout << "jet.pt(): " << jet.pt() << std::endl;
   const float maxSigPromptTrack = 3.;
   const float minSigDispTrack = 3.;
 
@@ -1325,6 +1325,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   std::vector<float> vec_ipXY;
   std::vector<float> vec_ipZ;
   std::vector<float> vec_ipXYSig;
+  int itrack = 0;
   {
     vec_ipXY    .clear();
     vec_ipZ     .clear();
@@ -1346,15 +1347,15 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     std::vector<float> r_pca;
     std::vector<float> logIpSig;
     float sum_Lxy = 0.;
+    // std::cout << "generalTracks.size(): " << generalTracks.size() << std::endl; 
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
 
       if (itk->track().pt() < 1.) continue;
+      itrack++;
 
       auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
       float ipXY = fabs(dxy_ipv.second.value());
       float ipXYSig = fabs(dxy_ipv.second.significance());
-      vec_ipXY.push_back(ipXY);
-      vec_ipXYSig.push_back(ipXYSig);
 
       //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
 
@@ -1379,7 +1380,12 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
           closestPoint.y() - primary_vertex.position().y(),
           closestPoint.z() - primary_vertex.position().z(),
           itk->track().p());
-      if (trackVector.DeltaR(jetVector) > 0.4) continue;
+      // Skip tracks with deltaR > 0.4 w.r.t. current jet
+      float deltaR = trackVector.DeltaR(jetVector);
+      // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
+      if (deltaR > 0.4) continue;
+      vec_ipXY.push_back(ipXY);
+      vec_ipXYSig.push_back(ipXYSig);
       ipVector.push_back(fabs(dxy_ipv.second.value()));
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
 
@@ -1426,6 +1432,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       }
     }
   }
+  // std::cout << "itrack: " << itrack << std::endl;
+  // std::cout << "vec_ipXY.size(): " << vec_ipXY.size() << std::endl;
 
   // Calculate jet alpha_max
   double alpha_max = 0.;
@@ -1456,7 +1464,29 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       }
     } // End of vertex loop
   }
-  std::cout<< "Jet alpha_max: " << alpha_max << std::endl;
+  // std::cout<< "Jet alpha_max: " << alpha_max << std::endl;
+
+  // Count number of dark pions
+  int nDarkPions = 0;
+  double minDist = 9999.;
+  {
+    if (!isData_) {
+      for (auto gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
+        if (fabs(gp->pdgId()) != 4900111) continue;
+        //                   std::cout << "genParticle pdgId, status = " << gp->status() << "\t" << gp->pdgId() << std::endl;
+        //                   std::cout << "             mass = " << gp->mass() << std::endl;
+        //                   std::cout << "               pT = " << gp->pt()   << std::endl;
+        //                   std::cout << "      r, eta, phi = " << gp->vertex().r() << "\t" << gp->vertex().eta() << "\t" << gp->vertex().phi() << std::endl;
+        TLorentzVector gpVector;
+        gpVector.SetPtEtaPhiM(gp->pt(),gp->eta(),gp->phi(),gp->mass());
+        double dist = jetVector.DeltaR(gpVector);
+        if (dist < 0.4) {
+          nDarkPions++;
+        }
+        if (dist < minDist) minDist = dist;
+      }
+    }
+  }
 
 
   otree.jets_pt             .push_back( jet.pt()                          );
@@ -1473,7 +1503,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_medianLogIpSig .push_back( medianLogIpSig                    );
   // otree.jets_missHits       .push_back( misshits                           );
   // otree.jets_muonHits       .push_back( dtHits+cscHits                     );
-  otree.jets_alphaMax       .push_back( alpha_max                     );
+  otree.jets_alphaMax       .push_back( alpha_max                         );
+  otree.jets_nDarkPions     .push_back( nDarkPions                        );
+  otree.jets_minDRDarkPion  .push_back( minDist                           );
   otree.tracks_ipXY         .push_back(vec_ipXY                           );
   otree.tracks_ipXYSig      .push_back(vec_ipXYSig                        );
 

@@ -40,6 +40,8 @@ namespace emjet
       vector<int>    jets_nDarkPions;
       vector<float>  jets_minDRDarkPion;
       // per track
+      vector< vector<int> > tracks_nHits;
+      vector< vector<int> > tracks_nMissInnerHits;
       vector< vector<float> > tracks_ipXY;
       vector< vector<float> > tracks_ipZ;
       vector< vector<float> > tracks_ipXYSig;
@@ -56,27 +58,29 @@ emjet::OutputTree::Init() {
   met_pt  = 0.;
   met_phi = 0.;
   // per jet
-  jets_pt             .clear();
-  jets_eta            .clear();
-  jets_phi            .clear();
-  jets_cef            .clear();
-  jets_nef            .clear();
-  jets_chf            .clear();
-  jets_nhf            .clear();
-  jets_phf            .clear();
-  jets_nPromptTracks  .clear();
-  jets_nDispTracks    .clear();
-  jets_nSV            .clear();
-  jets_medianLogIpSig .clear();
-  jets_missHits       .clear();
-  jets_muonHits       .clear();
-  jets_alphaMax       .clear();
-  jets_nDarkPions     .clear();
-  jets_minDRDarkPion  .clear();
+  jets_pt               .clear();
+  jets_eta              .clear();
+  jets_phi              .clear();
+  jets_cef              .clear();
+  jets_nef              .clear();
+  jets_chf              .clear();
+  jets_nhf              .clear();
+  jets_phf              .clear();
+  jets_nPromptTracks    .clear();
+  jets_nDispTracks      .clear();
+  jets_nSV              .clear();
+  jets_medianLogIpSig   .clear();
+  jets_missHits         .clear();
+  jets_muonHits         .clear();
+  jets_alphaMax         .clear();
+  jets_nDarkPions       .clear();
+  jets_minDRDarkPion    .clear();
   // per track
-  tracks_ipXY         .clear();
-  tracks_ipZ          .clear();
-  tracks_ipXYSig      .clear();
+  tracks_nHits          .clear();
+  tracks_nMissInnerHits .clear();
+  tracks_ipXY           .clear();
+  tracks_ipZ            .clear();
+  tracks_ipXYSig        .clear();
 }
 
 void
@@ -107,9 +111,11 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_nDarkPions"     , &jets_nDarkPions     ) ;
   tree->Branch("jets_minDRDarkPion"  , &jets_minDRDarkPion  ) ;
   // per track
-  tree->Branch("tracks_ipXY"         , &tracks_ipXY         ) ;
-  tree->Branch("tracks_ipZ"          , &tracks_ipZ          ) ;
-  tree->Branch("tracks_ipXYSig"      , &tracks_ipXYSig      ) ;
+  tree->Branch("tracks_nHits"          , &tracks_nHits          ) ;
+  tree->Branch("tracks_nMissInnerHits" , &tracks_nMissInnerHits ) ;
+  tree->Branch("tracks_ipXY"           , &tracks_ipXY           ) ;
+  tree->Branch("tracks_ipZ"            , &tracks_ipZ            ) ;
+  tree->Branch("tracks_ipXYSig"        , &tracks_ipXYSig        ) ;
 }
 
 #endif

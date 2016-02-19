@@ -1322,14 +1322,18 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   int nTags = 0;
   const float logTagCut    = 2.;
   // per track variables, reuse for efficiency
+  std::vector<int>   vec_nHits;
+  std::vector<int>   vec_nMissInnerHits;
   std::vector<float> vec_ipXY;
   std::vector<float> vec_ipZ;
   std::vector<float> vec_ipXYSig;
   int itrack = 0;
   {
-    vec_ipXY    .clear();
-    vec_ipZ     .clear();
-    vec_ipXYSig .clear();
+    vec_nHits          .clear();
+    vec_nMissInnerHits .clear();
+    vec_ipXY           .clear();
+    vec_ipZ            .clear();
+    vec_ipXYSig        .clear();
 
     std::vector<float> ipVector;
     int ip0_1 = 0.;
@@ -1350,6 +1354,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     // std::cout << "generalTracks.size(): " << generalTracks.size() << std::endl; 
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
 
+      // Skip tracks with pt<1
       if (itk->track().pt() < 1.) continue;
       itrack++;
 
@@ -1380,14 +1385,23 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
           closestPoint.y() - primary_vertex.position().y(),
           closestPoint.z() - primary_vertex.position().z(),
           itk->track().p());
+
       // Skip tracks with deltaR > 0.4 w.r.t. current jet
       float deltaR = trackVector.DeltaR(jetVector);
       // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
       if (deltaR > 0.4) continue;
-      vec_ipXY.push_back(ipXY);
-      vec_ipXYSig.push_back(ipXYSig);
+
+      int nHits = itk->numberOfValidHits();
+      int nMissInnerHits = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
+      // std::cout << "nHits:" << nHits << std::endl;
+      // std::cout << "nMissInnerHits:" << nMissInnerHits << std::endl;
+      vec_nHits          . push_back ( nHits          ) ;
+      vec_nMissInnerHits . push_back ( nMissInnerHits ) ;
+      vec_ipXY           . push_back ( ipXY           ) ;
+      vec_ipXYSig        . push_back ( ipXYSig        ) ;
       ipVector.push_back(fabs(dxy_ipv.second.value()));
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
+
 
       misshits += itk->track().numberOfLostHits();
       tot_dsz += itk->track().dsz(theBeamSpot->position());
@@ -1506,8 +1520,10 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_alphaMax       .push_back( alpha_max                         );
   otree.jets_nDarkPions     .push_back( nDarkPions                        );
   otree.jets_minDRDarkPion  .push_back( minDist                           );
-  otree.tracks_ipXY         .push_back(vec_ipXY                           );
-  otree.tracks_ipXYSig      .push_back(vec_ipXYSig                        );
+  otree.tracks_nHits          .push_back ( vec_nHits          ) ;
+  otree.tracks_nMissInnerHits .push_back ( vec_nMissInnerHits ) ;
+  otree.tracks_ipXY           .push_back ( vec_ipXY           ) ;
+  otree.tracks_ipXYSig        .push_back ( vec_ipXYSig        ) ;
 
 
 }

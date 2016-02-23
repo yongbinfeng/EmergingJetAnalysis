@@ -39,12 +39,19 @@ namespace emjet
       vector<float>  jets_alphaMax;
       vector<int>    jets_nDarkPions;
       vector<float>  jets_minDRDarkPion;
-      // per track
-      vector< vector<int> > tracks_nHits;
-      vector< vector<int> > tracks_nMissInnerHits;
+      // per track (for a given jet)
+      vector< vector<int> >   tracks_nHits;
+      vector< vector<int> >   tracks_nMissInnerHits;
       vector< vector<float> > tracks_ipXY;
       vector< vector<float> > tracks_ipZ;
       vector< vector<float> > tracks_ipXYSig;
+      // per secondary vertex
+      vector<float>  vertex_Lxy;
+      vector<float>  vertex_mass;
+      // vector< vector<float> > vector_tracks_weight;
+      // vector< vector<float> > vector_tracks_pt;
+      // vector< vector<float> > vector_tracks_eta;
+      // vector< vector<float> > vector_tracks_phi;
   };
 }
 
@@ -58,29 +65,32 @@ emjet::OutputTree::Init() {
   met_pt  = 0.;
   met_phi = 0.;
   // per jet
-  jets_pt               .clear();
-  jets_eta              .clear();
-  jets_phi              .clear();
-  jets_cef              .clear();
-  jets_nef              .clear();
-  jets_chf              .clear();
-  jets_nhf              .clear();
-  jets_phf              .clear();
-  jets_nPromptTracks    .clear();
-  jets_nDispTracks      .clear();
-  jets_nSV              .clear();
-  jets_medianLogIpSig   .clear();
-  jets_missHits         .clear();
-  jets_muonHits         .clear();
-  jets_alphaMax         .clear();
-  jets_nDarkPions       .clear();
-  jets_minDRDarkPion    .clear();
-  // per track
-  tracks_nHits          .clear();
-  tracks_nMissInnerHits .clear();
-  tracks_ipXY           .clear();
-  tracks_ipZ            .clear();
-  tracks_ipXYSig        .clear();
+ jets_pt               .clear();
+ jets_eta              .clear();
+ jets_phi              .clear();
+ jets_cef              .clear();
+ jets_nef              .clear();
+ jets_chf              .clear();
+ jets_nhf              .clear();
+ jets_phf              .clear();
+ jets_nPromptTracks    .clear();
+ jets_nDispTracks      .clear();
+ jets_nSV              .clear();
+ jets_medianLogIpSig   .clear();
+ jets_missHits         .clear();
+ jets_muonHits         .clear();
+ jets_alphaMax         .clear();
+ jets_nDarkPions       .clear();
+ jets_minDRDarkPion    .clear();
+ // per track
+ tracks_nHits          .clear();
+ tracks_nMissInnerHits .clear();
+ tracks_ipXY           .clear();
+ tracks_ipZ            .clear();
+ tracks_ipXYSig        .clear();
+ // per secondary vertex
+ vertex_Lxy            .clear();
+ vertex_mass           .clear();
 }
 
 void
@@ -116,6 +126,9 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("tracks_ipXY"           , &tracks_ipXY           ) ;
   tree->Branch("tracks_ipZ"            , &tracks_ipZ            ) ;
   tree->Branch("tracks_ipXYSig"        , &tracks_ipXYSig        ) ;
+  // per secondary vertex
+  tree->Branch("vertex_Lxy"  , &vertex_Lxy          ) ;
+  tree->Branch("vertex_mass" , &vertex_mass         ) ;
 }
 
 #endif

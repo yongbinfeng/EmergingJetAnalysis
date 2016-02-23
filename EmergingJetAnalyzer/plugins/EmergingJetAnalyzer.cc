@@ -93,6 +93,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // ---------- helper functions ---------------------------
     // Take a single PFJet and add to output tree
     void fillSingleJet(const reco::PFJet&);
+    // Select all secondary vertices passing certain criteria, from a given vertexCollection
+    reco::VertexCollection selectSecondaryVertices (edm::Handle<reco::VertexCollection>);
 
     TrackDetectorAssociator   m_trackAssociator;
     TrackAssociatorParameters m_trackParameters;
@@ -116,6 +118,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     std::vector<reco::TransientTrack> generalTracks;
     edm::Handle<reco::GenParticleCollection> genParticlesH;
     const reco::BeamSpot* theBeamSpot;
+    reco::VertexCollection selectedSecondaryVertices;
 
     TH1F * h_dr_jet_track;
 
@@ -804,6 +807,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
 
   //   return;
+
+  // Select secondary vertices
+  selectedSecondaryVertices = selectSecondaryVertices(secondary_vertices);
 
   int ijet = 0;
   int nTags = 0;
@@ -1526,6 +1532,22 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.tracks_ipXYSig        .push_back ( vec_ipXYSig        ) ;
 
 
+}
+
+reco::VertexCollection
+EmergingJetAnalyzer::selectSecondaryVertices (edm::Handle<reco::VertexCollection> secondary_vertices) {
+  const reco::Vertex& primary_vertex = primary_vertices->at(0);
+  const int minDispSv = 0.1; // Minimum transverse displacement for a secondary vertex to be selected
+  reco::VertexCollection selectedVertices;
+  for (size_t ivx = 0; ivx < secondary_vertices->size(); ++ivx) {
+    float dx = primary_vertex.position().x() - secondary_vertices->at(ivx).position().x();
+    float dy = primary_vertex.position().y() - secondary_vertices->at(ivx).position().y();
+    // If displacement from primary_vertex is greater than minDispSv
+    if (TMath::Sqrt( dx*dx + dy*dy ) > minDispSv) {
+        selectedVertices.push_back(secondary_vertices->at(ivx));
+      }
+  }
+  return selectedVertices;
 }
 
 //define this as a plug-in

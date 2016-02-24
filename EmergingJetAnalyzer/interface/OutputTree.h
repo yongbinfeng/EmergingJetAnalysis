@@ -46,8 +46,17 @@ namespace emjet
       vector< vector<float> > tracks_ipZ;
       vector< vector<float> > tracks_ipXYSig;
       // per secondary vertex
+      vector<float>  vertex_x;
+      vector<float>  vertex_y;
+      vector<float>  vertex_z;
+      vector<float>  vertex_xError;
+      vector<float>  vertex_yError;
+      vector<float>  vertex_zError;
       vector<float>  vertex_Lxy;
       vector<float>  vertex_mass;
+      vector<float>  vertex_chi2;
+      vector<float>  vertex_ndof;
+      vector<float>  vertex_pt2sum;
       // vector< vector<float> > vector_tracks_weight;
       // vector< vector<float> > vector_tracks_pt;
       // vector< vector<float> > vector_tracks_eta;
@@ -89,8 +98,17 @@ emjet::OutputTree::Init() {
  tracks_ipZ            .clear();
  tracks_ipXYSig        .clear();
  // per secondary vertex
+ vertex_x              .clear();
+ vertex_y              .clear();
+ vertex_z              .clear();
+ vertex_xError         .clear();
+ vertex_yError         .clear();
+ vertex_zError         .clear();
  vertex_Lxy            .clear();
  vertex_mass           .clear();
+ vertex_chi2           .clear();
+ vertex_ndof           .clear();
+ vertex_pt2sum         .clear();
 }
 
 void
@@ -127,8 +145,17 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("tracks_ipZ"            , &tracks_ipZ            ) ;
   tree->Branch("tracks_ipXYSig"        , &tracks_ipXYSig        ) ;
   // per secondary vertex
-  tree->Branch("vertex_Lxy"  , &vertex_Lxy          ) ;
-  tree->Branch("vertex_mass" , &vertex_mass         ) ;
+  tree->Branch("vertex_x"      ,   &vertex_x      ) ;
+  tree->Branch("vertex_y"      ,   &vertex_y      ) ;
+  tree->Branch("vertex_z"      ,   &vertex_z      ) ;
+  tree->Branch("vertex_xError" ,   &vertex_xError ) ;
+  tree->Branch("vertex_yError" ,   &vertex_yError ) ;
+  tree->Branch("vertex_zError" ,   &vertex_zError ) ;
+  tree->Branch("vertex_Lxy"    ,   &vertex_Lxy    ) ;
+  tree->Branch("vertex_mass"   ,   &vertex_mass   ) ;
+  tree->Branch("vertex_chi2"   ,   &vertex_chi2   ) ;
+  tree->Branch("vertex_ndof"   ,   &vertex_ndof   ) ;
+  tree->Branch("vertex_pt2sum" ,   &vertex_pt2sum ) ;
 }
 
 #endif

@@ -818,8 +818,11 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     float dy = primary_vertex.position().y() - vtx.position().y();
     Lxy = TMath::Sqrt( dx*dx + dy*dy );
     mass = vtx.p4().mass();
-    otree.vertex_Lxy  .push_back( Lxy  );
-    otree.vertex_mass .push_back( mass );
+    otree .vertex_x    .push_back( vtx.position().x()   );
+    otree .vertex_y    .push_back( vtx.position().y()   );
+    otree .vertex_z    .push_back( vtx.position().z()   );
+    otree .vertex_Lxy  .push_back( Lxy                  );
+    otree .vertex_mass .push_back( mass                 );
   }
 
   int ijet = 0;

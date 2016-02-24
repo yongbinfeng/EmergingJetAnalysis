@@ -94,7 +94,9 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // Take a single PFJet and add to output tree
     void fillSingleJet(const reco::PFJet&);
     // Select all secondary vertices passing certain criteria, from a given vertexCollection
-    reco::VertexCollection selectSecondaryVertices (edm::Handle<reco::VertexCollection>);
+    reco::VertexCollection selectSecondaryVertices (edm::Handle<reco::VertexCollection>) const;
+    // Calculate sum of pt-squares of all tracks, for a given vertex
+    double calculatePt2Sum (const reco::Vertex&) const;
 
     TrackDetectorAssociator   m_trackAssociator;
     TrackAssociatorParameters m_trackParameters;
@@ -814,15 +816,26 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   for (auto vtx : selectedSecondaryVertices) {
     float Lxy = 0.;
     float mass = 0.;
+    float pt2sum = 0.;
     float dx = primary_vertex.position().x() - vtx.position().x();
     float dy = primary_vertex.position().y() - vtx.position().y();
     Lxy = TMath::Sqrt( dx*dx + dy*dy );
     mass = vtx.p4().mass();
-    otree .vertex_x    .push_back( vtx.position().x()   );
-    otree .vertex_y    .push_back( vtx.position().y()   );
-    otree .vertex_z    .push_back( vtx.position().z()   );
-    otree .vertex_Lxy  .push_back( Lxy                  );
-    otree .vertex_mass .push_back( mass                 );
+    pt2sum = calculatePt2Sum(vtx);
+    // bool hasRefittedTracks = vtx.hasRefittedTracks();
+    // std::cout << "pt2sum: " << pt2sum << std::endl;
+    // std::cout << "hasRefittedTracks: " << hasRefittedTracks << std::endl;
+    otree.vertex_x      .push_back( vtx.x()                   );
+    otree.vertex_y      .push_back( vtx.y()                   );
+    otree.vertex_z      .push_back( vtx.z()                   );
+    otree.vertex_xError .push_back( vtx.xError()              );
+    otree.vertex_yError .push_back( vtx.yError()              );
+    otree.vertex_zError .push_back( vtx.zError()              );
+    otree.vertex_Lxy    .push_back( Lxy                       );
+    otree.vertex_mass   .push_back( mass                      );
+    otree.vertex_chi2   .push_back( vtx.chi2()                );
+    otree.vertex_ndof   .push_back( vtx.ndof()                );
+    otree.vertex_pt2sum .push_back( pt2sum                    );
   }
 
   int ijet = 0;
@@ -1549,7 +1562,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 }
 
 reco::VertexCollection
-EmergingJetAnalyzer::selectSecondaryVertices (edm::Handle<reco::VertexCollection> secondary_vertices) {
+EmergingJetAnalyzer::selectSecondaryVertices (edm::Handle<reco::VertexCollection> secondary_vertices) const {
   const reco::Vertex& primary_vertex = primary_vertices->at(0);
   const int minDispSv = 0.1; // Minimum transverse displacement for a secondary vertex to be selected
   reco::VertexCollection selectedVertices;
@@ -1562,6 +1575,30 @@ EmergingJetAnalyzer::selectSecondaryVertices (edm::Handle<reco::VertexCollection
       }
   }
   return selectedVertices;
+}
+
+double
+EmergingJetAnalyzer::calculatePt2Sum (const reco::Vertex& vertex) const {
+  // Modified from reco::Vertex::p4()
+  double sum = 0.;
+  double pt2 = 0.;
+
+  if(vertex.hasRefittedTracks()) {
+    for(std::vector<reco::Track>::const_iterator iter = vertex.refittedTracks().begin();
+        iter != vertex.refittedTracks().end(); ++iter) {
+      pt2 = iter->pt();
+      sum += pt2;
+    }
+  }
+  else
+    {
+      for(std::vector<reco::TrackBaseRef>::const_iterator iter = vertex.tracks_begin();
+          iter != vertex.tracks_end(); iter++) {
+        pt2 = (*iter)->pt();
+        sum += pt2;
+      }
+    }
+  return sum;
 }
 
 //define this as a plug-in

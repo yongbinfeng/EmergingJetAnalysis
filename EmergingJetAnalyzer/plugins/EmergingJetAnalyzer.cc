@@ -810,6 +810,17 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   // Select secondary vertices
   selectedSecondaryVertices = selectSecondaryVertices(secondary_vertices);
+  // Loop over secondary vertices
+  for (auto vtx : selectedSecondaryVertices) {
+    float Lxy = 0.;
+    float mass = 0.;
+    float dx = primary_vertex.position().x() - vtx.position().x();
+    float dy = primary_vertex.position().y() - vtx.position().y();
+    Lxy = TMath::Sqrt( dx*dx + dy*dy );
+    mass = vtx.p4().mass();
+    otree.vertex_Lxy  .push_back( Lxy  );
+    otree.vertex_mass .push_back( mass );
+  }
 
   int ijet = 0;
   int nTags = 0;

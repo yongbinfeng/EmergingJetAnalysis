@@ -1,0 +1,126 @@
+"""Helper functions to consolidate different CMSSW configs"""
+import FWCore.ParameterSet.Config as cms
+
+def addSkim(process, isData=False):
+    print "Adding Skim step."
+    print "triggerSelection should be verified for new datasets."
+    process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
+        triggerConditions = cms.vstring(
+            'HLT_PFHT800_v*',
+            'HLT_PFHT900_v*',
+        ),
+        hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+        l1tResults = cms.InputTag( "gtDigis" ),
+        l1tIgnoreMask = cms.bool( False ),
+        l1techIgnorePrescales = cms.bool( False ),
+        daqPartitions = cms.uint32( 1 ),
+        throw = cms.bool( False )
+    )
+    process.jetFilter = cms.EDFilter("JetFilter",
+        srcJets = cms.InputTag("ak4PFJetsCHS"),
+        # srcJets = cms.InputTag("patJets"),
+        # additionalCut = cms.string(""),
+        additionalCut = cms.string("abs(eta) < 2.5 && pt > 50.0"),
+        jetCuts = cms.VPSet(
+            cms.PSet(
+                minPt = cms.double(400.0),
+                maxEta = cms.double(2.5),
+                stringCut = cms.string(""),
+                ),
+            cms.PSet(
+                minPt = cms.double(200.0),
+                maxEta = cms.double(2.5),
+                stringCut = cms.string(""),
+                ),
+            cms.PSet(
+                minPt = cms.double(125.0),
+                maxEta = cms.double(2.5),
+                stringCut = cms.string(""),
+                ),
+            cms.PSet(
+                minPt = cms.double(50.0),
+                maxEta = cms.double(2.5),
+                stringCut = cms.string(""),
+                ),
+        )
+    )
+    process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
+    process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
+    process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
+    return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
+
+def addWJetSkim(process, isData=False):
+    print "Adding WJet Skim step."
+    print "triggerSelection should be verified for new datasets."
+    print "electronID should be modified for each global tag."
+    process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
+        triggerConditions = cms.vstring(
+            # 'HLT_Ele27_eta2p1_WPLoose_Gsf_v*',
+            # 'HLT_Ele27_eta2p1_WPTight_Gsf_v*',
+            # 'HLT_Ele27_eta2p1_WP75_Gsf_v*',
+            # 'HLT_Ele32_eta2p1_WP75_Gsf_v*',
+            'HLT_IsoMu22_v*',
+            # 'HLT_IsoMu20_v*',
+            # 'HLT_IsoMu20_eta2p1_v*',
+            # 'HLT_IsoMu24_eta2p1_v*',
+        ),
+        hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+        l1tResults = cms.InputTag( "gtDigis" ),
+        l1tIgnoreMask = cms.bool( False ),
+        l1techIgnorePrescales = cms.bool( False ),
+        daqPartitions = cms.uint32( 1 ),
+        throw = cms.bool( False )
+    )
+    process.wJetFilter = cms.EDFilter("WJetFilter",
+        isData = cms.bool( False ),
+        srcMuons = cms.InputTag("slimmedMuons"),
+        srcElectrons = cms.InputTag("slimmedElectrons"),
+        srcJets = cms.InputTag("slimmedJets"),
+        srcMET = cms.InputTag("slimmedMETs"),
+        minPtMuon = cms.double(20.0),
+        minPtElectron = cms.double(20.0),
+        minPtMET = cms.double(20.0),
+        minMt = cms.double(50.0),
+        maxMt = cms.double(100.0),
+        minDeltaR = cms.double(0.4),
+        maxDeltaPhi = cms.double(0.4), # Doesn't do anything
+        minPtSelectedJet = cms.double(20.0),
+        maxPtAdditionalJets = cms.double(20.0), # Doesn't do anything
+        # electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-loose'),
+        electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium'),
+    )
+    if isData: process.wJetFilter.isData = cms.bool(True)
+    process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
+    process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
+    process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
+    ############################################################
+    # Recreate miniAOD
+    ############################################################
+    if isData: 
+        # customisation of the process.
+        process.load('Configuration.StandardSequences.PAT_cff')
+        # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData 
+        #call to customisation function miniAOD_customizeAllData imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        process = miniAOD_customizeAllData(process)
+    else: 
+        # customisation of the process.
+        process.load('Configuration.StandardSequences.PATMC_cff')
+        # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC 
+        #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        process = miniAOD_customizeAllMC(process)
+    ############################################################
+    return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
+
+def addAnalyze(process, isData=False, sample=''):
+    from TrackingTools.TrackAssociator.default_cfi import *
+    process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
+        TrackAssociatorParameterBlock,
+        srcJets = cms.InputTag("jetFilter", "selectedJets"),
+        isData = cms.untracked.bool(False),
+    )
+    if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
+    if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+    return cms.Sequence(process.emergingJetAnalyzer)
+

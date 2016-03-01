@@ -180,10 +180,6 @@ WJetFilter::WJetFilter(const edm::ParameterSet& iConfig) :
   name="eventCountPreFilter"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
   name="eventCountPostFilter" ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 2 , 0., 2.) );
 
-  if ( !isData_ ) {
-    name="genHt"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 5000.) );
-  }
-
   name="pt_met"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 1000.) );
 
   name="mT_e"  ; histoMap1D_.emplace( name , fs->make<TH1D>(name.c_str() , name.c_str() , 100 , 0., 200.) );
@@ -266,16 +262,6 @@ WJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   output.jets_phi.clear();
 
   histoMap1D_["eventCountPreFilter"]->Fill(1.);
-
-  if ( !isData_ ) {
-    edm::Handle<GenEventInfoProduct> evt_info;
-    iEvent.getByLabel("generator", evt_info);
-    output.gen_weight = evt_info->weight();
-
-    edm::Handle<double> genHt_;
-    iEvent.getByLabel("genJetFilter", "genHt", genHt_);
-    histoMap1D_["genHt"]->Fill(*genHt_);
-  }
 
   edm::Handle< pat::MuonCollection > muonCollection;
   iEvent.getByToken(muonCollectionToken_, muonCollection);

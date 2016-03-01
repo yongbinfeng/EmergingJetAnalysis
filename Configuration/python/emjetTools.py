@@ -6,7 +6,9 @@ def addSkim(process, isData=False):
     print "triggerSelection should be verified for new datasets."
     process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
         triggerConditions = cms.vstring(
+            # Data: Run2015*
             'HLT_PFHT800_v*',
+            # MC: RunIISpring15DR74
             'HLT_PFHT900_v*',
         ),
         hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
@@ -55,14 +57,19 @@ def addWJetSkim(process, isData=False):
     print "electronID should be modified for each global tag."
     process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
         triggerConditions = cms.vstring(
-            # 'HLT_Ele27_eta2p1_WPLoose_Gsf_v*',
-            # 'HLT_Ele27_eta2p1_WPTight_Gsf_v*',
-            # 'HLT_Ele27_eta2p1_WP75_Gsf_v*',
-            # 'HLT_Ele32_eta2p1_WP75_Gsf_v*',
-            'HLT_IsoMu22_v*',
+            # Data: Run2015*
+            'HLT_Ele27_eta2p1_WPLoose_Gsf_v*',
+            'HLT_Ele27_eta2p1_WPTight_Gsf_v*',
+            'HLT_IsoMu24_eta2p1_v*',
+            # MC: RunIISpring15DR74
+            'HLT_Ele27_eta2p1_WP75_Gsf_v*', # Off at 1.4e34
+            'HLT_Ele32_eta2p1_WP75_Gsf_v*',
+            # 'HLT_IsoMu24_eta2p1_v*', # same in data
+            # 'HLT_IsoMu27_v*', # Good for data and MC, turn off for now for consistency
+
+            # 'HLT_IsoMu22_v*',
             # 'HLT_IsoMu20_v*',
             # 'HLT_IsoMu20_eta2p1_v*',
-            # 'HLT_IsoMu24_eta2p1_v*',
         ),
         hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
         l1tResults = cms.InputTag( "gtDigis" ),
@@ -96,25 +103,25 @@ def addWJetSkim(process, isData=False):
     ############################################################
     # Recreate miniAOD
     ############################################################
-    if isData: 
+    if isData:
         # customisation of the process.
         process.load('Configuration.StandardSequences.PAT_cff')
         # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData 
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData
         #call to customisation function miniAOD_customizeAllData imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
         process = miniAOD_customizeAllData(process)
-    else: 
+    else:
         # customisation of the process.
         process.load('Configuration.StandardSequences.PATMC_cff')
         # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC 
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
         #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
         process = miniAOD_customizeAllMC(process)
     ############################################################
     return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
 
 def addAnalyze(process, isData=False, sample=''):
-    from TrackingTools.TrackAssociator.default_cfi import *
+    from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock
     process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
         TrackAssociatorParameterBlock,
         srcJets = cms.InputTag("jetFilter", "selectedJets"),
@@ -124,3 +131,24 @@ def addAnalyze(process, isData=False, sample=''):
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
     return cms.Sequence(process.emergingJetAnalyzer)
 
+def addEdmOutput(process, isData=False, sample=''):
+    from Configuration.EventContent.EventContent_cff import AODSIMEventContent
+    from Configuration.EventContent.EventContent_cff import AODEventContent
+    process.out = cms.OutputModule("PoolOutputModule",
+        compressionAlgorithm = cms.untracked.string('LZMA'),
+        compressionLevel = cms.untracked.int32(4),
+        dataset = cms.untracked.PSet(
+            dataTier = cms.untracked.string('AODSIM'),
+            filterName = cms.untracked.string('')
+        ),
+        eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
+        fileName = cms.untracked.string('output.root'),
+        outputCommands = cms.untracked.vstring(),
+        SelectEvents = cms.untracked.PSet(
+            SelectEvents = cms.vstring('p')
+        )
+    )
+    if isData : process.out.outputCommands.extend(AODEventContent.outputCommands)
+    else      : process.out.outputCommands.extend(AODSIMEventContent.outputCommands)
+    if sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+    else              : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))

@@ -23,10 +23,11 @@ options.register ('sample',
                   "Specify type of sample. Valid values: %s" % sample_options)
 steps_options = ['skim', 'analyze'] # Valid options for steps
 options.register ('steps',
-                  ['skim', 'analyze'], # default value
+                  [],
                   VarParsing.VarParsing.multiplicity.list, # singleton or list
                   VarParsing.VarParsing.varType.string,          # string, int, or float
                   "Steps to execute. Possible values: skim, analyze.")
+options.steps = ['skim', 'analyze'] # default value
 # Get and parse the command line arguments
 options.parseArguments()
 # Check validity of command line arguments
@@ -72,11 +73,13 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 ########################################
 import os
 cmssw_version = os.environ['CMSSW_VERSION']
+skimStep = cms.Sequence()
 if 'skim' in options.steps:
     print ''
     print '####################'
     print 'Adding Skim step'
     print '####################'
+    print ''
     if options.sample=='wjet':
         skimStep = addWJetSkim(process, options.data)
         if 'CMSSW_7_4_12' in cmssw_version:
@@ -88,14 +91,33 @@ if 'skim' in options.steps:
 ########################################
 # Analyze
 ########################################
+analyzeStep = cms.Sequence()
 if 'analyze' in options.steps:
     print ''
     print '####################'
     print 'Adding Analyze step'
     print '####################'
+    print ''
     analyzeStep = addAnalyze(process, options.data, options.sample)
 
 process.p = cms.Path( skimStep * analyzeStep )
+
+if 'skim' in options.steps and len(options.steps)==1:
+    # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
+    print ''
+    print '####################'
+    print 'Adding EDM output'
+    print '####################'
+    print ''
+    addEdmOutput(process, options.data, options.sample)
+else:
+    # Otherwise only save EDM output of jetFilter and wJetFilter
+    process.out = cms.OutputModule("PoolOutputModule",
+        fileName = cms.untracked.string('output.root'),
+        outputCommands = cms.untracked.vstring('drop *'),
+    )
+    if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+    else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
 
 ########################################
 # Generic configuration
@@ -113,10 +135,10 @@ process.GlobalTag = GlobalTag(process.GlobalTag, globalTags[options.data], '')
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
-process.MessageLogger.cerr.FwkReport.limit = 100
+process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
@@ -124,9 +146,14 @@ process.source = cms.Source("PoolSource",
         # signal
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM/150717_090102/0000/aodsim_1.root'
         # wjet
-        '/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
+        # '/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
+        # wjet MC
+        '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
     ),
 )
 
 process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple.root") )
+
+# storage
+process.outpath = cms.EndPath(process.out)
 

@@ -153,6 +153,7 @@ else:
 # Private modules
 ############################################################
 process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
+process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
 
 process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
     triggerConditions = cms.vstring(
@@ -263,7 +264,8 @@ process.p = cms.Path(
     process.eventCountPreFilter*
     process.triggerSelection*
     process.genJetFilter*
-    process.wJetFilter
+    process.wJetFilter*
+    process.eventCountPostFilter
     # process.emergingJetAnalyzer
 )
 
@@ -271,7 +273,8 @@ if options.data:
     process.p = cms.Path(
         process.eventCountPreFilter*
         process.triggerSelection*
-        process.wJetFilter
+        process.wJetFilter*
+        process.eventCountPostFilter
     )
 
 

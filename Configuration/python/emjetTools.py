@@ -49,7 +49,10 @@ def addSkim(process, isData=False):
     process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
     process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
     process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
-    return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
+    if isData:
+        return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
+    else:
+        return cms.Sequence(process.eventCountPreTrigger * cms.ignore(process.triggerSelection) * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
 
 def addWJetSkim(process, isData=False):
     print "Adding WJet Skim step."
@@ -67,8 +70,13 @@ def addWJetSkim(process, isData=False):
             # 'HLT_IsoMu24_eta2p1_v*', # same in data
             # 'HLT_IsoMu27_v*', # Good for data and MC, turn off for now for consistency
 
-            # 'HLT_IsoMu22_v*',
+            # Exists in MC
+            # 'HLT_Ele22_eta2p1_WP75_Gsf_v*',
+            # 'HLT_IsoMu17_v*',
+            # Exists in data, unprescaled
             # 'HLT_IsoMu20_v*',
+            #
+            # 'HLT_IsoMu22_v*',
             # 'HLT_IsoMu20_eta2p1_v*',
         ),
         hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
@@ -118,7 +126,11 @@ def addWJetSkim(process, isData=False):
         #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
         process = miniAOD_customizeAllMC(process)
     ############################################################
-    return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
+    # Ignore trigger selection if MC
+    if isData:
+        return cms.Sequence(process.eventCountPreTrigger * (process.triggerSelection) * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
+    else:
+        return cms.Sequence(process.eventCountPreTrigger * cms.ignore(process.triggerSelection) * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
 
 def addAnalyze(process, isData=False, sample=''):
     from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock

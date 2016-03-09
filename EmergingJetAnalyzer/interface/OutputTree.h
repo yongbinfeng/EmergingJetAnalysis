@@ -40,6 +40,8 @@ namespace emjet
       vector<int>    jets_nDarkPions;
       vector<float>  jets_minDRDarkPion;
       // per track (for a given jet)
+      vector< vector<int> >   tracks_algo;
+      vector< vector<int> >   tracks_originalAlgo;
       vector< vector<int> >   tracks_nHits;
       vector< vector<int> >   tracks_nMissInnerHits;
       vector< vector<float> > tracks_ipXY;
@@ -92,6 +94,8 @@ emjet::OutputTree::Init() {
  jets_nDarkPions       .clear();
  jets_minDRDarkPion    .clear();
  // per track
+ tracks_algo           .clear();
+ tracks_originalAlgo   .clear();
  tracks_nHits          .clear();
  tracks_nMissInnerHits .clear();
  tracks_ipXY           .clear();
@@ -139,6 +143,8 @@ emjet::OutputTree::Branch(TTree* tree) {
   tree->Branch("jets_nDarkPions"     , &jets_nDarkPions     ) ;
   tree->Branch("jets_minDRDarkPion"  , &jets_minDRDarkPion  ) ;
   // per track
+  tree->Branch("tracks_algo"           , &tracks_algo           ) ;
+  tree->Branch("tracks_originalAlgo"   , &tracks_originalAlgo   ) ;
   tree->Branch("tracks_nHits"          , &tracks_nHits          ) ;
   tree->Branch("tracks_nMissInnerHits" , &tracks_nMissInnerHits ) ;
   tree->Branch("tracks_ipXY"           , &tracks_ipXY           ) ;

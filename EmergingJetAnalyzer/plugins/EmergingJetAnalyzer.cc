@@ -1355,6 +1355,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   int nTags = 0;
   const float logTagCut    = 2.;
   // per track variables, reuse for efficiency
+  std::vector<int>   vec_algo;
+  std::vector<int>   vec_originalAlgo;
   std::vector<int>   vec_nHits;
   std::vector<int>   vec_nMissInnerHits;
   std::vector<float> vec_ipXY;
@@ -1362,6 +1364,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   std::vector<float> vec_ipXYSig;
   int itrack = 0;
   {
+    vec_algo           .clear();
+    vec_originalAlgo   .clear();
     vec_nHits          .clear();
     vec_nMissInnerHits .clear();
     vec_ipXY           .clear();
@@ -1424,10 +1428,14 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
       if (deltaR > 0.4) continue;
 
+      int algo = itk->track().algo();
+      int origAlgo = itk->track().originalAlgo();
       int nHits = itk->numberOfValidHits();
       int nMissInnerHits = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
       // std::cout << "nHits:" << nHits << std::endl;
       // std::cout << "nMissInnerHits:" << nMissInnerHits << std::endl;
+      vec_algo           . push_back ( algo           ) ;
+      vec_originalAlgo   . push_back ( origAlgo       ) ;
       vec_nHits          . push_back ( nHits          ) ;
       vec_nMissInnerHits . push_back ( nMissInnerHits ) ;
       vec_ipXY           . push_back ( ipXY           ) ;
@@ -1553,6 +1561,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_alphaMax       .push_back( alpha_max                         );
   otree.jets_nDarkPions     .push_back( nDarkPions                        );
   otree.jets_minDRDarkPion  .push_back( minDist                           );
+  otree.tracks_algo           .push_back ( vec_algo           ) ;
+  otree.tracks_originalAlgo   .push_back ( vec_originalAlgo   ) ;
   otree.tracks_nHits          .push_back ( vec_nHits          ) ;
   otree.tracks_nMissInnerHits .push_back ( vec_nMissInnerHits ) ;
   otree.tracks_ipXY           .push_back ( vec_ipXY           ) ;

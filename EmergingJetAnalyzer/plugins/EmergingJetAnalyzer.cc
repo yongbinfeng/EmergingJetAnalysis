@@ -2,7 +2,7 @@
 //
 // Package:    MyAnalysis/EmergingJetAnalyzer
 // Class:      EmergingJetAnalyzer
-// 
+//
 /**\class EmergingJetAnalyzer EmergingJetAnalyzer.cc MyAnalysis/EmergingJetAnalyzer/plugins/EmergingJetAnalyzer.cc
 
 Description: [one line class summary]
@@ -55,6 +55,7 @@ Implementation:
 #include "MagneticField/Engine/interface/MagneticField.h"
 
 #include "RecoVertex/AdaptiveVertexFinder/interface/AdaptiveVertexReconstructor.h"
+#include "RecoVertex/TrimmedKalmanVertexFinder/interface/KalmanTrimmedVertexFinder.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexSmoother.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
@@ -71,6 +72,7 @@ Implementation:
 #include "TH1F.h"
 #include "TMath.h"
 #include "TLorentzVector.h"
+#include "TStopwatch.h"
 
 #include "EmergingJetAnalysis/EmergingJetAnalyzer/interface/OutputTree.h"
 //
@@ -616,6 +618,52 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::Handle<reco::VertexCollection> secondary_vertices;
   iEvent.getByLabel("inclusiveSecondaryVertices",secondary_vertices);
 
+  ////////////////////////////////////////////////////////////
+  // Reconstruct vertices from scratch
+  ////////////////////////////////////////////////////////////
+  if (0)
+  {
+    TStopwatch timer;
+    timer.Start();
+    std::cout << "Running KalmanTrimmedVertexFinder" << std::endl;
+    KalmanTrimmedVertexFinder finder;
+    finder.setPtCut(0.0);
+    finder.setTrackCompatibilityCut(0.05);
+    finder.setTrackCompatibilityToSV(0.01);
+    finder.setVertexFitProbabilityCut(0.01);
+    finder.setMaxNbOfVertices(0);
+    vector<TransientVertex> vertices = finder.vertices ( generalTracks );
+    std::cout << "Number of KTVF vertices: " << vertices.size() << std::endl;
+    int nSV = 0;
+    for (TransientVertex vertex: vertices) {
+      auto vtx = reco::Vertex(vertex);
+      double Lxy = 0;
+      float dx = primary_vertex.position().x() - vtx.position().x();
+      float dy = primary_vertex.position().y() - vtx.position().y();
+      Lxy = TMath::Sqrt( dx*dx + dy*dy );
+      if (Lxy>1) nSV++;
+    }
+    std::cout << "Number of displaced KTVF vertices: " << nSV << std::endl;
+    std::cout << "Time elapsed:" << timer.RealTime() << std::endl;
+
+    timer.Start();
+    std::cout << "Running AdaptiveVertexReconstructor" << std::endl;
+    AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
+    std::vector<TransientVertex> theVertices = avr.vertices(generalTracks);
+    std::cout << "Number of AVR vertices: " << theVertices.size() << std::endl;
+    nSV = 0;
+    for (TransientVertex vertex: theVertices) {
+      auto vtx = reco::Vertex(vertex);
+      double Lxy = 0;
+      float dx = primary_vertex.position().x() - vtx.position().x();
+      float dy = primary_vertex.position().y() - vtx.position().y();
+      Lxy = TMath::Sqrt( dx*dx + dy*dy );
+      if (Lxy>1) nSV++;
+    }
+    std::cout << "Number of displaced AVR vertices: " << nSV << std::endl;
+    std::cout << "Time elapsed:" << timer.RealTime() << std::endl;
+  }
+
 
 
   //   /*
@@ -685,15 +733,15 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     for (std::vector<reco::GenJet>::const_iterator igj = genJetH->begin(); igj != genJetH->end(); igj++) {
       if (igj->pt() < 50.) continue;
-      //           std::cout << "New GenJet -------------" << std::endl; 
+      //           std::cout << "New GenJet -------------" << std::endl;
       int nDarkPions = 0;
       std::vector <const reco::GenParticle*> constituents = igj->getGenConstituents();
       for (std::vector<const reco::GenParticle*>::iterator ic = constituents.begin(); ic != constituents.end(); ++ic) {
         //                std::cout << "\t" << (*ic)->pdgId() << "\t" << (*ic)->mother()->pdgId() << std::endl;
-        if ((*ic)->mother() != NULL) {  
+        if ((*ic)->mother() != NULL) {
           if (TMath::Abs((*ic)->mother()->pdgId()) == 4900111) nDarkPions++;
         }
-      } 
+      }
 
       h_nDarkPions_genJet->Fill(nDarkPions);
       if (nDarkPions > 1) {
@@ -846,6 +894,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   std::vector<float> vec_promptTracks;
   std::vector<float> vec_medianRpca;
   int nMatchedGen = 0;
+
   ////////////////////////////////////////////////////////////
   // selectedJet Loop begin
   ////////////////////////////////////////////////////////////
@@ -888,7 +937,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     int cscHits = 0;
     // Count CSC hits with position vector that has deltaR < 0.5 relative to current jet
-    // 
+    //
     for (std::vector<GlobalPoint>::iterator icp = csc_points.begin(); icp != csc_points.end(); ++icp) {
       TLorentzVector pointVector;
       pointVector.SetPtEtaPhiM(icp->perp(), icp->eta(), icp->phi(), 0.);
@@ -918,7 +967,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //           if (dxy_ipv.second.significance() > ipSig) continue;
 
       //           trackFrac += itk.track().pt();
-    } 
+    }
 
     // now loop over the displaced tracks, checking which match the jet geometrically
     std::vector<float> ipVector;
@@ -944,11 +993,11 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
       //           if (itk->track().extra().isNull()) continue;
 
-      //           TLorentzVector trackVector; 
+      //           TLorentzVector trackVector;
       //           trackVector.SetPxPyPzE(
-      //                   itk->innermostMeasurementState().globalPosition().x() - primary_vertex.position().x(), 
-      //                   itk->innermostMeasurementState().globalPosition().y() - primary_vertex.position().y(), 
-      //                   itk->innermostMeasurementState().globalPosition().z() - primary_vertex.position().z(), 
+      //                   itk->innermostMeasurementState().globalPosition().x() - primary_vertex.position().x(),
+      //                   itk->innermostMeasurementState().globalPosition().y() - primary_vertex.position().y(),
+      //                   itk->innermostMeasurementState().globalPosition().z() - primary_vertex.position().z(),
       //                   itk->track().p());
       //           if (trackVector.DeltaR(jetVector) > 0.5) continue;
 
@@ -957,9 +1006,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //           TrackDetMatchInfo info = m_trackAssociator.associate(iEvent, iSetup, itk->track(), m_trackParameters);
       //           TLorentzVector impactVector; impactVector.SetPtEtaPhiM(itk->track().pt(),info.trkGlobPosAtEcal.eta(),info.trkGlobPosAtEcal.phi(),0.);
 
-      //           std::cout << "Impact point at ECAL eta, phi, dR " 
-      //               << info.trkGlobPosAtEcal.eta() << "\t" 
-      //               << info.trkGlobPosAtEcal.phi() << "\t" 
+      //           std::cout << "Impact point at ECAL eta, phi, dR "
+      //               << info.trkGlobPosAtEcal.eta() << "\t"
+      //               << info.trkGlobPosAtEcal.phi() << "\t"
       //               << jetVector.DeltaR(impactVector) << std::endl;
       //           if (jetVector.DeltaR(impactVector) > 0.4) continue;
 
@@ -968,7 +1017,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
 
 
-      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, 
+      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex,
           direction, itk->field());
 
       // Skip tracks with invalid point-of-closest-approach
@@ -1006,7 +1055,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       tot_dsz += itk->track().dsz(theBeamSpot->position());
 
       if (pca.isValid()) {
-        r_pca.push_back(closestPoint.perp()); 
+        r_pca.push_back(closestPoint.perp());
         h_rPCA->Fill(closestPoint.perp());
       }
 
@@ -1014,8 +1063,8 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       if (dxy_ipv.second.significance() < ipSig) continue;
 
       h_dz_vs_dxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-      if (matched) { 
-        h_dz_vs_dxy_genMatched->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z()))); 
+      if (matched) {
+        h_dz_vs_dxy_genMatched->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
         h_logTrackDz_genMatched->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
         h_logTrackDxy_genMatched->Fill(TMath::Log(fabs(dxy_ipv.second.value())));
       }
@@ -1047,9 +1096,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //           std::cout << "dxy_ipv.second.value() " << dxy_ipv.second.value() << std::endl;
 
       h_pTdispTracks->Fill(itk->track().pt());
-      if (dxy_ipv.second.value() > 0.1) ip0_1++; 
-      if (dxy_ipv.second.value() > 1.0) ip1_0++; 
-      if (dxy_ipv.second.value() > 10.) ip10_++; 
+      if (dxy_ipv.second.value() > 0.1) ip0_1++;
+      if (dxy_ipv.second.value() > 1.0) ip1_0++;
+      if (dxy_ipv.second.value() > 10.) ip10_++;
 
       ++matchedTracks;
     }
@@ -1247,7 +1296,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   int dispMuons = 0;
   for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
-    //        std::cout << "Displaced muon pt eta phi dxy " 
+    //        std::cout << "Displaced muon pt eta phi dxy "
     //            << "\t" << itk->track().pt()
     //            << "\t" << itk->track().eta()
     //            << "\t" << itk->track().phi()
@@ -1273,20 +1322,20 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
 
 // ------------ method called once each job just before starting event loop  ------------
-  void 
+  void
 EmergingJetAnalyzer::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
-  void 
-EmergingJetAnalyzer::endJob() 
+  void
+EmergingJetAnalyzer::endJob()
 {
 }
 
 // ------------ method called when starting to processes a run  ------------
 /*
-   void 
+   void
    EmergingJetAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
    {
    }
@@ -1294,7 +1343,7 @@ EmergingJetAnalyzer::endJob()
 
 // ------------ method called when ending the processing of a run  ------------
 /*
-   void 
+   void
    EmergingJetAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
    {
    }
@@ -1302,7 +1351,7 @@ EmergingJetAnalyzer::endJob()
 
 // ------------ method called when starting to processes a luminosity block  ------------
 /*
-   void 
+   void
    EmergingJetAnalyzer::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
    {
    }
@@ -1310,7 +1359,7 @@ EmergingJetAnalyzer::endJob()
 
 // ------------ method called when ending the processing of a luminosity block  ------------
 /*
-   void 
+   void
    EmergingJetAnalyzer::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
    {
    }
@@ -1346,7 +1395,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       if (d3d_ipv.second.significance() < maxSigPromptTrack) nPromptTracks++;
       //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
       //           if (dxy_ipv.second.value() > ipCut) continue;
-    } 
+    }
   }
 
   // Calculate nDispTracks, medianLogIpSig
@@ -1388,7 +1437,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     std::vector<float> r_pca;
     std::vector<float> logIpSig;
     float sum_Lxy = 0.;
-    // std::cout << "generalTracks.size(): " << generalTracks.size() << std::endl; 
+    // std::cout << "generalTracks.size(): " << generalTracks.size() << std::endl;
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
 
       // Skip tracks with pt<1
@@ -1401,7 +1450,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
       //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
 
-      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, 
+      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex,
           direction, itk->field());
 
       // Skip tracks with invalid point-of-closest-approach
@@ -1448,7 +1497,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       tot_dsz += itk->track().dsz(theBeamSpot->position());
 
       if (pca.isValid()) {
-        r_pca.push_back(closestPoint.perp()); 
+        r_pca.push_back(closestPoint.perp());
       }
 
       //           if (dxy_ipv.second.value() < ipCut) continue;
@@ -1470,9 +1519,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
       ipTracks.push_back(*itk);
 
-      if (dxy_ipv.second.value() > 0.1) ip0_1++; 
-      if (dxy_ipv.second.value() > 1.0) ip1_0++; 
-      if (dxy_ipv.second.value() > 10.) ip10_++; 
+      if (dxy_ipv.second.value() > 0.1) ip0_1++;
+      if (dxy_ipv.second.value() > 1.0) ip1_0++;
+      if (dxy_ipv.second.value() > 10.) ip10_++;
 
     }
     trackFrac /= jet.pt();

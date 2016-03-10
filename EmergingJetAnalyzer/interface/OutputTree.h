@@ -1,6 +1,7 @@
 #ifndef EmergingJetAnalysis_EmergingJetAnalyzer_OutputTree_h
 #define EmergingJetAnalysis_EmergingJetAnalyzer_OutputTree_h
 
+
 #include <vector>
 
 #include "TTree.h"
@@ -13,6 +14,7 @@ namespace emjet
     public:
       OutputTree() { Init(); }
       void Init();
+
       void Branch(TTree* tree);
       // per event
       int run;
@@ -117,51 +119,52 @@ emjet::OutputTree::Init() {
 
 void
 emjet::OutputTree::Branch(TTree* tree) {
+  #define BRANCH(tree, branch) (tree)->Branch(#branch, &branch);
   // per event
-  tree->Branch("run"     , &run     ) ;
-  tree->Branch("lumi"    , &lumi    ) ;
-  tree->Branch("event"   , &event   ) ;
-  tree->Branch("bx"      , &bx      ) ;
-  tree->Branch("met_pt"  , &met_pt  ) ;
-  tree->Branch("met_phi" , &met_phi ) ;
+  BRANCH(tree, run);
+  BRANCH(tree, lumi);
+  BRANCH(tree, event);
+  BRANCH(tree, bx);
+  BRANCH(tree, met_pt);
+  BRANCH(tree, met_phi);
   // per jet
-  tree->Branch("jets_pt"             , &jets_pt             ) ;
-  tree->Branch("jets_eta"            , &jets_eta            ) ;
-  tree->Branch("jets_phi"            , &jets_phi            ) ;
-  tree->Branch("jets_cef"            , &jets_cef            ) ;
-  tree->Branch("jets_nef"            , &jets_nef            ) ;
-  tree->Branch("jets_chf"            , &jets_chf            ) ;
-  tree->Branch("jets_nhf"            , &jets_nhf            ) ;
-  tree->Branch("jets_phf"            , &jets_phf            ) ;
-  tree->Branch("jets_nPromptTracks"  , &jets_nPromptTracks  ) ;
-  tree->Branch("jets_nDispTracks"    , &jets_nDispTracks    ) ;
-  tree->Branch("jets_nSV"            , &jets_nSV            ) ;
-  tree->Branch("jets_medianLogIpSig" , &jets_medianLogIpSig ) ;
-  tree->Branch("jets_missHits"       , &jets_missHits       ) ;
-  tree->Branch("jets_muonHits"       , &jets_muonHits       ) ;
-  tree->Branch("jets_alphaMax"       , &jets_alphaMax       ) ;
-  tree->Branch("jets_nDarkPions"     , &jets_nDarkPions     ) ;
-  tree->Branch("jets_minDRDarkPion"  , &jets_minDRDarkPion  ) ;
+  BRANCH(tree, jets_pt);
+  BRANCH(tree, jets_eta);
+  BRANCH(tree, jets_phi);
+  BRANCH(tree, jets_cef);
+  BRANCH(tree, jets_nef);
+  BRANCH(tree, jets_chf);
+  BRANCH(tree, jets_nhf);
+  BRANCH(tree, jets_phf);
+  BRANCH(tree, jets_nPromptTracks);
+  BRANCH(tree, jets_nDispTracks);
+  BRANCH(tree, jets_nSV);
+  BRANCH(tree, jets_medianLogIpSig);
+  BRANCH(tree, jets_missHits);
+  BRANCH(tree, jets_muonHits);
+  BRANCH(tree, jets_alphaMax);
+  BRANCH(tree, jets_nDarkPions);
+  BRANCH(tree, jets_minDRDarkPion);
   // per track
-  tree->Branch("tracks_algo"           , &tracks_algo           ) ;
-  tree->Branch("tracks_originalAlgo"   , &tracks_originalAlgo   ) ;
-  tree->Branch("tracks_nHits"          , &tracks_nHits          ) ;
-  tree->Branch("tracks_nMissInnerHits" , &tracks_nMissInnerHits ) ;
-  tree->Branch("tracks_ipXY"           , &tracks_ipXY           ) ;
-  tree->Branch("tracks_ipZ"            , &tracks_ipZ            ) ;
-  tree->Branch("tracks_ipXYSig"        , &tracks_ipXYSig        ) ;
+  BRANCH(tree, tracks_algo);
+  BRANCH(tree, tracks_originalAlgo);
+  BRANCH(tree, tracks_nHits);
+  BRANCH(tree, tracks_nMissInnerHits);
+  BRANCH(tree, tracks_ipXY);
+  BRANCH(tree, tracks_ipZ);
+  BRANCH(tree, tracks_ipXYSig);
   // per secondary vertex
-  tree->Branch("vertex_x"      ,   &vertex_x      ) ;
-  tree->Branch("vertex_y"      ,   &vertex_y      ) ;
-  tree->Branch("vertex_z"      ,   &vertex_z      ) ;
-  tree->Branch("vertex_xError" ,   &vertex_xError ) ;
-  tree->Branch("vertex_yError" ,   &vertex_yError ) ;
-  tree->Branch("vertex_zError" ,   &vertex_zError ) ;
-  tree->Branch("vertex_Lxy"    ,   &vertex_Lxy    ) ;
-  tree->Branch("vertex_mass"   ,   &vertex_mass   ) ;
-  tree->Branch("vertex_chi2"   ,   &vertex_chi2   ) ;
-  tree->Branch("vertex_ndof"   ,   &vertex_ndof   ) ;
-  tree->Branch("vertex_pt2sum" ,   &vertex_pt2sum ) ;
+  BRANCH(tree, vertex_x);
+  BRANCH(tree, vertex_y);
+  BRANCH(tree, vertex_z);
+  BRANCH(tree, vertex_xError);
+  BRANCH(tree, vertex_yError);
+  BRANCH(tree, vertex_zError);
+  BRANCH(tree, vertex_Lxy);
+  BRANCH(tree, vertex_mass);
+  BRANCH(tree, vertex_chi2);
+  BRANCH(tree, vertex_ndof);
+  BRANCH(tree, vertex_pt2sum);
 }
 
 #endif

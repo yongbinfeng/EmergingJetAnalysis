@@ -1,14 +1,13 @@
 * EmergingJetAnalysis
 Main repository for Emerging Jet analysis
 ** Sub-packages
-- EmergingJetAnalyzer
-Analyzes input jets and outputs flat NTuple
-- JetFilter
-- WJetFilter
+- EmergingJetAnalyzer: Analyzes input jets and outputs flat NTuple
+- JetFilter: Applies basic kinematic selection for the signal region and outputs selected jets for analysis
+- WJetFilter: Applies W+jet selection and outputs selected jets for analysis
 ** Dependencies
-- Cog [[http://nedbatchelder.com/code/cog/index.html]]
+*** Cog - http://nedbatchelder.com/code/cog/index.html
 Cog is used for code generation for classes with repetitive structure, e.g. ~EmergingJetAnalyzer/interface/OutputTree.h~
 To install, simply execute:
 #+BEGIN_SRC
-pip install cogapp
+pip install --user cogapp
 #+END_SRC

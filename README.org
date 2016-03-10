@@ -1,9 +1,13 @@
 * EmergingJetAnalysis
 Main repository for Emerging Jet analysis
-** Packages
-** Required dependencies
-*** Cog [[http://nedbatchelder.com/code/cog/index.html]]
-Cog is used for code generation for classes with repetitive structure, e.g. EmergingJetAnalyzer/interface/OutputTree.h
+** Sub-packages
+- EmergingJetAnalyzer
+Analyzes input jets and outputs flat NTuple
+- JetFilter
+- WJetFilter
+** Dependencies
+- Cog [[http://nedbatchelder.com/code/cog/index.html]]
+Cog is used for code generation for classes with repetitive structure, e.g. ~EmergingJetAnalyzer/interface/OutputTree.h~
 To install, simply execute:
 #+BEGIN_SRC
 pip install cogapp

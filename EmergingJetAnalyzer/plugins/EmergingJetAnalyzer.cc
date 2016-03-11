@@ -117,12 +117,12 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
     // Retrieve once per event
     // Intermediate objects used for calculations
-    edm::ESHandle<TransientTrackBuilder> theB;
-    edm::Handle<reco::VertexCollection> primary_vertices;
-    std::vector<reco::TransientTrack> generalTracks;
-    edm::Handle<reco::GenParticleCollection> genParticlesH;
-    const reco::BeamSpot* theBeamSpot;
-    reco::VertexCollection selectedSecondaryVertices;
+    edm::ESHandle<TransientTrackBuilder> transienttrackbuilder_;
+    edm::Handle<reco::VertexCollection> primary_vertices_;
+    std::vector<reco::TransientTrack> generalTracks_;
+    edm::Handle<reco::GenParticleCollection> genParticlesH_;
+    const reco::BeamSpot* theBeamSpot_;
+    reco::VertexCollection selectedSecondaryVertices_;
 
     TH1F * h_dr_jet_track;
 
@@ -585,8 +585,8 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   edm::ESHandle<GlobalTrackingGeometry> theTrackingGeometry;
   iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry);
 
-  // edm::ESHandle<TransientTrackBuilder> theB;
-  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
+  // edm::ESHandle<TransientTrackBuilder> transienttrackbuilder_;
+  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilder_);
 
   edm::Handle<reco::PFJetCollection> pfjetH;
   // iEvent.getByLabel("ak4PFJetsCHS", pfjetH);
@@ -595,25 +595,25 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   Handle<reco::BeamSpot> theBeamSpotHandle;
   iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);
-  theBeamSpot = theBeamSpotHandle.product();
+  theBeamSpot_ = theBeamSpotHandle.product();
 
   //   edm::Handle<reco::CaloJetCollection> caloJetH;
   //   iEvent.getByLabel("ak5CaloJets", caloJetH);
 
   edm::Handle<reco::TrackCollection> genTrackH;
   iEvent.getByLabel("generalTracks", genTrackH);
-  generalTracks = theB->build(genTrackH);
+  generalTracks_ = transienttrackbuilder_->build(genTrackH);
 
   edm::Handle<reco::TrackCollection> sdmH;
   iEvent.getByLabel("displacedStandAloneMuons",sdmH);
   std::vector<reco::TransientTrack> standaloneDisplacedMuons;
-  standaloneDisplacedMuons = theB->build(sdmH);
+  standaloneDisplacedMuons = transienttrackbuilder_->build(sdmH);
 
   edm::Handle<reco::PFMETCollection> pfmet;
   iEvent.getByLabel("pfMet",pfmet);
 
-  iEvent.getByLabel("offlinePrimaryVerticesWithBS",primary_vertices);
-  const reco::Vertex& primary_vertex = primary_vertices->at(0);
+  iEvent.getByLabel("offlinePrimaryVerticesWithBS",primary_vertices_);
+  const reco::Vertex& primary_vertex = primary_vertices_->at(0);
 
   edm::Handle<reco::VertexCollection> secondary_vertices;
   iEvent.getByLabel("inclusiveSecondaryVertices",secondary_vertices);
@@ -621,7 +621,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   ////////////////////////////////////////////////////////////
   // Reconstruct vertices from scratch
   ////////////////////////////////////////////////////////////
-  if (0)
+  if (1)
   {
     TStopwatch timer;
     timer.Start();
@@ -632,7 +632,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     finder.setTrackCompatibilityToSV(0.01);
     finder.setVertexFitProbabilityCut(0.01);
     finder.setMaxNbOfVertices(0);
-    vector<TransientVertex> vertices = finder.vertices ( generalTracks );
+    vector<TransientVertex> vertices = finder.vertices ( generalTracks_ );
     std::cout << "Number of KTVF vertices: " << vertices.size() << std::endl;
     int nSV = 0;
     for (TransientVertex vertex: vertices) {
@@ -649,7 +649,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     timer.Start();
     std::cout << "Running AdaptiveVertexReconstructor" << std::endl;
     AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
-    std::vector<TransientVertex> theVertices = avr.vertices(generalTracks);
+    std::vector<TransientVertex> theVertices = avr.vertices(generalTracks_);
     std::cout << "Number of AVR vertices: " << theVertices.size() << std::endl;
     nSV = 0;
     for (TransientVertex vertex: theVertices) {
@@ -701,9 +701,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     iEvent.getByLabel("genMetTrue", genMetH);
     h_genHT->Fill(genMetH->at(0).sumEt());
 
-    iEvent.getByLabel("genParticles", genParticlesH);
+    iEvent.getByLabel("genParticles", genParticlesH_);
 
-    for (reco::GenParticleCollection::const_iterator gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
+    for (reco::GenParticleCollection::const_iterator gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
       if (gp->numberOfMothers() < 1) continue;
       if (fabs(gp->mother()->pdgId()) != 4900111) continue;
       //                   std::cout << "genParticle pdgId, status = " << gp->status() << "\t" << gp->pdgId() << std::endl;
@@ -808,7 +808,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.getByLabel("rpcRecHits",rpc_hits);
   //   h_RPChits->Fill(rpc_hits->size());
 
-  h_nPV->Fill(primary_vertices->size());
+  h_nPV->Fill(primary_vertices_->size());
   h_nSV->Fill(secondary_vertices->size());
 
 
@@ -827,12 +827,12 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   h_dPhiMetJet->Fill(dphi);
 
   /*
-     edm::Handle<reco::GenParticleCollection> genParticlesH;
-     iEvent.getByLabel("genParticles", genParticlesH);
+     edm::Handle<reco::GenParticleCollection> genParticlesH_;
+     iEvent.getByLabel("genParticles", genParticlesH_);
 
   //   std::vector<math::XYZPoint> decayVertices;
 
-  for (reco::GenParticleCollection::const_iterator gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
+  for (reco::GenParticleCollection::const_iterator gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
   if (fabs(gp->pdgId()) != 4900111) continue;
   std::cout << "genParticle pdgId = " << gp->pdgId() << std::endl;
   std::cout << "             mass = " << gp->mass() << std::endl;
@@ -856,7 +856,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //
   */
 
-  //   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk < generalTracks.end(); ++itk) {
+  //   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk < generalTracks_.end(); ++itk) {
   //   }
 
 
@@ -866,9 +866,9 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   //   return;
 
   // Select secondary vertices
-  selectedSecondaryVertices = selectSecondaryVertices(secondary_vertices);
+  selectedSecondaryVertices_ = selectSecondaryVertices(secondary_vertices);
   // Loop over secondary vertices
-  for (auto vtx : selectedSecondaryVertices) {
+  for (auto vtx : selectedSecondaryVertices_) {
     float Lxy = 0.;
     float mass = 0.;
     float pt2sum = 0.;
@@ -959,7 +959,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     reco::TrackRefVector trackRefs = jet->getTrackRefs();
     for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
       reco::TrackRef track = *ijt;
-      reco::TransientTrack itk = theB->build(track);
+      reco::TransientTrack itk = transienttrackbuilder_->build(track);
       if (itk.track().pt() < 1.) continue;
       auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
       if (d3d_ipv.second.significance() < 3.) promptTracks++;
@@ -994,7 +994,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     std::vector<float> r_pca;
     std::vector<float> logIpSig;
     float sum_Lxy = 0.;
-    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
 
       if (itk->track().pt() < 1.) continue;
 
@@ -1059,7 +1059,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
 
       misshits += itk->track().numberOfLostHits();
-      tot_dsz += itk->track().dsz(theBeamSpot->position());
+      tot_dsz += itk->track().dsz(theBeamSpot_->position());
 
       if (pca.isValid()) {
         r_pca.push_back(closestPoint.perp());
@@ -1093,10 +1093,10 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //           h_deltaEtaJetTrack->Fill(fabs(jetVector.Eta() - impactVector.Eta()));
       //           h_deltaPhiJetTrack->Fill(fabs(jetVector.DeltaPhi(impactVector)));
       trackFrac += itk->track().pt();
-      //       if (itk->track().dxy(*theBeamSpot) < ipCut && itk->track().dxy(*theBeamSpot) > -ipCut) continue;
-      //       if (itk->track().dxy(*theBeamSpot) / itk->track().dxyError() < ipSig) continue;
-      //       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot) << std::endl;
-      //       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot) / itk->track().dxyError() << std::endl;
+      //       if (itk->track().dxy(*theBeamSpot_) < ipCut && itk->track().dxy(*theBeamSpot_) > -ipCut) continue;
+      //       if (itk->track().dxy(*theBeamSpot_) / itk->track().dxyError() < ipSig) continue;
+      //       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot_) << std::endl;
+      //       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot_) / itk->track().dxyError() << std::endl;
 
       ipTracks.push_back(*itk);
 
@@ -1162,7 +1162,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
       //           std::vector<reco::Track> vecRefittedTracks = ivtx->refittedTracks();
       std::vector<reco::TransientTrack> transRefitTracks;
       for (size_t itrack = 0; itrack < ivtx->refittedTracks().size(); itrack++) {
-        transRefitTracks.push_back(theB->build(ivtx->refittedTracks()[itrack]));
+        transRefitTracks.push_back(transienttrackbuilder_->build(ivtx->refittedTracks()[itrack]));
       }
       for (std::vector<reco::TransientTrack>::const_iterator itk = transRefitTracks.begin(); itk != transRefitTracks.end(); ++itk) {
         TrajectoryStateClosestToPoint trajectory = itk->trajectoryStateClosestToPoint(GlobalPoint(ivtx->position().x(),ivtx->position().y(),ivtx->position().z()));
@@ -1385,7 +1385,7 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
 void
 EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   // Shared objects
-  const reco::Vertex& primary_vertex = primary_vertices->at(0);
+  const reco::Vertex& primary_vertex = primary_vertices_->at(0);
   TLorentzVector jetVector; jetVector.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
   // std::cout << "jet.pt(): " << jet.pt() << std::endl;
   const float maxSigPromptTrack = 3.;
@@ -1396,7 +1396,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   {
     reco::TrackRefVector trackRefs = jet.getTrackRefs();
     for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-      reco::TransientTrack itk = theB->build(*ijt);
+      reco::TransientTrack itk = transienttrackbuilder_->build(*ijt);
       if (itk.track().pt() < 1.) continue;
       auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
       if (d3d_ipv.second.significance() < maxSigPromptTrack) nPromptTracks++;
@@ -1444,8 +1444,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     std::vector<float> r_pca;
     std::vector<float> logIpSig;
     float sum_Lxy = 0.;
-    // std::cout << "generalTracks.size(): " << generalTracks.size() << std::endl;
-    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks.begin(); itk != generalTracks.end(); ++itk) {
+    // std::cout << "generalTracks_.size(): " << generalTracks_.size() << std::endl;
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
 
       // Skip tracks with pt<1
       if (itk->track().pt() < 1.) continue;
@@ -1501,7 +1501,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
 
       misshits += itk->track().numberOfLostHits();
-      tot_dsz += itk->track().dsz(theBeamSpot->position());
+      tot_dsz += itk->track().dsz(theBeamSpot_->position());
 
       if (pca.isValid()) {
         r_pca.push_back(closestPoint.perp());
@@ -1556,10 +1556,10 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       jet_pt_sum += (*ijt)->pt();
     } // End of track loop
 
-    auto ipv_chosen = primary_vertices->end(); // iterator to chosen primary vertex
+    auto ipv_chosen = primary_vertices_->end(); // iterator to chosen primary vertex
     double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
     // Loop over all PVs and choose the one with highest scalar pt contribution to jet
-    for (auto ipv = primary_vertices->begin(); ipv != primary_vertices->end(); ++ipv) {
+    for (auto ipv = primary_vertices_->begin(); ipv != primary_vertices_->end(); ++ipv) {
       double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
       // std::cout << "New vertex\n";
       for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
@@ -1582,7 +1582,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   double minDist = 9999.;
   {
     if (!isData_) {
-      for (auto gp = genParticlesH->begin(); gp != genParticlesH->end(); ++gp) {
+      for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
         if (fabs(gp->pdgId()) != 4900111) continue;
         //                   std::cout << "genParticle pdgId, status = " << gp->status() << "\t" << gp->pdgId() << std::endl;
         //                   std::cout << "             mass = " << gp->mass() << std::endl;
@@ -1629,7 +1629,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
 
 reco::VertexCollection
 EmergingJetAnalyzer::selectSecondaryVertices (edm::Handle<reco::VertexCollection> secondary_vertices) const {
-  const reco::Vertex& primary_vertex = primary_vertices->at(0);
+  const reco::Vertex& primary_vertex = primary_vertices_->at(0);
   const int minDispSv = 0.1; // Minimum transverse displacement for a secondary vertex to be selected
   reco::VertexCollection selectedVertices;
   for (size_t ivx = 0; ivx < secondary_vertices->size(); ++ivx) {

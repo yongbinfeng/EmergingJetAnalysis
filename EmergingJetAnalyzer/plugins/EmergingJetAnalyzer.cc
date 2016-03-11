@@ -662,12 +662,19 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     }
     std::cout << "Number of displaced AVR vertices: " << nSV << std::endl;
     std::cout << "Time elapsed:" << timer.RealTime() << std::endl;
+
+    nSV = 0;
+    for (size_t ivx = 0; ivx < secondary_vertices->size(); ++ivx) {
+      auto vtx = secondary_vertices->at(ivx);
+      double Lxy = 0;
+      float dx = primary_vertex.position().x() - vtx.position().x();
+      float dy = primary_vertex.position().y() - vtx.position().y();
+      Lxy = TMath::Sqrt( dx*dx + dy*dy );
+      if (Lxy>1) nSV++;
+    }
+    std::cout << "Number of displaced vertices in inclusiveSecondaryVertices: " << nSV << std::endl;
   }
 
-
-
-  //   /*
-  //   */
 
   float dx, dy;
   int disp_SV = 0;

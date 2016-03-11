@@ -123,6 +123,10 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     edm::Handle<reco::GenParticleCollection> genParticlesH_;
     const reco::BeamSpot* theBeamSpot_;
     reco::VertexCollection selectedSecondaryVertices_;
+    edm::Handle<reco::GenJetCollection> genJets_;
+    std::vector<GlobalPoint> dt_points_;
+    std::vector<GlobalPoint> csc_points_;
+
 
     TH1F * h_dr_jet_track;
 
@@ -676,90 +680,14 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   }
 
 
-  float dx, dy;
-  int disp_SV = 0;
-  reco::VertexCollection theVertices;
-  //   for (reco::VertexCollection::iterator ivx = secondary_vertices->begin(); ivx != secondary_vertices->end(); ++ivx) {
-  for (size_t ivx = 0; ivx < secondary_vertices->size(); ++ivx) {
-    //        std::cout << "ivx " << ivx << std::endl;
-    dx = primary_vertex.position().x() - secondary_vertices->at(ivx).position().x();
-    dy = primary_vertex.position().y() - secondary_vertices->at(ivx).position().y();
-    //        dy = ivx->position.y() - primary_vertex.position().y();
-    //        std::cout << "TMath::Sqrt( dx*dx + dy*dy ) " << TMath::Sqrt( dx*dx + dy*dy ) << std::endl;
-    h_rSV->Fill(TMath::Sqrt( dx*dx + dy*dy ));
-    if (TMath::Sqrt( dx*dx + dy*dy ) > 0.1) ++disp_SV;
-    theVertices.push_back(secondary_vertices->at(ivx));
-  }
-  h_nVtxInEvent->Fill(theVertices.size());
-  // testing some event selection criteria here
-  //   if ( (pfmet->begin()->et() < 150.) && (disp_SV < 10.) ) return;
-
-
-  std::vector<reco::GenJet> emergingGenJets;
+  // Fill event level GEN quantities
   if (!isData_) {
     edm::Handle<std::vector<reco::GenMET> > genMetH;
     iEvent.getByLabel("genMetTrue", genMetH);
-    h_genHT->Fill(genMetH->at(0).sumEt());
 
     iEvent.getByLabel("genParticles", genParticlesH_);
-
-    for (reco::GenParticleCollection::const_iterator gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
-      if (gp->numberOfMothers() < 1) continue;
-      if (fabs(gp->mother()->pdgId()) != 4900111) continue;
-      //                   std::cout << "genParticle pdgId, status = " << gp->status() << "\t" << gp->pdgId() << std::endl;
-      //                   std::cout << "             mass = " << gp->mass() << std::endl;
-      //                   std::cout << "               pT = " << gp->pt()   << std::endl;
-      //                   std::cout << "      r, eta, phi = " << gp->vertex().r() << "\t" << gp->vertex().eta() << "\t" << gp->vertex().phi() << std::endl;
-      h_rDecayGen->Fill(gp->vertex().r());
-
-      // find closest jet
-      float minDR = 999.;
-      reco::PFJetCollection::iterator bestJet;
-      for (reco::PFJetCollection::iterator ij = selectedJets.begin(); ij != selectedJets.end(); ++ij) {
-        TLorentzVector tlv_jet;
-        tlv_jet.SetPtEtaPhiM(ij->pt(),ij->eta(),ij->phi(),0.);
-        TLorentzVector tlv_gen;
-        tlv_gen.SetPtEtaPhiM(gp->pt(),gp->eta(),gp->phi(),gp->mass());
-
-        float dist = tlv_jet.DeltaR(tlv_gen);
-        if (dist < minDR) {
-          bestJet = ij;
-          minDR   = dist;
-        }
-      }
-      h_dr_disp_jet->Fill(minDR);
-
-      //           std::cout << "   Nearest jet " << std::endl;
-      //           std::cout << "      dr pt eta phi " << minDR << "\t" << bestJet->pt() << "\t" << bestJet->eta() << "\t" << bestJet->eta() << "\t" << bestJet->phi() << std::endl;
-    }
-
     edm::Handle<std::vector<reco::GenJet> >  genJetH;
     iEvent.getByLabel("ak4GenJets",   genJetH);
-
-    int nPiDJets = 0;
-
-    for (std::vector<reco::GenJet>::const_iterator igj = genJetH->begin(); igj != genJetH->end(); igj++) {
-      if (igj->pt() < 50.) continue;
-      //           std::cout << "New GenJet -------------" << std::endl;
-      int nDarkPions = 0;
-      std::vector <const reco::GenParticle*> constituents = igj->getGenConstituents();
-      for (std::vector<const reco::GenParticle*>::iterator ic = constituents.begin(); ic != constituents.end(); ++ic) {
-        //                std::cout << "\t" << (*ic)->pdgId() << "\t" << (*ic)->mother()->pdgId() << std::endl;
-        if ((*ic)->mother() != NULL) {
-          if (TMath::Abs((*ic)->mother()->pdgId()) == 4900111) nDarkPions++;
-        }
-      }
-
-      h_nDarkPions_genJet->Fill(nDarkPions);
-      if (nDarkPions > 1) {
-        ++nPiDJets;
-        emergingGenJets.push_back(*igj);
-      }
-
-
-    }
-
-    h_nJets_gt1piD->Fill(nPiDJets);
 
   }
 
@@ -768,102 +696,35 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   otree.lumi  = iEvent.id().luminosityBlock();
   otree.bx    = iEvent.bunchCrossing();
 
-  int muonRecHits = 0;
+  // Do stuff with muon system
+  {
+    Handle<DTRecSegment4DCollection> segments4D;
+    iEvent.getByLabel("dt4DSegments",segments4D);
 
-  Handle<DTRecSegment4DCollection> segments4D;
-  iEvent.getByLabel("dt4DSegments",segments4D);
+    GlobalPoint segpos;
+    dt_points_.clear();
+    for (auto iseg = segments4D->begin(); iseg != segments4D->end(); ++iseg) {
+      const GeomDet* geomDet = theTrackingGeometry->idToDet((*iseg).geographicalId());
+      segpos = geomDet->toGlobal((*iseg).localPosition());
+      dt_points_.push_back(segpos);
+    }
 
-  GlobalPoint segpos;
-  DTRecSegment4DCollection::const_iterator iseg;
+    Handle<CSCSegmentCollection> csc_segments;
+    iEvent.getByLabel("cscSegments",csc_segments);
 
-  std::vector<GlobalPoint> dt_points;
+    csc_points_.clear();
+    for (auto icsc = csc_segments->begin(); icsc != csc_segments->end(); ++icsc) {
+      const GeomDet* geomDet = theTrackingGeometry->idToDet((*icsc).geographicalId());
+      segpos = geomDet->toGlobal((*icsc).localPosition());
+      csc_points_.push_back(segpos);
+    }
 
-  for (iseg = segments4D->begin(); iseg != segments4D->end(); ++iseg) {
-
-    const GeomDet* geomDet = theTrackingGeometry->idToDet((*iseg).geographicalId());
-    segpos = geomDet->toGlobal((*iseg).localPosition());
-    dt_points.push_back(segpos);
-
+    Handle<RPCRecHitCollection> rpc_hits;
+    iEvent.getByLabel("rpcRecHits",rpc_hits);
   }
-
-  muonRecHits += segments4D->size();
-  //   h_DTsegments->Fill(muonRecHits);
-
-  Handle<CSCSegmentCollection> csc_segments;
-  iEvent.getByLabel("cscSegments",csc_segments);
-
-  CSCSegmentCollection::const_iterator icsc;
-  std::vector<GlobalPoint> csc_points;
-
-  for (icsc = csc_segments->begin(); icsc != csc_segments->end(); ++icsc) {
-
-    const GeomDet* geomDet = theTrackingGeometry->idToDet((*icsc).geographicalId());
-    segpos = geomDet->toGlobal((*icsc).localPosition());
-    csc_points.push_back(segpos);
-
-  }
-  //   h_CSCsegments->Fill(csc_segments->size());
-
-  Handle<RPCRecHitCollection> rpc_hits;
-  iEvent.getByLabel("rpcRecHits",rpc_hits);
-  //   h_RPChits->Fill(rpc_hits->size());
-
-  h_nPV->Fill(primary_vertices_->size());
-  h_nSV->Fill(secondary_vertices->size());
-
-
-  h_nSV_disp->Fill(disp_SV);
 
   otree.met_pt = pfmet->begin()->pt();
   otree.met_phi = pfmet->begin()->phi();
-  h_MET->Fill(otree.met_pt);
-  float dphi = 999.;
-  for (reco::PFJetCollection::iterator ijet = selectedJets.begin(); ijet != selectedJets.end(); ++ijet) {
-    float dphi_i = ijet->phi() - pfmet->begin()->phi();
-    while (dphi_i > TMath::Pi()) dphi_i -= 2*TMath::Pi();
-    while (dphi_i < -TMath::Pi()) dphi_i +=2*TMath::Pi();
-    if (TMath::Abs(dphi_i) < TMath::Abs(dphi)) dphi = dphi_i;
-  }
-  h_dPhiMetJet->Fill(dphi);
-
-  /*
-     edm::Handle<reco::GenParticleCollection> genParticlesH_;
-     iEvent.getByLabel("genParticles", genParticlesH_);
-
-  //   std::vector<math::XYZPoint> decayVertices;
-
-  for (reco::GenParticleCollection::const_iterator gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
-  if (fabs(gp->pdgId()) != 4900111) continue;
-  std::cout << "genParticle pdgId = " << gp->pdgId() << std::endl;
-  std::cout << "             mass = " << gp->mass() << std::endl;
-  std::cout << "               pT = " << gp->pt()   << std::endl;
-
-  math::XYZPoint decayVertex = gp->daughter(0)->vertex();
-  //        decayVertices.push_back(decayVertex);
-  std::cout << "         vertex r = " << decayVertex.r() << std::endl;
-  std::cout << "            x,y,z = "
-  << "\t" << decayVertex.x()
-  << "\t" << decayVertex.y()
-  << "\t" << decayVertex.z()
-  <<std::endl;
-  std::cout << "          daughters" << std::endl;
-  for (size_t id = 0; id < gp->numberOfDaughters(); ++id) {
-
-  std::cout << "          daughter " << id << " " << gp->daughter(id)->pdgId() << std::endl;
-  }
-
-  }
-  //
-  */
-
-  //   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk < generalTracks_.end(); ++itk) {
-  //   }
-
-
-  // try my own vertex reco
-
-
-  //   return;
 
   // Select secondary vertices
   selectedSecondaryVertices_ = selectSecondaryVertices(secondary_vertices);
@@ -893,431 +754,17 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     otree.vertex_pt2sum .push_back( pt2sum                    );
   }
 
-  int ijet = 0;
-  int nTags = 0;
-  float logTagCut    = 2.;
-  float logSum = 0.;
-  std::vector<float> vec_medianIpSig;
-  std::vector<float> vec_promptTracks;
-  std::vector<float> vec_medianRpca;
-  int nMatchedGen = 0;
-
   ////////////////////////////////////////////////////////////
   // selectedJet Loop begin
   ////////////////////////////////////////////////////////////
+  int ijet=0;
   for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); ++jet ) {
-
     fillSingleJet(*jet);
-
-
-    //       if (jet->pt() < 50.) continue;
-    //       if (fabs(jet->eta()) > 2.5) continue;
-
-    h_jetPtVsIndex->Fill(jet->pt(), ijet);
-    TLorentzVector jetVector; jetVector.SetPtEtaPhiM(jet->pt(),jet->eta(),jet->phi(),0.);
-
-    bool matched = false;
-    // Loop over Gen jets and set matched=true if there is one with deltaR < 0.2 relative to current jet
-    for ( std::vector<reco::GenJet>::iterator igj = emergingGenJets.begin(); igj != emergingGenJets.end() && matched == false; ++igj) {
-      TLorentzVector gjVector;
-      gjVector.SetPtEtaPhiM(igj->pt(), igj->eta(), igj->phi(), 0.);
-      if (gjVector.DeltaR(jetVector) < 0.2) matched = true;
-    }
-
-    if (matched) nMatchedGen++;
-    //       std::cout << "Jet pt,eta,phi " << jet->pt() << "\t" << jet->eta() << "\t" << jet->phi() << std::endl;
-
-    //std::cout << "PFJet pt,eta,phi" << "\t" << jet->pt() << "\t" << jet->eta() << "\t" << jet->phi() << std::endl;
-    //std::cout << "\t neutralEM:  " << jet->neutralEmEnergyFraction() << std::endl;
-    //std::cout << "\tneutralHad:  " << jet->neutralHadronEnergyFraction() << std::endl;
-    float trackFrac = 0.;
-    int matchedTracks = 0;
-
-    int dtHits = 0;
-    // Count DT hits with position vector that has deltaR < 0.5 relative to current jet
-    for (std::vector<GlobalPoint>::iterator idt = dt_points.begin(); idt != dt_points.end(); ++idt) {
-      TLorentzVector pointVector;
-      pointVector.SetPtEtaPhiM(idt->perp(), idt->eta(), idt->phi(), 0.);
-      if (pointVector.DeltaR(jetVector) < 0.5) ++dtHits;
-    }
-    h_DTsegments->Fill(dtHits);
-
-    int cscHits = 0;
-    // Count CSC hits with position vector that has deltaR < 0.5 relative to current jet
-    //
-    for (std::vector<GlobalPoint>::iterator icp = csc_points.begin(); icp != csc_points.end(); ++icp) {
-      TLorentzVector pointVector;
-      pointVector.SetPtEtaPhiM(icp->perp(), icp->eta(), icp->phi(), 0.);
-      if (pointVector.DeltaR(jetVector) < 0.5) ++cscHits;
-    }
-    h_CSCsegments->Fill(cscHits);
-
-
-    //       int pfTracks = jet->getTrackRefs().size();
-    // Count tracks with IP significance < 3
-    int promptTracks = 0;
-    reco::TrackRefVector trackRefs = jet->getTrackRefs();
-    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-      reco::TrackRef track = *ijt;
-      reco::TransientTrack itk = transienttrackbuilder_->build(track);
-      if (itk.track().pt() < 1.) continue;
-      auto d3d_ipv = IPTools::absoluteImpactParameter3D(itk, primary_vertex);
-      if (d3d_ipv.second.significance() < 3.) promptTracks++;
-      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-      //           if (dxy_ipv.second.value() > ipCut) continue;
-      h_3Dip->Fill(TMath::Log(d3d_ipv.second.value()));
-      h_3DipSig->Fill(d3d_ipv.second.significance());
-      if (matched) {
-        h_3Dip_genMatched->Fill(TMath::Log(d3d_ipv.second.value()));
-        h_3DipSig_genMatched->Fill(d3d_ipv.second.significance());
-      }
-      //           if (dxy_ipv.second.significance() > ipSig) continue;
-
-      //           trackFrac += itk.track().pt();
-    }
-
-    // now loop over the displaced tracks, checking which match the jet geometrically
-    std::vector<float> ipVector;
-    float ipSig = 3.;
-    int ip0_1 = 0.;
-    int ip1_0 = 0.;
-    int ip10_ = 0.;
-    int dispTracks   = 0;
-    float pTxIPxSig = 0.;
-    std::vector<reco::TransientTrack> ipTracks;
-
-    math::XYZVector jetMomentum = jet->momentum();
-    GlobalVector direction(jetMomentum.x(), jetMomentum.y(), jetMomentum.z());
-
-    int misshits = 0;
-    float tot_dsz = 0.;
-    std::vector<float> r_pca;
-    std::vector<float> logIpSig;
-    float sum_Lxy = 0.;
-    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
-
-      if (itk->track().pt() < 1.) continue;
-
-      //           if (itk->track().extra().isNull()) continue;
-
-      //           TLorentzVector trackVector;
-      //           trackVector.SetPxPyPzE(
-      //                   itk->innermostMeasurementState().globalPosition().x() - primary_vertex.position().x(),
-      //                   itk->innermostMeasurementState().globalPosition().y() - primary_vertex.position().y(),
-      //                   itk->innermostMeasurementState().globalPosition().z() - primary_vertex.position().z(),
-      //                   itk->track().p());
-      //           if (trackVector.DeltaR(jetVector) > 0.5) continue;
-
-
-      //           ++promptTracks;
-      //           TrackDetMatchInfo info = m_trackAssociator.associate(iEvent, iSetup, itk->track(), m_trackParameters);
-      //           TLorentzVector impactVector; impactVector.SetPtEtaPhiM(itk->track().pt(),info.trkGlobPosAtEcal.eta(),info.trkGlobPosAtEcal.phi(),0.);
-
-      //           std::cout << "Impact point at ECAL eta, phi, dR "
-      //               << info.trkGlobPosAtEcal.eta() << "\t"
-      //               << info.trkGlobPosAtEcal.phi() << "\t"
-      //               << jetVector.DeltaR(impactVector) << std::endl;
-      //           if (jetVector.DeltaR(impactVector) > 0.4) continue;
-
-      auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
-
-      //       std::cout << "Track with value, significance " << dxy_ipv.second.value() << "\t" << dxy_ipv.second.significance() << std::endl;
-
-
-      TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex,
-          direction, itk->field());
-
-      // Skip tracks with invalid point-of-closest-approach
-      GlobalPoint closestPoint;
-      if (pca.isValid()) {
-        closestPoint = pca.globalPosition();
-      } else {
-        continue;
-      }
-
-      // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates
-      if ( ! ( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) )
-      continue;
-
-      TLorentzVector trackVector;
-      trackVector.SetPxPyPzE(
-          closestPoint.x() - primary_vertex.position().x(),
-          closestPoint.y() - primary_vertex.position().y(),
-          closestPoint.z() - primary_vertex.position().z(),
-          itk->track().p());
-
-      if (pca.isValid()) {
-        h_jetPCAdist->Fill( trackVector.DeltaR(jetVector) , closestPoint.perp() );
-      }
-      h_pca_dr_jet->Fill(trackVector.DeltaR(jetVector));
-      h_pca_r->Fill(closestPoint.perp());
-      // Skip tracks with deltaR > 0.4 w.r.t. current jet
-      if (trackVector.DeltaR(jetVector) > 0.4) continue;
-      h_trackPtInJet->Fill(itk->track().pt());
-      if (matched) h_trackPtInJet_genMatched->Fill(itk->track().pt());
-      ipVector.push_back(fabs(dxy_ipv.second.value()));
-      logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
-
-      misshits += itk->track().numberOfLostHits();
-      tot_dsz += itk->track().dsz(theBeamSpot_->position());
-
-      if (pca.isValid()) {
-        r_pca.push_back(closestPoint.perp());
-        h_rPCA->Fill(closestPoint.perp());
-      }
-
-      //           if (dxy_ipv.second.value() < ipCut) continue;
-      if (dxy_ipv.second.significance() < ipSig) continue;
-
-      h_dz_vs_dxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-      if (matched) {
-        h_dz_vs_dxy_genMatched->Fill(TMath::Log(fabs(dxy_ipv.second.value())),TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-        h_logTrackDz_genMatched->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-        h_logTrackDxy_genMatched->Fill(TMath::Log(fabs(dxy_ipv.second.value())));
-      }
-      h_logTrackDz->Fill(TMath::Log(fabs(itk->track().dz() - primary_vertex.position().z())));
-      h_logTrackDxy->Fill(TMath::Log(fabs(dxy_ipv.second.value())));
-      logSum += dxy_ipv.second.significance();
-
-      Measurement1D ip2d = dxy_ipv.second;
-      float r = 100*3.3*itk->track().pt()/3.8;
-      float gLxy = ip2d.value()/sin(itk->track().phi()-jet->phi())*(1-2.5*fabs(ip2d.value())/r);
-
-      sum_Lxy += gLxy;
-
-      //           pTxIPxSig += itk->track().pt() * dxy_ipv.second.value() * dxy_ipv.second.significance() / jet->pt();
-      pTxIPxSig += itk->track().pt() * dxy_ipv.second.significance() ;
-      //           --promptTracks;
-      ++dispTracks;
-      //           h_dr_jet_track->Fill(jetVector.DeltaR(impactVector));
-      //           h_deltaEtaJetTrack->Fill(fabs(jetVector.Eta() - impactVector.Eta()));
-      //           h_deltaPhiJetTrack->Fill(fabs(jetVector.DeltaPhi(impactVector)));
-      trackFrac += itk->track().pt();
-      //       if (itk->track().dxy(*theBeamSpot_) < ipCut && itk->track().dxy(*theBeamSpot_) > -ipCut) continue;
-      //       if (itk->track().dxy(*theBeamSpot_) / itk->track().dxyError() < ipSig) continue;
-      //       std::cout << "\tq dxy " << itk->track().charge() << "\t" << itk->track().dxy(*theBeamSpot_) << std::endl;
-      //       std::cout << "\tImpact parameter significance " << itk->track().dxy(*theBeamSpot_) / itk->track().dxyError() << std::endl;
-
-      ipTracks.push_back(*itk);
-
-      //           std::cout << "dxy_ipv.second.value() " << dxy_ipv.second.value() << std::endl;
-
-      h_pTdispTracks->Fill(itk->track().pt());
-      if (dxy_ipv.second.value() > 0.1) ip0_1++;
-      if (dxy_ipv.second.value() > 1.0) ip1_0++;
-      if (dxy_ipv.second.value() > 10.) ip10_++;
-
-      ++matchedTracks;
-    }
-
-    h_Lxy_perjet->Fill(TMath::Log(sum_Lxy));
-
-    h_dsz_perJet->Fill(tot_dsz);
-    h_nMissingHitsPerJet->Fill(misshits);
-    h_jetPromptTracks->Fill(promptTracks);
-    vec_promptTracks.push_back(promptTracks);
-    h_jetDispTracks->Fill(dispTracks);
-    h_eventIpTracks0_1->Fill(ip0_1);
-    h_eventIpTracks1_0->Fill(ip1_0);
-    h_eventIpTracks10_->Fill(ip10_);
-
-    std::sort(logIpSig.begin(),logIpSig.end());
-    std::sort(ipVector.begin(),   ipVector.end());
-    std::sort(r_pca.begin(), r_pca.end());
-    float medianIpSig = 0.;
-    if (logIpSig.size() != 0) {
-      h_medianLogIpSig->Fill(logIpSig[logIpSig.size()/2]);
-      vec_medianIpSig.push_back(logIpSig[logIpSig.size()/2]);
-      medianIpSig = logIpSig[logIpSig.size()/2];
-      if (r_pca.size() > 0) vec_medianRpca.push_back(r_pca[r_pca.size()/2]);
-      h_medianIp->Fill(ipVector[ipVector.size()/2]);
-      if (logIpSig[logIpSig.size()/2] > logTagCut) {
-        ++nTags;
-      }
-    }
-    trackFrac /= jet->pt();
-    h_trackFrac->Fill(trackFrac);
-
-    h_pTxIPxSig->Fill(TMath::Log(pTxIPxSig));
-
-    h_jetIpTracks->Fill(matchedTracks);
-
-
-    //       AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
-    //       std::vector<TransientVertex> theVertices = avr.vertices(ipTracks);
-    std::vector<TLorentzVector>  vertexVectors;
-    int matchedVertices = 0;
-    std::vector<float> radiusVector;
-    for (reco::VertexCollection::iterator ivtx = theVertices.begin(); ivtx != theVertices.end(); ++ivtx) {
-      TLorentzVector vertexPosition;  vertexPosition.SetPtEtaPhiM(ivtx->position().r(),ivtx->position().eta(),ivtx->position().phi(),0.);
-      h_vertexDrJet->Fill(vertexPosition.DeltaR(jetVector));
-      if (vertexPosition.DeltaR(jetVector) < 0.15) ++matchedVertices;
-      if (ivtx->normalizedChi2() > 15.) continue;
-      h_rVtx->Fill(ivtx->position().r());
-      radiusVector.push_back(ivtx->position().r());
-      h_chi2Vtx->Fill(ivtx->normalizedChi2());
-      h_nTracksVtx->Fill(ivtx->refittedTracks().size());
-      TLorentzVector cand;
-      // loop over the tracks
-      //           std::vector<reco::Track> vecRefittedTracks = ivtx->refittedTracks();
-      std::vector<reco::TransientTrack> transRefitTracks;
-      for (size_t itrack = 0; itrack < ivtx->refittedTracks().size(); itrack++) {
-        transRefitTracks.push_back(transienttrackbuilder_->build(ivtx->refittedTracks()[itrack]));
-      }
-      for (std::vector<reco::TransientTrack>::const_iterator itk = transRefitTracks.begin(); itk != transRefitTracks.end(); ++itk) {
-        TrajectoryStateClosestToPoint trajectory = itk->trajectoryStateClosestToPoint(GlobalPoint(ivtx->position().x(),ivtx->position().y(),ivtx->position().z()));
-        //            int charge = itk->track().charge();
-        GlobalVector momentum = trajectory.momentum();
-        TLorentzVector trackVector;  trackVector.SetPtEtaPhiM(momentum.perp(), momentum.eta(), momentum.phi(), 0.13957);
-        cand += trackVector;
-      }
-      vertexVectors.push_back(cand);
-      h_massVtx->Fill(cand.M());
-      h_ptVtx->Fill(cand.Pt());
-      h_log_rz_vertex->Fill(TMath::Log(TMath::Abs(ivtx->position().z())),TMath::Log(TMath::Abs(ivtx->position().r())));
-    }
-    float medianSVradius = 0.;
-    std::sort(radiusVector.begin(), radiusVector.end());
-    if (radiusVector.size() != 0) {
-      medianSVradius = radiusVector.at(radiusVector.size()/2);
-    }
-    h_medianSVradius->Fill(medianSVradius);
-    h_jetMatchedVertices->Fill(matchedVertices);
-
-    // displaced standalone muons
-    int matchedMuons = 0;
-    //       for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
-
-    //           if (!itk->innermostMeasurementState().isValid()) continue;
-    //           TLorentzVector trackVector; trackVector.SetPtEtaPhiM(itk->innermostMeasurementState().globalPosition().perp(), itk->innermostMeasurementState().globalPosition().eta(), itk->innermostMeasurementState().globalPosition().phi(), 0.13957);
-    //           h_muonDrJet->Fill(trackVector.DeltaR(jetVector));
-    //           if (trackVector.DeltaR(jetVector) < 0.5) ++matchedMuons;
-
-    //       }
-    h_jetDispMuons->Fill(matchedMuons);
-
-
-    h_jet_cef->Fill(jet->chargedEmEnergyFraction());
-    h_jet_nef->Fill(jet->neutralEmEnergyFraction());
-    h_jet_chf->Fill(jet->chargedHadronEnergyFraction());
-    if (jet->chargedHadronEnergyFraction() < 0.3) nTags++;
-    h_jet_nhf->Fill(jet->neutralHadronEnergyFraction());
-    h_jet_phf->Fill(jet->photonEnergyFraction());
-
-    if (promptTracks < 5) {
-      h_jet_cef_lt5prtk->Fill(jet->chargedEmEnergyFraction());
-      h_jet_nef_lt5prtk->Fill(jet->neutralEmEnergyFraction());
-      h_jet_chf_lt5prtk->Fill(jet->chargedHadronEnergyFraction());
-      h_jet_nhf_lt5prtk->Fill(jet->neutralHadronEnergyFraction());
-      h_jet_phf_lt5prtk->Fill(jet->photonEnergyFraction());
-    }
-
-    h_jetNeutralFraction->Fill(jet->neutralHadronEnergyFraction() + jet->neutralEmEnergyFraction());
-    if (ijet == 0) {
-      jet0_pt = jet->pt();
-      jet0_eta = jet->eta();
-      jet0_promptTracks = promptTracks;
-      jet0_dispTracks   = dispTracks;
-      jet0_nSV          = matchedVertices;
-      jet0_cef          = jet->chargedEmEnergyFraction();
-      jet0_nef          = jet->neutralEmEnergyFraction();
-      jet0_chf          = jet->chargedHadronEnergyFraction();
-      jet0_nhf          = jet->neutralHadronEnergyFraction();
-      jet0_phf          = jet->photonEnergyFraction();
-      jet0_medianLogIpSig = medianIpSig;
-      jet0_missHits     = misshits;
-      jet0_muonHits     = dtHits+cscHits;
-
-    } else if (ijet == 1) {
-      jet1_pt = jet->pt();
-      jet1_eta = jet->eta();
-      jet1_promptTracks = promptTracks;
-      jet1_dispTracks   = dispTracks;
-      jet1_nSV          = matchedVertices;
-      jet1_cef          = jet->chargedEmEnergyFraction();
-      jet1_nef          = jet->neutralEmEnergyFraction();
-      jet1_chf          = jet->chargedHadronEnergyFraction();
-      jet1_nhf          = jet->neutralHadronEnergyFraction();
-      jet1_phf          = jet->photonEnergyFraction();
-      jet1_medianLogIpSig = medianIpSig;
-      jet1_missHits     = misshits;
-      jet1_muonHits     = dtHits+cscHits;
-
-    } else if (ijet == 2) {
-      jet2_pt = jet->pt();
-      jet2_eta = jet->eta();
-      jet2_promptTracks = promptTracks;
-      jet2_dispTracks   = dispTracks;
-      jet2_nSV          = matchedVertices;
-      jet2_cef          = jet->chargedEmEnergyFraction();
-      jet2_nef          = jet->neutralEmEnergyFraction();
-      jet2_chf          = jet->chargedHadronEnergyFraction();
-      jet2_nhf          = jet->neutralHadronEnergyFraction();
-      jet2_phf          = jet->photonEnergyFraction();
-      jet2_medianLogIpSig = medianIpSig;
-      jet2_missHits     = misshits;
-      jet2_muonHits     = dtHits+cscHits;
-
-    } else if (ijet == 3) {
-      jet3_pt = jet->pt();
-      jet3_eta = jet->eta();
-      jet3_promptTracks = promptTracks;
-      jet3_dispTracks   = dispTracks;
-      jet3_nSV          = matchedVertices;
-      jet3_cef          = jet->chargedEmEnergyFraction();
-      jet3_nef          = jet->neutralEmEnergyFraction();
-      jet3_chf          = jet->chargedHadronEnergyFraction();
-      jet3_nhf          = jet->neutralHadronEnergyFraction();
-      jet3_phf          = jet->photonEnergyFraction();
-      jet3_medianLogIpSig = medianIpSig;
-      jet3_missHits     = misshits;
-      jet3_muonHits     = dtHits+cscHits;
-
-    }
-
     ++ijet;
-
   }
   ////////////////////////////////////////////////////////////
   // selectedJet Loop end
   ////////////////////////////////////////////////////////////
-
-  h_nMatchedGen->Fill(nMatchedGen);
-
-  std::sort(vec_medianIpSig.begin(), vec_medianIpSig.end());
-  //   h_medianLogIpSig_2highest->Fill(vec_medianIpSig[0] + vec_medianIpSig[1]);
-  // h_medianLogIpSig_2highest->Fill(vec_medianIpSig[3] + vec_medianIpSig[2]);
-
-  std::sort(vec_promptTracks.begin(), vec_promptTracks.end());
-  //   h_jetPromptTracks_2lowest->Fill(vec_promptTracks[vec_promptTracks.size()-1]+vec_promptTracks[vec_promptTracks.size()-2]);
-  h_jetPromptTracks_2lowest->Fill(vec_promptTracks[0]+vec_promptTracks[1]);
-
-  std::sort(vec_medianRpca.begin(), vec_medianRpca.end());
-  //   for (std::vector<float>::iterator ir = vec_medianRpca.begin(); ir != vec_medianRpca.end(); ++ir) {
-  //       std::cout << *ir << std::endl;
-  //   }
-  // h_median_rPCA->Fill(vec_medianRpca[2]);  if (vec_medianRpca[2] > 0.5) nTags++;
-  // h_median_rPCA->Fill(vec_medianRpca[3]);  if (vec_medianRpca[3] > 0.5) nTags++;
-
-  // check out the standalone muons
-
-  int dispMuons = 0;
-  for (std::vector<reco::TransientTrack>::iterator itk = standaloneDisplacedMuons.begin(); itk < standaloneDisplacedMuons.end(); ++itk) {
-    //        std::cout << "Displaced muon pt eta phi dxy "
-    //            << "\t" << itk->track().pt()
-    //            << "\t" << itk->track().eta()
-    //            << "\t" << itk->track().phi()
-    //            << "\t" << itk->track().dxy()
-    //            << std::endl;
-    ++dispMuons;
-  }
-
-
-  //   h_eventIpTracks->Fill(ipTracks.size());
-  //   h_eventVertices->Fill(theVertices.size());
-  h_eventDispMuons->Fill(dispMuons);
-  h_tagsPerEvent->Fill(nTags);
-  h_eventSumLogIp->Fill(TMath::Log(logSum));
 
   t_tree->Fill();
 
@@ -1395,6 +842,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   int nPromptTracks = 0;
   {
     reco::TrackRefVector trackRefs = jet.getTrackRefs();
+    // Loop over tracks belonging to jet and calculate nPromptTracks
     for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
       reco::TransientTrack itk = transienttrackbuilder_->build(*ijt);
       if (itk.track().pt() < 1.) continue;
@@ -1599,6 +1047,57 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     }
   }
 
+  bool matched = false;
+  // Find out if there is a GenJet with deltaR < 0.2 relative to current jet
+  for ( auto igj = genJets_->begin(); igj != genJets_->end(); ++igj) {
+    TLorentzVector gjVector;
+    gjVector.SetPtEtaPhiM(igj->pt(), igj->eta(), igj->phi(), 0.);
+    if (gjVector.DeltaR(jetVector) < 0.2) {
+      matched = true;
+      break;
+    }
+  }
+
+  int dtHits = 0;
+  // Count DT hits with position vector that has deltaR < 0.5 relative to current jet
+  for (std::vector<GlobalPoint>::iterator idt = dt_points_.begin(); idt != dt_points_.end(); ++idt) {
+    TLorentzVector pointVector;
+    pointVector.SetPtEtaPhiM(idt->perp(), idt->eta(), idt->phi(), 0.);
+    if (pointVector.DeltaR(jetVector) < 0.5) ++dtHits;
+  }
+
+  int cscHits = 0;
+  // Count CSC hits with position vector that has deltaR < 0.5 relative to current jet
+  for (std::vector<GlobalPoint>::iterator icp = csc_points_.begin(); icp != csc_points_.end(); ++icp) {
+    TLorentzVector pointVector;
+    pointVector.SetPtEtaPhiM(icp->perp(), icp->eta(), icp->phi(), 0.);
+    if (pointVector.DeltaR(jetVector) < 0.5) ++cscHits;
+  }
+
+  // Calculate number of vertices within jet cone, and median of displacement
+  int matchedVertices = 0;
+  float medianSVradius = 0.;
+  {
+    std::vector<float> radiusVector;
+    // Loop over a given vertex vector/collection
+    for (reco::VertexCollection::iterator ivtx = selectedSecondaryVertices_.begin(); ivtx != selectedSecondaryVertices_.end(); ++ivtx) {
+      TLorentzVector vertexPosition;  vertexPosition.SetPtEtaPhiM(ivtx->position().r(),ivtx->position().eta(),ivtx->position().phi(),0.);
+      if (vertexPosition.DeltaR(jetVector) < 0.4) ++matchedVertices;
+      if (ivtx->normalizedChi2() > 15.) continue;
+      radiusVector.push_back(ivtx->position().r());
+      TLorentzVector cand;
+      // Build TransientTrack vector from refitted tracks
+      std::vector<reco::TransientTrack> transRefitTracks;
+      for (size_t itrack = 0; itrack < ivtx->refittedTracks().size(); itrack++) {
+        transRefitTracks.push_back(transienttrackbuilder_->build(ivtx->refittedTracks()[itrack]));
+      }
+    }
+    std::sort(radiusVector.begin(), radiusVector.end());
+    if (radiusVector.size() != 0) {
+      medianSVradius = radiusVector.at(radiusVector.size()/2);
+    }
+  }
+
 
   otree.jets_pt             .push_back( jet.pt()                          );
   otree.jets_eta            .push_back( jet.eta()                         );
@@ -1610,7 +1109,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree.jets_phf            .push_back( jet.photonEnergyFraction()        );
   otree.jets_nPromptTracks  .push_back( nPromptTracks                     );
   otree.jets_nDispTracks    .push_back( nDispTracks                       );
-  // otree.jets_nSV            .push_back( matchedVertices                    );
+  otree.jets_nSV            .push_back( matchedVertices                   );
   otree.jets_medianLogIpSig .push_back( medianLogIpSig                    );
   // otree.jets_missHits       .push_back( misshits                           );
   // otree.jets_muonHits       .push_back( dtHits+cscHits                     );

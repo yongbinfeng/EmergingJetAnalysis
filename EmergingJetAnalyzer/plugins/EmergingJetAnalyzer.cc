@@ -16,6 +16,8 @@ Implementation:
 //
 //
 
+#define VERTEXRECOTESTING 0
+
 
 // system include files
 #include <memory>
@@ -94,7 +96,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
 
     // ---------- helper functions ---------------------------
     // Take a single PFJet and add to output tree
-    void fillSingleJet(const reco::PFJet&);
+    void fillSingleJet(const reco::PFJet&, int jet_index);
+    void fillVertexForSingleJet(const reco::VertexCollection&, int source);
     // Select all secondary vertices passing certain criteria, from a given vertexCollection
     reco::VertexCollection selectSecondaryVertices (edm::Handle<reco::VertexCollection>) const;
     // Calculate sum of pt-squares of all tracks, for a given vertex
@@ -123,9 +126,13 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     edm::Handle<reco::GenParticleCollection> genParticlesH_;
     const reco::BeamSpot* theBeamSpot_;
     reco::VertexCollection selectedSecondaryVertices_;
+    std::vector<TransientVertex> avrVertices_;
     edm::Handle<reco::GenJetCollection> genJets_;
     std::vector<GlobalPoint> dt_points_;
     std::vector<GlobalPoint> csc_points_;
+
+    // Calculate once per jet
+    TLorentzVector jetVector_;
 
     bool isData_;
 
@@ -230,7 +237,12 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   ////////////////////////////////////////////////////////////
   // Reconstruct vertices from scratch
   ////////////////////////////////////////////////////////////
-  if (1)
+  {
+    avrVertices_.clear();
+    AdaptiveVertexReconstructor avr (2.0, 6.0, 0.5, true );
+    avrVertices_ = avr.vertices(generalTracks_);
+  }
+  if (VERTEXRECOTESTING)
   {
     TStopwatch timer;
     timer.Start();
@@ -364,7 +376,7 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   ////////////////////////////////////////////////////////////
   int ijet=0;
   for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); ++jet ) {
-    fillSingleJet(*jet);
+    fillSingleJet(*jet, ijet);
     ++ijet;
   }
   ////////////////////////////////////////////////////////////
@@ -435,10 +447,10 @@ EmergingJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
 }
 
 void
-EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
+EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   // Shared objects
   const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
-  TLorentzVector jetVector; jetVector.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
+  jetVector_.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
   // std::cout << "jet.pt(): " << jet.pt() << std::endl;
   const float maxSigPromptTrack = 3.;
   const float minSigDispTrack = 3.;
@@ -458,21 +470,29 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     }
   }
 
-  // Calculate nDispTracks, medianLogIpSig
+  // Calculate nDispTracks, medianLogIpSig, fill track variables
   int nDispTracks   = 0;
   float medianLogIpSig = 0.;
   int nTags = 0;
   const float logTagCut    = 2.;
   // per track variables, reuse for efficiency
-  std::vector<int>   vec_algo;
-  std::vector<int>   vec_originalAlgo;
-  std::vector<int>   vec_nHits;
-  std::vector<int>   vec_nMissInnerHits;
-  std::vector<float> vec_ipXY;
-  std::vector<float> vec_ipZ;
-  std::vector<float> vec_ipXYSig;
+  std:: vector<int>   vec_source         ;
+  std:: vector<float> vec_pt             ;
+  std:: vector<float> vec_eta            ;
+  std:: vector<float> vec_phi            ;
+  std:: vector<int>   vec_algo           ;
+  std:: vector<int>   vec_originalAlgo   ;
+  std:: vector<int>   vec_nHits          ;
+  std:: vector<int>   vec_nMissInnerHits ;
+  std:: vector<float> vec_ipXY           ;
+  std:: vector<float> vec_ipZ            ;
+  std:: vector<float> vec_ipXYSig        ;
   int itrack = 0;
   {
+    vec_source         .clear();
+    vec_pt             .clear();
+    vec_eta            .clear();
+    vec_phi            .clear();
     vec_algo           .clear();
     vec_originalAlgo   .clear();
     vec_nHits          .clear();
@@ -482,9 +502,6 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     vec_ipXYSig        .clear();
 
     std::vector<float> ipVector;
-    int ip0_1 = 0.;
-    int ip1_0 = 0.;
-    int ip10_ = 0.;
     float pTxIPxSig = 0.;
     std::vector<reco::TransientTrack> ipTracks;
     float trackFrac = 0.;
@@ -533,22 +550,34 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
           itk->track().p());
 
       // Skip tracks with deltaR > 0.4 w.r.t. current jet
-      float deltaR = trackVector.DeltaR(jetVector);
+      float deltaR = trackVector.DeltaR(jetVector_);
       // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
       if (deltaR > 0.4) continue;
 
-      int algo = itk->track().algo();
-      int origAlgo = itk->track().originalAlgo();
+      int source = 0; // 0 for generalTracks
+      double pt    = itk->track().pt();
+      double eta   = itk->track().eta();
+      double phi   = itk->track().phi();
+      int algo     = itk->track().algo();
+      int originalAlgo = itk->track().originalAlgo();
       int nHits = itk->numberOfValidHits();
       int nMissInnerHits = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
       // std::cout << "nHits:" << nHits << std::endl;
       // std::cout << "nMissInnerHits:" << nMissInnerHits << std::endl;
-      vec_algo           . push_back ( algo           ) ;
-      vec_originalAlgo   . push_back ( origAlgo       ) ;
-      vec_nHits          . push_back ( nHits          ) ;
-      vec_nMissInnerHits . push_back ( nMissInnerHits ) ;
-      vec_ipXY           . push_back ( ipXY           ) ;
-      vec_ipXYSig        . push_back ( ipXYSig        ) ;
+#define VEC_PUSHBACK(a) vec_##a.push_back(a)
+      // Pushback variable into vec_<VARIABLENAME>
+      VEC_PUSHBACK( source         );
+      VEC_PUSHBACK( pt             );
+      VEC_PUSHBACK( eta            );
+      VEC_PUSHBACK( phi            );
+      VEC_PUSHBACK( algo           );
+      VEC_PUSHBACK( originalAlgo   );
+      VEC_PUSHBACK( nHits          );
+      VEC_PUSHBACK( nMissInnerHits );
+      VEC_PUSHBACK( ipXY           );
+      // VEC_PUSHBACK( ipZ            );
+      VEC_PUSHBACK( ipXYSig        );
+#undef VEC_PUSHBACK
       ipVector.push_back(fabs(dxy_ipv.second.value()));
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
 
@@ -578,10 +607,6 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
       trackFrac += itk->track().pt();
 
       ipTracks.push_back(*itk);
-
-      if (dxy_ipv.second.value() > 0.1) ip0_1++;
-      if (dxy_ipv.second.value() > 1.0) ip1_0++;
-      if (dxy_ipv.second.value() > 10.) ip10_++;
 
     }
     trackFrac /= jet.pt();
@@ -643,7 +668,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
         //                   std::cout << "      r, eta, phi = " << gp->vertex().r() << "\t" << gp->vertex().eta() << "\t" << gp->vertex().phi() << std::endl;
         TLorentzVector gpVector;
         gpVector.SetPtEtaPhiM(gp->pt(),gp->eta(),gp->phi(),gp->mass());
-        double dist = jetVector.DeltaR(gpVector);
+        double dist = jetVector_.DeltaR(gpVector);
         if (dist < 0.4) {
           nDarkPions++;
         }
@@ -657,7 +682,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   for ( auto igj = genJets_->begin(); igj != genJets_->end(); ++igj) {
     TLorentzVector gjVector;
     gjVector.SetPtEtaPhiM(igj->pt(), igj->eta(), igj->phi(), 0.);
-    if (gjVector.DeltaR(jetVector) < 0.2) {
+    if (gjVector.DeltaR(jetVector_) < 0.2) {
       matched = true;
       break;
     }
@@ -668,7 +693,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   for (std::vector<GlobalPoint>::iterator idt = dt_points_.begin(); idt != dt_points_.end(); ++idt) {
     TLorentzVector pointVector;
     pointVector.SetPtEtaPhiM(idt->perp(), idt->eta(), idt->phi(), 0.);
-    if (pointVector.DeltaR(jetVector) < 0.5) ++dtHits;
+    if (pointVector.DeltaR(jetVector_) < 0.5) ++dtHits;
   }
 
   int cscHits = 0;
@@ -676,7 +701,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   for (std::vector<GlobalPoint>::iterator icp = csc_points_.begin(); icp != csc_points_.end(); ++icp) {
     TLorentzVector pointVector;
     pointVector.SetPtEtaPhiM(icp->perp(), icp->eta(), icp->phi(), 0.);
-    if (pointVector.DeltaR(jetVector) < 0.5) ++cscHits;
+    if (pointVector.DeltaR(jetVector_) < 0.5) ++cscHits;
   }
 
   // Calculate number of vertices within jet cone, and median of displacement
@@ -687,7 +712,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     // Loop over a given vertex vector/collection
     for (reco::VertexCollection::iterator ivtx = selectedSecondaryVertices_.begin(); ivtx != selectedSecondaryVertices_.end(); ++ivtx) {
       TLorentzVector vertexPosition;  vertexPosition.SetPtEtaPhiM(ivtx->position().r(),ivtx->position().eta(),ivtx->position().phi(),0.);
-      if (vertexPosition.DeltaR(jetVector) < 0.4) ++matchedVertices;
+      if (vertexPosition.DeltaR(jetVector_) < 0.4) ++matchedVertices;
       if (ivtx->normalizedChi2() > 15.) continue;
       radiusVector.push_back(ivtx->position().r());
       TLorentzVector cand;
@@ -700,6 +725,68 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
     std::sort(radiusVector.begin(), radiusVector.end());
     if (radiusVector.size() != 0) {
       medianSVradius = radiusVector.at(radiusVector.size()/2);
+    }
+  }
+
+  // Fill vertex info from AVR vertices
+  {
+    // Macro expands to the following:
+    // auto& <variable> = make_new_element (otree_.jet_<variable>)
+#define GET_NEW_JET_VAR(a) auto& a = make_new_element (otree_.jet_##a)
+     GET_NEW_JET_VAR( vertex_source ) ;
+     GET_NEW_JET_VAR( vertex_x      ) ;
+     GET_NEW_JET_VAR( vertex_y      ) ;
+     GET_NEW_JET_VAR( vertex_z      ) ;
+     GET_NEW_JET_VAR( vertex_xError ) ;
+     GET_NEW_JET_VAR( vertex_yError ) ;
+     GET_NEW_JET_VAR( vertex_zError ) ;
+     GET_NEW_JET_VAR( vertex_deltaR ) ;
+     GET_NEW_JET_VAR( vertex_Lxy    ) ;
+     GET_NEW_JET_VAR( vertex_mass   ) ;
+     GET_NEW_JET_VAR( vertex_chi2   ) ;
+     GET_NEW_JET_VAR( vertex_ndof   ) ;
+     GET_NEW_JET_VAR( vertex_pt2sum ) ;
+#undef GET_NEW_JET_VAR
+    // vertex_source = make_new_element ( otree_.jet_vertex_source ) ;
+    // vertex_x      = make_new_element ( otree_.jet_vertex_x      ) ;
+    // vertex_y      = make_new_element ( otree_.jet_vertex_y      ) ;
+    // vertex_z      = make_new_element ( otree_.jet_vertex_z      ) ;
+    // vertex_xError = make_new_element ( otree_.jet_vertex_xError ) ;
+    // vertex_yError = make_new_element ( otree_.jet_vertex_yError ) ;
+    // vertex_zError = make_new_element ( otree_.jet_vertex_zError ) ;
+    // vertex_deltaR = make_new_element ( otree_.jet_vertex_deltaR ) ;
+    // vertex_Lxy    = make_new_element ( otree_.jet_vertex_Lxy    ) ;
+    // vertex_mass   = make_new_element ( otree_.jet_vertex_mass   ) ;
+    // vertex_chi2   = make_new_element ( otree_.jet_vertex_chi2   ) ;
+    // vertex_ndof   = make_new_element ( otree_.jet_vertex_ndof   ) ;
+    // vertex_pt2sum = make_new_element ( otree_.jet_vertex_pt2sum ) ;
+    for (TransientVertex vertex: avrVertices_) {
+      int source = 1; // For AVR vertices
+      auto vtx = reco::Vertex(vertex);
+      TLorentzVector vertexVector;
+      vertexVector.SetXYZT(vtx.x(), vtx.y(), vtx.z(), 0.0);
+      // Ignore vertices outside jet cone
+      double deltaR = vertexVector.DeltaR(jetVector_) > 0.4;
+      if (deltaR) continue;
+      double Lxy = 0;
+      float dx = primary_vertex.position().x() - vtx.position().x();
+      float dy = primary_vertex.position().y() - vtx.position().y();
+      Lxy = TMath::Sqrt( dx*dx + dy*dy );
+      float mass = vtx.p4().mass();
+      float pt2sum = calculatePt2Sum(vtx);
+      vertex_source . push_back ( source       );
+      vertex_x      . push_back ( vtx.x()      );
+      vertex_y      . push_back ( vtx.y()      );
+      vertex_z      . push_back ( vtx.z()      );
+      vertex_xError . push_back ( vtx.xError() );
+      vertex_yError . push_back ( vtx.yError() );
+      vertex_zError . push_back ( vtx.zError() );
+      vertex_deltaR . push_back ( deltaR       );
+      vertex_Lxy    . push_back ( Lxy          );
+      vertex_mass   . push_back ( mass         );
+      vertex_chi2   . push_back ( vtx.chi2()   );
+      vertex_ndof   . push_back ( vtx.ndof()   );
+      vertex_pt2sum . push_back ( pt2sum       );
     }
   }
 
@@ -729,6 +816,13 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet) {
   otree_.tracks_ipXYSig        .push_back ( vec_ipXYSig        ) ;
 
 
+}
+
+void
+EmergingJetAnalyzer::fillVertexForSingleJet(const reco::VertexCollection&, int source) {
+  while(0) {
+    source++;
+  }
 }
 
 reco::VertexCollection

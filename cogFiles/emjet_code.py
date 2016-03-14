@@ -1,4 +1,4 @@
-"""Generates OutputTree.h for EmergingJetAnalyzer"""
+"""Generates code for EmergingJetAnalyzer"""
 import cog
 nonVectorDefault = '-1' # Default value for non vector variables
 type_int         = 'int                     '
@@ -35,6 +35,7 @@ jet_vars = [
     ( "jets_minDRDarkPion    " , type_vfloat  ) ,
 ]
 jet_track_vars = [
+    ( "tracks_source         " , type_vvint   ) ,
     ( "tracks_pt             " , type_vvfloat ) ,
     ( "tracks_eta            " , type_vvfloat ) ,
     ( "tracks_phi            " , type_vvfloat ) ,
@@ -43,10 +44,26 @@ jet_track_vars = [
     ( "tracks_nHits          " , type_vvint   ) ,
     ( "tracks_nMissInnerHits " , type_vvint   ) ,
     ( "tracks_ipXY           " , type_vvfloat ) ,
-    ( "tracks_ipZ            " , type_vvfloat ) ,
+    ( "tracks_ipZ            " , type_vvfloat ) , # Empty for now
     ( "tracks_ipXYSig        " , type_vvfloat ) ,
 ]
+jet_vertex_vars = [
+    ( "jet_vertex_source     " , type_vvint    ) ,
+    ( "jet_vertex_x          " , type_vvfloat  ) ,
+    ( "jet_vertex_y          " , type_vvfloat  ) ,
+    ( "jet_vertex_z          " , type_vvfloat  ) ,
+    ( "jet_vertex_xError     " , type_vvfloat  ) ,
+    ( "jet_vertex_yError     " , type_vvfloat  ) ,
+    ( "jet_vertex_zError     " , type_vvfloat  ) ,
+    ( "jet_vertex_deltaR     " , type_vvfloat  ) ,
+    ( "jet_vertex_Lxy        " , type_vvfloat  ) ,
+    ( "jet_vertex_mass       " , type_vvfloat  ) ,
+    ( "jet_vertex_chi2       " , type_vvfloat  ) ,
+    ( "jet_vertex_ndof       " , type_vvfloat  ) ,
+    ( "jet_vertex_pt2sum     " , type_vvfloat  ) ,
+]
 vertex_vars = [
+    ( "vertex_source         " , type_vint    ) ,
     ( "vertex_x              " , type_vfloat  ) ,
     ( "vertex_y              " , type_vfloat  ) ,
     ( "vertex_z              " , type_vfloat  ) ,
@@ -59,7 +76,7 @@ vertex_vars = [
     ( "vertex_ndof           " , type_vfloat  ) ,
     ( "vertex_pt2sum         " , type_vfloat  ) ,
 ]
-all_vars = event_vars + jet_vars + jet_track_vars + vertex_vars
+all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars + vertex_vars
 
 def printLine(*args):
     line = "".join(args)

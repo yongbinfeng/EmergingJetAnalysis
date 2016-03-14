@@ -1,7 +1,6 @@
 #ifndef EmergingJetAnalysis_EmergingJetAnalyzer_OutputTree_h
 #define EmergingJetAnalysis_EmergingJetAnalyzer_OutputTree_h
 
-
 #include <vector>
 
 #include "TTree.h"
@@ -21,7 +20,7 @@ namespace emjet
     // Do NOT edit until "end"
     //[[[cog
     //import cog
-    //import emjetOutput as mod; mod.genOutputTree()
+    //import emjet_code as mod; mod.genOutputTree()
     //]]]
     int                      run                   ;
     int                      lumi                  ;
@@ -46,6 +45,7 @@ namespace emjet
     vector<float>            jets_alphaMax         ;
     vector<int>              jets_nDarkPions       ;
     vector<float>            jets_minDRDarkPion    ;
+    vector< vector<int> >    tracks_source         ;
     vector< vector<float> >  tracks_pt             ;
     vector< vector<float> >  tracks_eta            ;
     vector< vector<float> >  tracks_phi            ;
@@ -56,6 +56,20 @@ namespace emjet
     vector< vector<float> >  tracks_ipXY           ;
     vector< vector<float> >  tracks_ipZ            ;
     vector< vector<float> >  tracks_ipXYSig        ;
+    vector< vector<int> >    jet_vertex_source     ;
+    vector< vector<float> >  jet_vertex_x          ;
+    vector< vector<float> >  jet_vertex_y          ;
+    vector< vector<float> >  jet_vertex_z          ;
+    vector< vector<float> >  jet_vertex_xError     ;
+    vector< vector<float> >  jet_vertex_yError     ;
+    vector< vector<float> >  jet_vertex_zError     ;
+    vector< vector<float> >  jet_vertex_deltaR     ;
+    vector< vector<float> >  jet_vertex_Lxy        ;
+    vector< vector<float> >  jet_vertex_mass       ;
+    vector< vector<float> >  jet_vertex_chi2       ;
+    vector< vector<float> >  jet_vertex_ndof       ;
+    vector< vector<float> >  jet_vertex_pt2sum     ;
+    vector<int>              vertex_source         ;
     vector<float>            vertex_x              ;
     vector<float>            vertex_y              ;
     vector<float>            vertex_z              ;
@@ -77,7 +91,7 @@ emjet::OutputTree::Init() {
   // Do NOT edit until "end"
   //[[[cog
   //import cog
-  //import emjetOutput as mod; mod.genInit()
+  //import emjet_code as mod; mod.genInit()
   //]]]
   run                   = -1;
   lumi                  = -1;
@@ -102,6 +116,7 @@ emjet::OutputTree::Init() {
   jets_alphaMax         .clear();
   jets_nDarkPions       .clear();
   jets_minDRDarkPion    .clear();
+  tracks_source         .clear();
   tracks_pt             .clear();
   tracks_eta            .clear();
   tracks_phi            .clear();
@@ -112,6 +127,20 @@ emjet::OutputTree::Init() {
   tracks_ipXY           .clear();
   tracks_ipZ            .clear();
   tracks_ipXYSig        .clear();
+  jet_vertex_source     .clear();
+  jet_vertex_x          .clear();
+  jet_vertex_y          .clear();
+  jet_vertex_z          .clear();
+  jet_vertex_xError     .clear();
+  jet_vertex_yError     .clear();
+  jet_vertex_zError     .clear();
+  jet_vertex_deltaR     .clear();
+  jet_vertex_Lxy        .clear();
+  jet_vertex_mass       .clear();
+  jet_vertex_chi2       .clear();
+  jet_vertex_ndof       .clear();
+  jet_vertex_pt2sum     .clear();
+  vertex_source         .clear();
   vertex_x              .clear();
   vertex_y              .clear();
   vertex_z              .clear();
@@ -133,7 +162,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   // Do NOT edit until "end"
   //[[[cog
   //import cog
-  //import emjetOutput as mod; mod.genBranch()
+  //import emjet_code as mod; mod.genBranch()
   //]]]
   BRANCH(tree, run                   );
   BRANCH(tree, lumi                  );
@@ -158,6 +187,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, jets_alphaMax         );
   BRANCH(tree, jets_nDarkPions       );
   BRANCH(tree, jets_minDRDarkPion    );
+  BRANCH(tree, tracks_source         );
   BRANCH(tree, tracks_pt             );
   BRANCH(tree, tracks_eta            );
   BRANCH(tree, tracks_phi            );
@@ -168,6 +198,20 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, tracks_ipXY           );
   BRANCH(tree, tracks_ipZ            );
   BRANCH(tree, tracks_ipXYSig        );
+  BRANCH(tree, jet_vertex_source     );
+  BRANCH(tree, jet_vertex_x          );
+  BRANCH(tree, jet_vertex_y          );
+  BRANCH(tree, jet_vertex_z          );
+  BRANCH(tree, jet_vertex_xError     );
+  BRANCH(tree, jet_vertex_yError     );
+  BRANCH(tree, jet_vertex_zError     );
+  BRANCH(tree, jet_vertex_deltaR     );
+  BRANCH(tree, jet_vertex_Lxy        );
+  BRANCH(tree, jet_vertex_mass       );
+  BRANCH(tree, jet_vertex_chi2       );
+  BRANCH(tree, jet_vertex_ndof       );
+  BRANCH(tree, jet_vertex_pt2sum     );
+  BRANCH(tree, vertex_source         );
   BRANCH(tree, vertex_x              );
   BRANCH(tree, vertex_y              );
   BRANCH(tree, vertex_z              );
@@ -181,5 +225,14 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, vertex_pt2sum         );
   //[[[end]]]
 }
+
+// Insert new empty element in nested vector and returns pointer to the added element
+template <typename T>
+vector<T>&
+make_new_element (vector< vector<T> > & vec) {
+  vec.push_back( vector<T>() );
+  return vec.back();
+}
+
 
 #endif

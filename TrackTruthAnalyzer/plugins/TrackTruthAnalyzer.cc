@@ -31,6 +31,9 @@
 
 #include "DataFormats/RecoCandidate/interface/TrackAssociation.h"
 
+#include "TLorentzVector.h"
+#include "TVector3.h"
+
 //
 // class declaration
 //
@@ -56,6 +59,9 @@ private:
   edm::InputTag tracksTag, tpTag;
   edm::EDGetTokenT<reco::RecoToSimCollection> recSimToken;
   edm::EDGetTokenT<reco::SimToRecoCollection> simRecToken;
+  int nTpTotal;
+  int nMatchedTpTotal;
+  int nDuplicates;
 };
 
 //
@@ -76,6 +82,9 @@ TrackTruthAnalyzer::TrackTruthAnalyzer(const edm::ParameterSet& iConfig)
   tpTag = iConfig.getParameter< edm::InputTag >("tpTag");
   recSimToken = consumes<reco::RecoToSimCollection>( iConfig.getParameter< edm::InputTag >("recSim") );
   simRecToken = consumes<reco::SimToRecoCollection>( iConfig.getParameter< edm::InputTag >("simRec") );
+  nTpTotal=0;
+  nMatchedTpTotal=0;
+  nDuplicates=0;
 }
 
 
@@ -85,6 +94,8 @@ TrackTruthAnalyzer::~TrackTruthAnalyzer()
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
 
+  std::cout << "nMatchedTpTotal/nTpTotal: " << float(nMatchedTpTotal)/nTpTotal << std::endl;
+  std::cout << "nDuplicates/nTpTotal: " << float(nDuplicates)/nTpTotal << std::endl;
 }
 
 
@@ -123,11 +134,26 @@ TrackTruthAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   //   }
   // }
   std::cout << "Number of tracking particles" << TPCollectionH->size() << std::endl;
+  int nTp = 0;
+  int nMatchedTp = 0;
   for ( unsigned int itp = 0; itp != TPCollectionH->size(); itp++ ) {
-    std::cout << "Running on tp index: " << itp << std::endl;
     int nMatch = 0;
     const TrackingParticleRef tpRef(TPCollectionH, itp);
+    if (tpRef->charge()!=0 && tpRef->pt()<10.) continue;
+    std::cout << "Running on tp index: " << itp << std::endl;
+    std::cout << "pdgId: " << tpRef->pdgId() ;
+    std::cout << "\tpt: " << tpRef->pt() ;
+    std::cout << "\teta: " << tpRef->eta();
+    std::cout << "\tvx: " << tpRef->vx() ;
+    std::cout << "\tvy: " << tpRef->vy() ;
+    std::cout << "\tvz: " << tpRef->vz() ;
+    std::cout << std::endl;
+    if (TMath::Abs(tpRef->eta()) > 2.5) continue;
+    TVector3 vertex(tpRef->vx(), tpRef->vy(), tpRef->vz());
+    if (vertex.Perp()>10) continue;
+    nTp++;
     if ( simToRecCollection->find(tpRef) != simToRecCollection->end() ) {
+      nMatchedTp++;
       const auto vec_rt_quality = (*simToRecCollection)[tpRef];
       std::cout << "Number of matched recoTracks: " << vec_rt_quality.size() << std::endl;
       for (const auto rt_quality : vec_rt_quality) {
@@ -136,8 +162,12 @@ TrackTruthAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
         std::cout << "    SIM-RECO association quality: " << quality << std::endl;
         nMatch++;
       }
+      if (nMatch>1) nDuplicates++;
     }
   }
+  nTpTotal += nTp;
+  nMatchedTpTotal += nMatchedTp;
+  std::cout << "nMatchedTp/nTp: " << float(nMatchedTp)/nTp << std::endl;
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
   Handle<ExampleData> pIn;

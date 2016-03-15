@@ -130,6 +130,9 @@ process.load("SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi
 process.load("SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi")
 process.load("EmergingJetAnalysis.TrackTruthAnalyzer.trackTruthAnalyzer_cfi")
 
+# process.quickTrackAssociatorByHits.Quality_SimToReco = cms.double(0.25)
+# process.quickTrackAssociatorByHits.Purity_SimToReco = cms.double(0.25)
+
 # trackingParticleStep = cms.Sequence(process.trackingParticleRecoTrackAsssociation )
 # process.trackingParticleRecoTrackAsssociation.associator = cms.InputTag('trackAssociatorByChi2')
 trackingParticleStep = cms.Sequence(process.trackingParticleRecoTrackAsssociation * process.trackTruthAnalyzer)
@@ -157,7 +160,7 @@ process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 process.MessageLogger.suppressWarning = cms.untracked.vstring('triggerSelection')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),

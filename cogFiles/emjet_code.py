@@ -1,6 +1,23 @@
 """Generates code for EmergingJetAnalyzer"""
 import cog
-nonVectorDefault = '-1' # Default value for non vector variables
+
+TYPESTRLENGTH = 30
+
+def pad_with_whitespace(input_string, length=20):
+    '''Pads input string with spaces to given length'''
+    format_string = '{: <%d}' % width
+    output_string = format_string.format(input_string)
+    return output_string
+
+def vector(type_string):
+    '''Take a string defining a C++ type and outputs a string defining a vector of that type.
+    Also pads the output string to the default TYPESTRLENGTH defined in file'''
+    stripped_string = type_string.strip()
+    vector_type_string = 'vector < %s >' % stripped_string
+    output_string = pad_with_whitespace(input_string, TYPESTRLENGTH)
+    return output_string
+
+non_vector_default = '-1' # Default value for non vector variables
 type_int         = 'int                     '
 type_vint        = 'vector<int>             '
 type_vvint       = 'vector< vector<int> >   '
@@ -99,7 +116,7 @@ def genInit():
         if 'vector' in typename:
             printLine("%s.clear();" % varname)
         else:
-            printLine("%s= %s;" % (varname, nonVectorDefault))
+            printLine("%s= %s;" % (varname, non_vector_default))
 
 def genBranch():
     # printLine("#define BRANCH(tree, branch) (tree)->Branch(#branch, &branch);")

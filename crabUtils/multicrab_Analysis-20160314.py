@@ -16,10 +16,10 @@ datasets = [
     # dataset( "ModelB"                , "/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-69070e02f00a6fbca8a74a9d93177037/USER"       , MC   , 1    , 10000000 , splitting='FileBased'           , priority=99 , label='signal', inputDBS='phys03' ) ,
     # dataset( "QCD_HT500to700"        , "/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM"   , MC   , 1    , 100      , splitting='FileBased'           , priority=10 , label='signal' ) ,
     # dataset( "QCD_HT700to1000"       , "/QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM"  , MC   , 1    , 1000     , splitting='FileBased'           , priority=15 , label='signal' ) ,
-    dataset( "QCD_HT1000to1500"      , "/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v2/AODSIM" , MC   , 1    , 100      , splitting='FileBased'           , priority=30 , label='signal' ) ,
-    dataset( "QCD_HT1500to2000"      , "/QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM" , MC   , 1    , 100      , splitting='FileBased'           , priority=20 , label='signal' ) ,
-    dataset( "QCD_HT2000toInf"       , "/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM"  , MC   , 1    , 100      , splitting='FileBased'           , priority=20 , label='signal' ) ,
-    # dataset( "DataSkim_Run2015-PRv3" , "/JetHT/yoshin-DataSkim-20160302-80c51f15cd036b2256e94c207509265d/USER"                                        , DATA , 1000 , 20000    , splitting='EventAwareLumiBased' , priority=50 , label='signal', inputDBS='phys03' ) ,
+    # dataset( "QCD_HT1000to1500"      , "/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v2/AODSIM" , MC   , 1    , 100      , splitting='FileBased'           , priority=30 , label='signal' ) ,
+    # dataset( "QCD_HT1500to2000"      , "/QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM" , MC   , 1    , 100      , splitting='FileBased'           , priority=20 , label='signal' ) ,
+    # dataset( "QCD_HT2000toInf"       , "/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM"  , MC   , 1    , 100      , splitting='FileBased'           , priority=20 , label='signal' ) ,
+    dataset( "DataSkim_Run2015-PRv3" , "/JetHT/yoshin-DataSkim-20160302-80c51f15cd036b2256e94c207509265d/USER"                                        , DATA , 1000 , 20000    , splitting='EventAwareLumiBased' , priority=50 , label='signal', inputDBS='phys03' ) ,
 ]
 
 if __name__ == '__main__':

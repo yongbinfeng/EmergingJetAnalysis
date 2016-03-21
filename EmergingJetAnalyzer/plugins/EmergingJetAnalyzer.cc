@@ -678,13 +678,15 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   }
 
   bool matched = false;
-  // Find out if there is a GenJet with deltaR < 0.2 relative to current jet
-  for ( auto igj = genJets_->begin(); igj != genJets_->end(); ++igj) {
-    TLorentzVector gjVector;
-    gjVector.SetPtEtaPhiM(igj->pt(), igj->eta(), igj->phi(), 0.);
-    if (gjVector.DeltaR(jetVector_) < 0.2) {
-      matched = true;
-      break;
+  if (!isData_) {
+    // Find out if there is a GenJet with deltaR < 0.2 relative to current jet
+    for ( auto igj = genJets_->begin(); igj != genJets_->end(); ++igj) {
+      TLorentzVector gjVector;
+      gjVector.SetPtEtaPhiM(igj->pt(), igj->eta(), igj->phi(), 0.);
+      if (gjVector.DeltaR(jetVector_) < 0.2) {
+        matched = true;
+        break;
+      }
     }
   }
 

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     config = Configuration()
 
     config.section_("General")
-    config.General.workArea = 'crab_' + jobname + time.strftime("-%Y-%m%d") + '-' + postfix
+    config.General.workArea = 'crabTasks/' + 'crab_' + jobname + time.strftime("-%Y-%m%d") + '-' + postfix
     tasklistFileName = config.General.workArea + '.txt'
     if not dryrun: tasklistFile = open(tasklistFileName, 'a')
 

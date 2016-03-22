@@ -29,6 +29,9 @@ event_vars = [
     ( "lumi                  " , type_int     ) ,
     ( "event                 " , type_int     ) ,
     ( "bx                    " , type_int     ) ,
+    ( "nVtx                  " , type_int     ) ,
+    ( "nGoodVtx              " , type_int     ) ,
+    ( "nTrueInt              " , type_int     ) ,
     ( "met_pt                " , type_float   ) ,
     ( "met_phi               " , type_float   ) ,
 ]

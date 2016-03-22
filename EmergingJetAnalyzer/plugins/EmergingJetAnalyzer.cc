@@ -33,6 +33,7 @@ Implementation:
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
@@ -233,6 +234,24 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   edm::Handle<reco::VertexCollection> secondary_vertices;
   iEvent.getByLabel("inclusiveSecondaryVertices",secondary_vertices);
+
+  if (!isData_) { // :MCONLY: Add true number of interactions
+    edm::Handle<std::vector<PileupSummaryInfo> > PileupInfo;
+    iEvent.getByLabel("addPileupInfo", PileupInfo);
+
+    for (auto const& puInfo : *PileupInfo) {
+      int bx = puInfo.getBunchCrossing();
+      if (bx == 0) {
+        otree_.nTrueInt = puInfo.getTrueNumInteractions();
+      }
+    }
+  }
+
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    otree_.nVtx ++;
+    if ( (ipv->isFake()) || (ipv->ndof() <= 4.) || (ipv->position().Rho() > 2.0) || (fabs(ipv->position().Z()) > 24.0) ) continue; // :CUT: Primary vertex cut for counting
+    otree_.nGoodVtx++;
+  }
 
   ////////////////////////////////////////////////////////////
   // Reconstruct vertices from scratch

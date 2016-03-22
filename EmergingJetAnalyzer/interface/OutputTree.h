@@ -26,6 +26,9 @@ namespace emjet
     int                      lumi                  ;
     int                      event                 ;
     int                      bx                    ;
+    int                      nVtx                  ;
+    int                      nGoodVtx              ;
+    int                      nTrueInt              ;
     float                    met_pt                ;
     float                    met_phi               ;
     vector<float>            jets_pt               ;
@@ -97,6 +100,9 @@ emjet::OutputTree::Init() {
   lumi                  = -1;
   event                 = -1;
   bx                    = -1;
+  nVtx                  = -1;
+  nGoodVtx              = -1;
+  nTrueInt              = -1;
   met_pt                = -1;
   met_phi               = -1;
   jets_pt               .clear();
@@ -168,6 +174,9 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, lumi                  );
   BRANCH(tree, event                 );
   BRANCH(tree, bx                    );
+  BRANCH(tree, nVtx                  );
+  BRANCH(tree, nGoodVtx              );
+  BRANCH(tree, nTrueInt              );
   BRANCH(tree, met_pt                );
   BRANCH(tree, met_phi               );
   BRANCH(tree, jets_pt               );

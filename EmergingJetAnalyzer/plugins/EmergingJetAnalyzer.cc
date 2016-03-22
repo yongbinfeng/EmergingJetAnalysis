@@ -829,6 +829,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   otree_.jets_alphaMax       .push_back( alpha_max                         );
   otree_.jets_nDarkPions     .push_back( nDarkPions                        );
   otree_.jets_minDRDarkPion  .push_back( minDist                           );
+  otree_.tracks_pt             .push_back ( vec_pt             ) ;
+  otree_.tracks_eta            .push_back ( vec_eta            ) ;
   otree_.tracks_algo           .push_back ( vec_algo           ) ;
   otree_.tracks_originalAlgo   .push_back ( vec_originalAlgo   ) ;
   otree_.tracks_nHits          .push_back ( vec_nHits          ) ;

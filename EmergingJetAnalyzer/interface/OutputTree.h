@@ -59,6 +59,8 @@ namespace emjet
     vector< vector<float> >  tracks_ipXY           ;
     vector< vector<float> >  tracks_ipZ            ;
     vector< vector<float> >  tracks_ipXYSig        ;
+    vector< vector<float> >  tracks_dRToJetAxis    ;
+    vector< vector<float> >  tracks_distanceToJet  ;
     vector< vector<int> >    jet_vertex_source     ;
     vector< vector<float> >  jet_vertex_x          ;
     vector< vector<float> >  jet_vertex_y          ;
@@ -133,6 +135,8 @@ emjet::OutputTree::Init() {
   tracks_ipXY           .clear();
   tracks_ipZ            .clear();
   tracks_ipXYSig        .clear();
+  tracks_dRToJetAxis    .clear();
+  tracks_distanceToJet  .clear();
   jet_vertex_source     .clear();
   jet_vertex_x          .clear();
   jet_vertex_y          .clear();
@@ -207,6 +211,8 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, tracks_ipXY           );
   BRANCH(tree, tracks_ipZ            );
   BRANCH(tree, tracks_ipXYSig        );
+  BRANCH(tree, tracks_dRToJetAxis    );
+  BRANCH(tree, tracks_distanceToJet  );
   BRANCH(tree, jet_vertex_source     );
   BRANCH(tree, jet_vertex_x          );
   BRANCH(tree, jet_vertex_y          );

@@ -66,6 +66,8 @@ jet_track_vars = [
     ( "tracks_ipXY           " , type_vvfloat ) ,
     ( "tracks_ipZ            " , type_vvfloat ) , # Empty for now
     ( "tracks_ipXYSig        " , type_vvfloat ) ,
+    ( "tracks_dRToJetAxis    " , type_vvfloat ) ,
+    ( "tracks_distanceToJet  " , type_vvfloat ) ,
 ]
 jet_vertex_vars = [
     ( "jet_vertex_source     " , type_vvint    ) ,

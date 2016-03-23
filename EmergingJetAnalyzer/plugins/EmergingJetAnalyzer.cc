@@ -52,6 +52,7 @@ Implementation:
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 
 #include "TrackingTools/IPTools/interface/IPTools.h"
+#include "DataFormats/GeometrySurface/interface/Line.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -506,6 +507,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   std:: vector<float> vec_ipXY           ;
   std:: vector<float> vec_ipZ            ;
   std:: vector<float> vec_ipXYSig        ;
+  std:: vector<float> vec_dRToJetAxis    ;
+  std:: vector<float> vec_distanceToJet  ;
   int itrack = 0;
   {
     vec_source         .clear();
@@ -519,6 +522,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
     vec_ipXY           .clear();
     vec_ipZ            .clear();
     vec_ipXYSig        .clear();
+    vec_dRToJetAxis    .clear();
+    vec_distanceToJet  .clear();
 
     std::vector<float> ipVector;
     float pTxIPxSig = 0.;
@@ -549,17 +554,26 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex,
           direction, itk->field());
 
-      // Skip tracks with invalid point-of-closest-approach
+      // Skip tracks with invalid point-of-closest-approach :CUT:
       GlobalPoint closestPoint;
       if (pca.isValid()) {
         closestPoint = pca.globalPosition();
       } else {
         continue;
       }
-
-      // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates
+      // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates :CUT:
       if ( ! ( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) )
         continue;
+      // Calculate jet-to-track distance using pca
+      // See IPTools::jetTrackDistance() for reference
+      // Assumes the jet originates from primary_vertex
+      // Construct the jet line
+      GlobalVector jetVector = direction.unit();
+      Line::PositionType posJet(GlobalPoint(primary_vertex.position().x(),primary_vertex.position().y(),primary_vertex.position().z()));
+      Line::DirectionType dirJet(jetVector);
+      Line jetLine(posJet,dirJet);
+      GlobalVector pcaToJet = jetLine.distance(closestPoint);
+      double distanceToJet = pcaToJet.mag();
 
       TLorentzVector trackVector;
       trackVector.SetPxPyPzE(
@@ -572,6 +586,7 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       float deltaR = trackVector.DeltaR(jetVector_);
       // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
       if (deltaR > 0.4) continue;
+      float dRToJetAxis = deltaR;
 
       int source = 0; // 0 for generalTracks
       double pt    = itk->track().pt();
@@ -583,6 +598,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       int nMissInnerHits = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
       // std::cout << "nHits:" << nHits << std::endl;
       // std::cout << "nMissInnerHits:" << nMissInnerHits << std::endl;
+      /*
+      */
 #define VEC_PUSHBACK(a) vec_##a.push_back(a)
       // Pushback variable into vec_<VARIABLENAME>
       VEC_PUSHBACK( source         );
@@ -596,6 +613,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       VEC_PUSHBACK( ipXY           );
       // VEC_PUSHBACK( ipZ            );
       VEC_PUSHBACK( ipXYSig        );
+      VEC_PUSHBACK( dRToJetAxis    );
+      VEC_PUSHBACK( distanceToJet  );
 #undef VEC_PUSHBACK
       ipVector.push_back(fabs(dxy_ipv.second.value()));
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
@@ -829,14 +848,19 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   otree_.jets_alphaMax       .push_back( alpha_max                         );
   otree_.jets_nDarkPions     .push_back( nDarkPions                        );
   otree_.jets_minDRDarkPion  .push_back( minDist                           );
+  otree_.tracks_source         .push_back ( vec_source         ) ;
   otree_.tracks_pt             .push_back ( vec_pt             ) ;
   otree_.tracks_eta            .push_back ( vec_eta            ) ;
+  otree_.tracks_phi            .push_back ( vec_phi            ) ;
   otree_.tracks_algo           .push_back ( vec_algo           ) ;
   otree_.tracks_originalAlgo   .push_back ( vec_originalAlgo   ) ;
   otree_.tracks_nHits          .push_back ( vec_nHits          ) ;
   otree_.tracks_nMissInnerHits .push_back ( vec_nMissInnerHits ) ;
   otree_.tracks_ipXY           .push_back ( vec_ipXY           ) ;
   otree_.tracks_ipXYSig        .push_back ( vec_ipXYSig        ) ;
+  // otree_.tracks_ipZ            .push_back ( vec_ipZ            ) ;
+  otree_.tracks_dRToJetAxis    .push_back ( vec_dRToJetAxis    ) ;
+  otree_.tracks_distanceToJet  .push_back ( vec_distanceToJet  ) ;
 
 
 }

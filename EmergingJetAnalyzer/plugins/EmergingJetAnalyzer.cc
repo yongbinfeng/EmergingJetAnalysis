@@ -496,34 +496,52 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   int nTags = 0;
   const float logTagCut    = 2.;
   // per track variables, reuse for efficiency
-  std:: vector<int>   vec_source         ;
-  std:: vector<float> vec_pt             ;
-  std:: vector<float> vec_eta            ;
-  std:: vector<float> vec_phi            ;
-  std:: vector<int>   vec_algo           ;
-  std:: vector<int>   vec_originalAlgo   ;
-  std:: vector<int>   vec_nHits          ;
-  std:: vector<int>   vec_nMissInnerHits ;
-  std:: vector<float> vec_ipXY           ;
-  std:: vector<float> vec_ipZ            ;
-  std:: vector<float> vec_ipXYSig        ;
-  std:: vector<float> vec_dRToJetAxis    ;
-  std:: vector<float> vec_distanceToJet  ;
+  std:: vector<int>   vec_source              ;
+  std:: vector<float> vec_pt                  ;
+  std:: vector<float> vec_eta                 ;
+  std:: vector<float> vec_phi                 ;
+  std:: vector<int>   vec_algo                ;
+  std:: vector<int>   vec_originalAlgo        ;
+  std:: vector<int>   vec_nHits               ;
+  std:: vector<int>   vec_nMissInnerHits      ;
+  std:: vector<int>   vec_nTrkLayers          ;
+  std:: vector<int>   vec_nMissTrkLayers      ;
+  std:: vector<int>   vec_nMissInnerTrkLayers ;
+  std:: vector<int>   vec_nMissOuterTrkLayers ;
+  std:: vector<int>   vec_nPxlLayers          ;
+  std:: vector<int>   vec_nMissPxlLayers      ;
+  std:: vector<int>   vec_nMissInnerPxlLayers ;
+  std:: vector<int>   vec_nMissOuterPxlLayers ;
+  std:: vector<float> vec_ipXY                ;
+  std:: vector<float> vec_ipZ                 ;
+  std:: vector<float> vec_ipXYSig             ;
+  std:: vector<float> vec_dRToJetAxis         ;
+  std:: vector<float> vec_distanceToJet       ;
+  std:: vector<float> vec_vertexLxy           ;
   int itrack = 0;
   {
-    vec_source         .clear();
-    vec_pt             .clear();
-    vec_eta            .clear();
-    vec_phi            .clear();
-    vec_algo           .clear();
-    vec_originalAlgo   .clear();
-    vec_nHits          .clear();
-    vec_nMissInnerHits .clear();
-    vec_ipXY           .clear();
-    vec_ipZ            .clear();
-    vec_ipXYSig        .clear();
-    vec_dRToJetAxis    .clear();
-    vec_distanceToJet  .clear();
+    vec_source              .clear();
+    vec_pt                  .clear();
+    vec_eta                 .clear();
+    vec_phi                 .clear();
+    vec_algo                .clear();
+    vec_originalAlgo        .clear();
+    vec_nHits               .clear();
+    vec_nMissInnerHits      .clear();
+    vec_nTrkLayers          .clear();
+    vec_nMissTrkLayers      .clear();
+    vec_nMissInnerTrkLayers .clear();
+    vec_nMissOuterTrkLayers .clear();
+    vec_nPxlLayers          .clear();
+    vec_nMissPxlLayers      .clear();
+    vec_nMissInnerPxlLayers .clear();
+    vec_nMissOuterPxlLayers .clear();
+    vec_ipXY                .clear();
+    vec_ipZ                 .clear();
+    vec_ipXYSig             .clear();
+    vec_dRToJetAxis         .clear();
+    vec_distanceToJet       .clear();
+    vec_vertexLxy           .clear();
 
     std::vector<float> ipVector;
     float pTxIPxSig = 0.;
@@ -594,27 +612,45 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       double phi   = itk->track().phi();
       int algo     = itk->track().algo();
       int originalAlgo = itk->track().originalAlgo();
-      int nHits = itk->numberOfValidHits();
-      int nMissInnerHits = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
+      int nHits               = itk->numberOfValidHits();
+      int nMissInnerHits      = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
+      int nTrkLayers          = itk->hitPattern().trackerLayersWithMeasurement();
+      int nMissTrkLayers      = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::TRACK_HITS);
+      int nMissInnerTrkLayers = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::MISSING_INNER_HITS);
+      int nMissOuterTrkLayers = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::MISSING_OUTER_HITS);
+      int nPxlLayers          = itk->hitPattern().pixelLayersWithMeasurement();
+      int nMissPxlLayers      = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::TRACK_HITS);
+      int nMissInnerPxlLayers = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::MISSING_INNER_HITS);
+      int nMissOuterPxlLayers = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::MISSING_OUTER_HITS);
+      double vertexLxy = -1; // For generalTracks
       // std::cout << "nHits:" << nHits << std::endl;
       // std::cout << "nMissInnerHits:" << nMissInnerHits << std::endl;
       /*
-      */
+       */
 #define VEC_PUSHBACK(a) vec_##a.push_back(a)
       // Pushback variable into vec_<VARIABLENAME>
-      VEC_PUSHBACK( source         );
-      VEC_PUSHBACK( pt             );
-      VEC_PUSHBACK( eta            );
-      VEC_PUSHBACK( phi            );
-      VEC_PUSHBACK( algo           );
-      VEC_PUSHBACK( originalAlgo   );
-      VEC_PUSHBACK( nHits          );
-      VEC_PUSHBACK( nMissInnerHits );
-      VEC_PUSHBACK( ipXY           );
-      // VEC_PUSHBACK( ipZ            );
-      VEC_PUSHBACK( ipXYSig        );
-      VEC_PUSHBACK( dRToJetAxis    );
-      VEC_PUSHBACK( distanceToJet  );
+      VEC_PUSHBACK( source              );
+      VEC_PUSHBACK( pt                  );
+      VEC_PUSHBACK( eta                 );
+      VEC_PUSHBACK( phi                 );
+      VEC_PUSHBACK( algo                );
+      VEC_PUSHBACK( originalAlgo        );
+      VEC_PUSHBACK( nHits               );
+      VEC_PUSHBACK( nMissInnerHits      );
+      VEC_PUSHBACK( nTrkLayers          );
+      VEC_PUSHBACK( nMissTrkLayers      );
+      VEC_PUSHBACK( nMissInnerTrkLayers );
+      VEC_PUSHBACK( nMissOuterTrkLayers );
+      VEC_PUSHBACK( nPxlLayers          );
+      VEC_PUSHBACK( nMissPxlLayers      );
+      VEC_PUSHBACK( nMissInnerPxlLayers );
+      VEC_PUSHBACK( nMissOuterPxlLayers );
+      VEC_PUSHBACK( ipXY                );
+      // VEC_PUSHBACK( ipZ                 );
+      VEC_PUSHBACK( ipXYSig             );
+      VEC_PUSHBACK( dRToJetAxis         );
+      VEC_PUSHBACK( distanceToJet       );
+      VEC_PUSHBACK( vertexLxy           );
 #undef VEC_PUSHBACK
       ipVector.push_back(fabs(dxy_ipv.second.value()));
       logIpSig.push_back(TMath::Log(fabs(dxy_ipv.second.significance())));
@@ -787,19 +823,6 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
      GET_NEW_JET_VAR( vertex_ndof   ) ;
      GET_NEW_JET_VAR( vertex_pt2sum ) ;
 #undef GET_NEW_JET_VAR
-    // vertex_source = make_new_element ( otree_.jet_vertex_source ) ;
-    // vertex_x      = make_new_element ( otree_.jet_vertex_x      ) ;
-    // vertex_y      = make_new_element ( otree_.jet_vertex_y      ) ;
-    // vertex_z      = make_new_element ( otree_.jet_vertex_z      ) ;
-    // vertex_xError = make_new_element ( otree_.jet_vertex_xError ) ;
-    // vertex_yError = make_new_element ( otree_.jet_vertex_yError ) ;
-    // vertex_zError = make_new_element ( otree_.jet_vertex_zError ) ;
-    // vertex_deltaR = make_new_element ( otree_.jet_vertex_deltaR ) ;
-    // vertex_Lxy    = make_new_element ( otree_.jet_vertex_Lxy    ) ;
-    // vertex_mass   = make_new_element ( otree_.jet_vertex_mass   ) ;
-    // vertex_chi2   = make_new_element ( otree_.jet_vertex_chi2   ) ;
-    // vertex_ndof   = make_new_element ( otree_.jet_vertex_ndof   ) ;
-    // vertex_pt2sum = make_new_element ( otree_.jet_vertex_pt2sum ) ;
     for (TransientVertex vertex: avrVertices_) {
       int source = 1; // For AVR vertices
       auto vtx = reco::Vertex(vertex);
@@ -830,7 +853,6 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
     }
   }
 
-
   otree_.jets_pt             .push_back( jet.pt()                          );
   otree_.jets_eta            .push_back( jet.eta()                         );
   otree_.jets_phi            .push_back( jet.phi()                         );
@@ -848,14 +870,22 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   otree_.jets_alphaMax       .push_back( alpha_max                         );
   otree_.jets_nDarkPions     .push_back( nDarkPions                        );
   otree_.jets_minDRDarkPion  .push_back( minDist                           );
-  otree_.tracks_source         .push_back ( vec_source         ) ;
-  otree_.tracks_pt             .push_back ( vec_pt             ) ;
-  otree_.tracks_eta            .push_back ( vec_eta            ) ;
-  otree_.tracks_phi            .push_back ( vec_phi            ) ;
-  otree_.tracks_algo           .push_back ( vec_algo           ) ;
-  otree_.tracks_originalAlgo   .push_back ( vec_originalAlgo   ) ;
-  otree_.tracks_nHits          .push_back ( vec_nHits          ) ;
-  otree_.tracks_nMissInnerHits .push_back ( vec_nMissInnerHits ) ;
+  otree_.tracks_source              .push_back ( vec_source              ) ;
+  otree_.tracks_pt                  .push_back ( vec_pt                  ) ;
+  otree_.tracks_eta                 .push_back ( vec_eta                 ) ;
+  otree_.tracks_phi                 .push_back ( vec_phi                 ) ;
+  otree_.tracks_algo                .push_back ( vec_algo                ) ;
+  otree_.tracks_originalAlgo        .push_back ( vec_originalAlgo        ) ;
+  otree_.tracks_nHits               .push_back ( vec_nHits               ) ;
+  otree_.tracks_nMissInnerHits      .push_back ( vec_nMissInnerHits      ) ;
+  otree_.tracks_nTrkLayers          .push_back ( vec_nTrkLayers          ) ;
+  otree_.tracks_nMissInnerTrkLayers .push_back ( vec_nMissInnerTrkLayers ) ;
+  otree_.tracks_nMissOuterTrkLayers .push_back ( vec_nMissOuterTrkLayers ) ;
+  otree_.tracks_nMissTrkLayers      .push_back ( vec_nMissTrkLayers      ) ;
+  otree_.tracks_nPxlLayers          .push_back ( vec_nPxlLayers          ) ;
+  otree_.tracks_nMissInnerPxlLayers .push_back ( vec_nMissInnerPxlLayers ) ;
+  otree_.tracks_nMissOuterPxlLayers .push_back ( vec_nMissOuterPxlLayers ) ;
+  otree_.tracks_nMissPxlLayers      .push_back ( vec_nMissPxlLayers      ) ;
   otree_.tracks_ipXY           .push_back ( vec_ipXY           ) ;
   otree_.tracks_ipXYSig        .push_back ( vec_ipXYSig        ) ;
   // otree_.tracks_ipZ            .push_back ( vec_ipZ            ) ;

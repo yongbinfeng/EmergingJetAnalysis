@@ -500,6 +500,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   std:: vector<float> vec_pt                  ;
   std:: vector<float> vec_eta                 ;
   std:: vector<float> vec_phi                 ;
+  std:: vector<float> vec_pca_r               ;
+  std:: vector<float> vec_pca_eta             ;
+  std:: vector<float> vec_pca_phi             ;
   std:: vector<int>   vec_algo                ;
   std:: vector<int>   vec_originalAlgo        ;
   std:: vector<int>   vec_nHits               ;
@@ -524,6 +527,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
     vec_pt                  .clear();
     vec_eta                 .clear();
     vec_phi                 .clear();
+    vec_pca_r               .clear();
+    vec_pca_eta             .clear();
+    vec_pca_phi             .clear();
     vec_algo                .clear();
     vec_originalAlgo        .clear();
     vec_nHits               .clear();
@@ -579,6 +585,10 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       } else {
         continue;
       }
+      // Calculate PCA coordinates
+      double pca_r   = closestPoint.perp();
+      double pca_eta = closestPoint.eta();
+      double pca_phi = closestPoint.phi();
       // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates :CUT:
       if ( ! ( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) )
         continue;
@@ -600,7 +610,8 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
           closestPoint.z() - primary_vertex.position().z(),
           itk->track().p());
 
-      // Skip tracks with deltaR > 0.4 w.r.t. current jet
+
+      // Skip tracks with deltaR > 0.4 w.r.t. current jet :CUT:
       float deltaR = trackVector.DeltaR(jetVector_);
       // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
       if (deltaR > 0.4) continue;
@@ -634,6 +645,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
       VEC_PUSHBACK( eta                 );
       VEC_PUSHBACK( phi                 );
       VEC_PUSHBACK( algo                );
+      VEC_PUSHBACK( pca_r               );
+      VEC_PUSHBACK( pca_eta             );
+      VEC_PUSHBACK( pca_phi             );
       VEC_PUSHBACK( originalAlgo        );
       VEC_PUSHBACK( nHits               );
       VEC_PUSHBACK( nMissInnerHits      );
@@ -874,6 +888,9 @@ EmergingJetAnalyzer::fillSingleJet(const reco::PFJet& jet, int jet_index) {
   otree_.tracks_pt                  .push_back ( vec_pt                  ) ;
   otree_.tracks_eta                 .push_back ( vec_eta                 ) ;
   otree_.tracks_phi                 .push_back ( vec_phi                 ) ;
+  otree_.tracks_pca_r               .push_back ( vec_pca_r               ) ;
+  otree_.tracks_pca_eta             .push_back ( vec_pca_eta             ) ;
+  otree_.tracks_pca_phi             .push_back ( vec_pca_phi             ) ;
   otree_.tracks_algo                .push_back ( vec_algo                ) ;
   otree_.tracks_originalAlgo        .push_back ( vec_originalAlgo        ) ;
   otree_.tracks_nHits               .push_back ( vec_nHits               ) ;

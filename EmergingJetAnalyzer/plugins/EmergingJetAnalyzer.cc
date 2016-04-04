@@ -34,6 +34,8 @@ Implementation:
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "DataFormats/METReco/interface/MET.h"
+#include "DataFormats/METReco/interface/METFwd.h"
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
@@ -117,6 +119,7 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // ----------member data ---------------------------
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    edm::EDGetTokenT< reco::METCollection > HtMhtCollectionToken_;
 
     emjet::OutputTree otree_;
 
@@ -170,6 +173,7 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig) :
   m_trackAssociator.useDefaultPropagator();
 
   jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+  HtMhtCollectionToken_ = consumes< reco::METCollection > (iConfig.getParameter<edm::InputTag>("srcHtMht"));
 
   t_tree           = fs->make<TTree>("emergingJetsTree","emergingJetsTree");
   otree_.Branch(t_tree);
@@ -235,6 +239,10 @@ EmergingJetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   edm::Handle<reco::VertexCollection> secondary_vertices;
   iEvent.getByLabel("inclusiveSecondaryVertices",secondary_vertices);
+
+  edm::Handle<reco::METCollection> htmht;
+  iEvent.getByToken(HtMhtCollectionToken_, htmht);
+  if (htmht->size() > 0) { otree_.ht = htmht->front().sumEt(); }
 
   if (!isData_) { // :MCONLY: Add true number of interactions
     edm::Handle<std::vector<PileupSummaryInfo> > PileupInfo;

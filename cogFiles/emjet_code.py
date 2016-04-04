@@ -36,6 +36,7 @@ event_vars = [
     ( "nTrueInt                      " , typestr_int    [0] ) ,
     ( "met_pt                        " , typestr_float  [0] ) ,
     ( "met_phi                       " , typestr_float  [0] ) ,
+    ( "ht                            " , typestr_float  [0] ) ,
 ]
 jet_vars = [
     ( "jets_pt                    " , type_vfloat  ) ,

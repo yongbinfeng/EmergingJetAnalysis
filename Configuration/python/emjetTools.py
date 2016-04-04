@@ -133,11 +133,13 @@ def addWJetSkim(process, isData=False):
         return cms.Sequence(process.eventCountPreTrigger * cms.ignore(process.triggerSelection) * process.eventCountPreFilter * process.wJetFilter * process.eventCountPostFilter)
 
 def addAnalyze(process, isData=False, sample=''):
+    addPFHT(process, isData=False, sample='')
     from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock
     process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
         TrackAssociatorParameterBlock,
         srcJets = cms.InputTag("jetFilter", "selectedJets"),
         isData = cms.untracked.bool(False),
+        srcHtMht = cms.InputTag("offlinePFHT"),
     )
     if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
@@ -164,3 +166,18 @@ def addEdmOutput(process, isData=False, sample=''):
     else      : process.out.outputCommands.extend(AODSIMEventContent.outputCommands)
     if sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
     else              : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+
+def addPFHT(process, isData=False, sample=''):
+    """Copied from http://cmslxr.fnal.gov/dxr/CMSSW/source/HLTrigger/Configuration/python/HLT_25ns14e33_v1_cff.py#27446"""
+    process.offlinePFHT = cms.EDProducer( "HLTHtMhtProducer",
+        usePt = cms.bool( True ),
+        minPtJetHt = cms.double( 40.0 ),
+        maxEtaJetMht = cms.double( 999.0 ),
+        minNJetMht = cms.int32( 0 ),
+        jetsLabel = cms.InputTag( "ak4PFJetsCHS" ), # Changed from "hltAK4PFJetsCorrected"
+        maxEtaJetHt = cms.double( 3.0 ),
+        minPtJetMht = cms.double( 0.0 ),
+        minNJetHt = cms.int32( 0 ),
+        pfCandidatesLabel = cms.InputTag( "particleFlow" ), # Changed from "hltParticleFlow"
+        excludePFMuons = cms.bool( False )
+    )

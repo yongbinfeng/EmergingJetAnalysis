@@ -109,7 +109,7 @@ jet_vertex_vars = [
 ]
 all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars
 # Pad Var fields with appropriate number of spaces
-namelength_list = [len(var['name']) for var in all_vars]
+namelength_list = [len(var.name) for var in all_vars]
 maxnamelength = max(namelength_list)
 
 def var_to_dict(var):
@@ -117,16 +117,31 @@ def var_to_dict(var):
     # Populate vardict fields, padding with appropriate number of spaces
     vardict['name']       = pad(var.name       , maxnamelength+1 )
     vardict['cpptype']    = pad(var.cpptype    , 5+1             )
-    vardict['branchtype'] = pad(var.branchtype , 5+18+1          )
     if   var.level == 0: branchtype = '%s'                  % var.cpptype
     elif var.level == 1: branchtype = 'vector<%s>'          % var.cpptype
     elif var.level == 2: branchtype = 'vector<vector<%s> >' % var.cpptype
-    vardict['branchtype'] = branchtype
+    vardict['branchtype'] = pad(branchtype , 5+18          )
+    return vardict
 
+def make_fullname_builder(prefix="", postfix=""):
+    """Return lambda that adds input['fullname'] = prefix + input['name'] to input dictionary"""
+    # Hacky way to make a lambda that returns the dictionary after updating it
+    return lambda x : x.update({'fullname': prefix + x['name'] + postfix}) or x
+
+# Turn list of Var objects, to dictionary objects
 event_vardicts      = map( var_to_dict, event_vars      )
 jet_vardicts        = map( var_to_dict, jet_vars        )
 jet_track_vardicts  = map( var_to_dict, jet_track_vars  )
 jet_vertex_vardicts = map( var_to_dict, jet_vertex_vars )
+# Add appropriate prefix for variable names
+event_vardicts      = map( make_fullname_builder(""        ) , event_vardicts      )
+jet_vardicts        = map( make_fullname_builder("jet_"    ) , jet_vardicts        )
+jet_track_vardicts  = map( make_fullname_builder("track_"  ) , jet_track_vardicts  )
+jet_vertex_vardicts = map( make_fullname_builder("vertex_" ) , jet_vertex_vardicts )
+# for vardict in event_vardicts      : vardict['prefix'] = ""
+# for vardict in jet_vardicts        : vardict['prefix'] = "jet_"
+# for vardict in jet_track_vardicts  : vardict['prefix'] = "track_"
+# for vardict in jet_vertex_vardicts : vardict['prefix'] = "vertex_"
 all_vardicts = event_vardicts + jet_vardicts + jet_track_vardicts + jet_vertex_vardicts
 
 from string import Template
@@ -139,27 +154,27 @@ def gen_OutputTree():
     """Generate OutputTree class declaration for OutputTree.h"""
     # Output <typename> <varname>;
     for vardict in all_vardicts:
-        varname = vardict['name']
-        typename = vardict['cpptype']
-        printLine("%s %s;" % (typename, varname))
+        varname = vardict['fullname']
+        typename = vardict['branchtype']
+        outputline("%s %s;" % (typename, varname))
 
 def gen_Init():
     """Generate Init() for OutputTree.h"""
     # Output <varname>.clear();
     for vardict in all_vardicts:
-        varname = vardict['name']
-        typename = vardict['cpptype']
+        varname = vardict['fullname']
+        typename = vardict['branchtype']
         # Clear vectors
         if 'vector' in typename:
-            printLine("%s.clear();" % varname)
+            outputline("%s.clear();" % varname)
         else:
-            printLine("%s= %s;" % (varname, non_vector_default))
+            outputline("%s= %s;" % (varname, non_vector_default))
 
 def gen_Branch():
     """Generate Branch() for OutputTree.h"""
-    # printLine("#define BRANCH(tree, branch) (tree)->Branch(#branch, &branch);")
+    # outputline("#define BRANCH(tree, branch) (tree)->Branch(#branch, &branch);")
     # Output BRANCH(tree, <varname>);
     for vardict in all_vardicts:
-        varname = vardict['name']
-        typename = vardict['cpptype']
-        printLine("BRANCH(tree, %s);" % varname)
+        varname = vardict['fullname']
+        typename = vardict['branchtype']
+        outputline("BRANCH(tree, %s);" % varname)

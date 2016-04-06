@@ -23,18 +23,71 @@
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDFilter.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "DataFormats/METReco/interface/PFMET.h"
+#include "DataFormats/METReco/interface/PFMETCollection.h"
+#include "DataFormats/METReco/interface/GenMET.h"
+#include "DataFormats/JetReco/interface/PFJet.h"
+#include "DataFormats/JetReco/interface/PFJetCollection.h"
+#include "DataFormats/JetReco/interface/CaloJet.h"
+#include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
+#include "DataFormats/DTRecHit/interface/DTRecSegment4DCollection.h"
+#include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
+#include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
+#include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
+#include "TrackingTools/Records/interface/TransientTrackRecord.h"
+
+#include "TrackingTools/IPTools/interface/IPTools.h"
+#include "DataFormats/GeometrySurface/interface/Line.h"
+
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+
+#include "RecoVertex/AdaptiveVertexFinder/interface/AdaptiveVertexReconstructor.h"
+#include "RecoVertex/TrimmedKalmanVertexFinder/interface/KalmanTrimmedVertexFinder.h"
+#include "RecoVertex/KalmanVertexFit/interface/KalmanVertexSmoother.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
+#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+
+#include "DataFormats/JetReco/interface/GenJet.h"
+
+// track association
+#include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
+#include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
+
+#include "TTree.h"
+#include "TH2F.h"
+#include "TH1F.h"
+#include "TMath.h"
+#include "TLorentzVector.h"
+#include "TStopwatch.h"
+
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetEvent.h"
+
+#ifndef OUTPUT
+#define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
+#endif
 
 //
 // class declaration
 //
+
+using namespace emjet;
 
 class EmJetAnalyzer : public edm::EDFilter {
   public:
@@ -54,10 +107,40 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
     // ----------member data ---------------------------
-    emjet:: Event  event_  ; // Current event
-    emjet:: Jet    jet_    ; // Current jet
-    emjet:: Track  track_  ; // Current track
-    emjet:: Vertex vertex_ ; // Current vertex
+    bool isData_;
+
+    edm::Service<TFileService> fs;
+    edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+
+    edm::ParameterSet         m_trackParameterSet;
+    TrackDetectorAssociator   m_trackAssociator;
+    TrackAssociatorParameters m_trackParameters;
+
+    emjet::OutputTree otree_ ; // OutputTree object
+    TTree* t_tree;
+
+    std::unique_ptr<emjet:: Event > event_  ; // Current event
+    emjet:: Event event_temp  ; // Current event
+    std::unique_ptr<emjet:: Jet   > jet_    ; // Current jet
+    std::unique_ptr<emjet:: Track > track_  ; // Current track
+    std::unique_ptr<emjet:: Vertex> vertex_ ; // Current vertex
+    int jet_index_    ; // Current jet index
+    int track_index_  ; // Current track index
+    int vertex_index_ ; // Current vertex index
+
+    // Retrieve once per event
+    // Intermediate objects used for calculations
+    edm::Handle<reco::VertexCollection> primary_verticesH_;
+
+    edm::ESHandle<TransientTrackBuilder> transienttrackbuilderH_;
+    std::vector<reco::TransientTrack> generalTracks_;
+    edm::Handle<reco::GenParticleCollection> genParticlesH_;
+    const reco::BeamSpot* theBeamSpot_;
+    reco::VertexCollection selectedSecondaryVertices_;
+    std::vector<TransientVertex> avrVertices_;
+    edm::Handle<reco::GenJetCollection> genJets_;
+    std::vector<GlobalPoint> dt_points_;
+    std::vector<GlobalPoint> csc_points_;
 };
 
 //
@@ -71,10 +154,40 @@ class EmJetAnalyzer : public edm::EDFilter {
 //
 // constructors and destructor
 //
-EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig)
+EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig) :
+  event_  (new Event  ()),
+  jet_    (new Jet    ()),
+  track_  (new Track  ()),
+  vertex_ (new Vertex ())
 {
-  //now do what ever initialization is needed
+  Event a;
+  event_temp = a;
+  OUTPUT(jet_->track_vector.size());
+  OUTPUT(jet_->vertex_vector.size());
+  OUTPUT(event_temp.jet_vector.size());
+  OUTPUT(event_->jet_vector.size());
+  // Config-independent initialization
+  {
+    t_tree           = fs->make<TTree>("emJetTree","emJetTree");
+    otree_.Branch(t_tree);
+  }
 
+  // Config-dependent initialization
+  {
+    isData_ = iConfig.getUntrackedParameter<bool>("isData");
+    m_trackParameterSet = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
+    if (isData_) {
+      std::cout << "running on data" << std::endl;
+    } else {
+      std::cout << "running on MC"   << std::endl;
+    }
+
+    edm::ConsumesCollector iC = consumesCollector();
+    m_trackParameters.loadParameters( m_trackParameterSet, iC );
+    m_trackAssociator.useDefaultPropagator();
+
+    jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+  }
 }
 
 
@@ -95,7 +208,58 @@ EmJetAnalyzer::~EmJetAnalyzer()
 bool
 EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-  using namespace edm;
+  // Reset output tree to default values
+  otree_.Init();
+  OUTPUT(jet_->track_vector.size());
+  OUTPUT(jet_->vertex_vector.size());
+  OUTPUT(event_->jet_vector.size());
+  // Reset Event variables
+  std::cout<<"1" << std::endl;
+  vertex_->Init();
+  std::cout<<"2" << std::endl;
+  jet_->Init();
+  std::cout<<"3" << std::endl;
+  event_->Init();
+
+  event_->run   = iEvent.id().run();
+  event_->event = iEvent.id().event();
+  event_->lumi  = iEvent.id().luminosityBlock();
+  event_->bx    = iEvent.bunchCrossing();
+
+  // Calculate Vertex info :EVENTLEVEL:
+  {
+    iEvent.getByLabel("offlinePrimaryVerticesWithBS", primary_verticesH_);
+    const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+    if (!isData_) { // :MCONLY: Add true number of interactions
+      edm::Handle<std::vector<PileupSummaryInfo> > PileupInfo;
+      iEvent.getByLabel("addPileupInfo", PileupInfo);
+      for (auto const& puInfo : *PileupInfo) {
+        int bx = puInfo.getBunchCrossing();
+        if (bx == 0) {
+          event_->nTrueInt = puInfo.getTrueNumInteractions();
+        }
+      }
+    }
+    for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+      event_->nVtx ++;
+      if ( (ipv->isFake()) || (ipv->ndof() <= 4.) || (ipv->position().Rho() > 2.0) || (fabs(ipv->position().Z()) > 24.0) ) continue; // :CUT: Primary vertex cut for counting
+      event_->nGoodVtx++;
+    }
+  }
+
+  // Calculate MET :EVENTLEVEL:
+  {
+    edm::Handle<reco::PFMETCollection> pfmet;
+    iEvent.getByLabel("pfMet",pfmet);
+    event_->met_pt = pfmet->begin()->pt();
+    event_->met_phi = pfmet->begin()->phi();
+  }
+
+  // Write current Event to OutputTree
+  WriteEventToOutput(*event_, &otree_);
+  // Write OutputTree to TTree
+  t_tree->Fill();
+
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
   Handle<ExampleData> pIn;
   iEvent.getByLabel("example",pIn);

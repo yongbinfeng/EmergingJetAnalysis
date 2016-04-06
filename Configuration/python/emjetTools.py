@@ -141,7 +141,16 @@ def addAnalyze(process, isData=False, sample=''):
     )
     if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
-    return cms.Sequence(process.emergingJetAnalyzer)
+
+    process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
+        TrackAssociatorParameterBlock,
+        srcJets = cms.InputTag("jetFilter", "selectedJets"),
+        isData = cms.untracked.bool(False),
+    )
+    if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
+    if sample=='wjet': process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+
+    return cms.Sequence(process.emergingJetAnalyzer+process.emJetAnalyzer)
 
 def addEdmOutput(process, isData=False, sample=''):
     from Configuration.EventContent.EventContent_cff import AODSIMEventContent

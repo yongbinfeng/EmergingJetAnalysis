@@ -1,12 +1,16 @@
-#ifndef EmergingJetAnalysis_EmergingJetAnalyzer_EmJetEvent_h
-#define EmergingJetAnalysis_EmergingJetAnalyzer_EmJetEvent_h
+#ifndef EmergingJetAnalysis_EmJetAnalyzer_EmJetEvent_h
+#define EmergingJetAnalysis_EmJetAnalyzer_EmJetEvent_h
 
 // Class describing the content of output for EmergingJetAnalyzer
 
 #include <vector>
 #include <functional>
-#include "EmergingJetAnalysis/EmergingJetAnalyzer/interface/OutputTree.h"
+#include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #define DEFAULTVALUE -1
+
+#ifndef OUTPUT
+#define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
+#endif
 
 using std::vector;
 
@@ -17,79 +21,223 @@ namespace emjet
   class Jet;
   class Event {
   public:
-    Event() {
+    Event() {}
+    void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
       //import vars_EmJetAnalyzer as m
       //for vardict in m.event_vardicts: m.replaceSingleLine(template_string, vardict)
       //]]]
+      run                  = DEFAULTVALUE;
+      lumi                 = DEFAULTVALUE;
+      event                = DEFAULTVALUE;
+      bx                   = DEFAULTVALUE;
+      nVtx                 = DEFAULTVALUE;
+      nGoodVtx             = DEFAULTVALUE;
+      nTrueInt             = DEFAULTVALUE;
+      met_pt               = DEFAULTVALUE;
+      met_phi              = DEFAULTVALUE;
       //[[[end]]]
 
-      jet_vector.clear();
+      if (!jet_vector.empty()) {
+        jet_vector.clear();
+      }
     };
     //[[[cog
-    //template_string = "$type $name;"
+    //template_string = "$cpptype $name;"
     //import vars_EmJetAnalyzer as m
     //for vardict in m.event_vardicts: m.replaceSingleLine(template_string, vardict)
     //]]]
+    int    run                 ;
+    int    lumi                ;
+    int    event               ;
+    int    bx                  ;
+    int    nVtx                ;
+    int    nGoodVtx            ;
+    int    nTrueInt            ;
+    float  met_pt              ;
+    float  met_phi             ;
     //[[[end]]]
 
     vector<Jet> jet_vector;
   };
   class Jet {
   public:
-    Jet(){
+    Jet(){}
+    ~Jet(){
+      std::cout<<"Deleting jet" << std::endl;
+      OUTPUT(track_vector.size());
+    }
+    void Init(){
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
       //import vars_EmJetAnalyzer as m
       //for vardict in m.jet_vardicts: m.replaceSingleLine(template_string, vardict)
       //]]]
+      index                = DEFAULTVALUE;
+      source               = DEFAULTVALUE;
+      pt                   = DEFAULTVALUE;
+      eta                  = DEFAULTVALUE;
+      phi                  = DEFAULTVALUE;
+      cef                  = DEFAULTVALUE;
+      nef                  = DEFAULTVALUE;
+      chf                  = DEFAULTVALUE;
+      nhf                  = DEFAULTVALUE;
+      phf                  = DEFAULTVALUE;
+      nPromptTracks        = DEFAULTVALUE;
+      nDispTracks          = DEFAULTVALUE;
+      nSV                  = DEFAULTVALUE;
+      medianLogIpSig       = DEFAULTVALUE;
+      missHits             = DEFAULTVALUE;
+      muonHits             = DEFAULTVALUE;
+      alphaMax             = DEFAULTVALUE;
+      nDarkPions           = DEFAULTVALUE;
+      minDRDarkPion        = DEFAULTVALUE;
       //[[[end]]]
 
       track_vector.clear();
       vertex_vector.clear();
     }
     //[[[cog
-    //template_string = "$type $name;"
+    //template_string = "$cpptype $name;"
     //import vars_EmJetAnalyzer as m
     //for vardict in m.jet_vardicts: m.replaceSingleLine(template_string, vardict)
     //]]]
+    int    index               ;
+    int    source              ;
+    float  pt                  ;
+    float  eta                 ;
+    float  phi                 ;
+    float  cef                 ;
+    float  nef                 ;
+    float  chf                 ;
+    float  nhf                 ;
+    float  phf                 ;
+    int    nPromptTracks       ;
+    int    nDispTracks         ;
+    int    nSV                 ;
+    float  medianLogIpSig      ;
+    int    missHits            ;
+    int    muonHits            ;
+    float  alphaMax            ;
+    int    nDarkPions          ;
+    float  minDRDarkPion       ;
     //[[[end]]]
     vector<Track>    track_vector;
     vector<Vertex>   vertex_vector;
   };
   class Track {
   public:
-    Track() {
+    Track() {}
+    void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
       //import vars_EmJetAnalyzer as m
       //for vardict in m.jet_track_vardicts: m.replaceSingleLine(template_string, vardict)
       //]]]
+      index                = DEFAULTVALUE;
+      source               = DEFAULTVALUE;
+      pt                   = DEFAULTVALUE;
+      eta                  = DEFAULTVALUE;
+      phi                  = DEFAULTVALUE;
+      pca_r                = DEFAULTVALUE;
+      pca_eta              = DEFAULTVALUE;
+      pca_phi              = DEFAULTVALUE;
+      algo                 = DEFAULTVALUE;
+      originalAlgo         = DEFAULTVALUE;
+      nHits                = DEFAULTVALUE;
+      nMissInnerHits       = DEFAULTVALUE;
+      nTrkLayers           = DEFAULTVALUE;
+      nMissInnerTrkLayers  = DEFAULTVALUE;
+      nMissOuterTrkLayers  = DEFAULTVALUE;
+      nMissTrkLayers       = DEFAULTVALUE;
+      nPxlLayers           = DEFAULTVALUE;
+      nMissInnerPxlLayers  = DEFAULTVALUE;
+      nMissOuterPxlLayers  = DEFAULTVALUE;
+      nMissPxlLayers       = DEFAULTVALUE;
+      ipXY                 = DEFAULTVALUE;
+      ipZ                  = DEFAULTVALUE;
+      ipXYSig              = DEFAULTVALUE;
+      dRToJetAxis          = DEFAULTVALUE;
+      distanceToJet        = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
-    //template_string = "$type $name;"
+    //template_string = "$cpptype $name;"
     //import vars_EmJetAnalyzer as m
     //for vardict in m.jet_track_vardicts: m.replaceSingleLine(template_string, vardict)
     //]]]
+    int    index               ;
+    int    source              ;
+    float  pt                  ;
+    float  eta                 ;
+    float  phi                 ;
+    float  pca_r               ;
+    float  pca_eta             ;
+    float  pca_phi             ;
+    int    algo                ;
+    int    originalAlgo        ;
+    int    nHits               ;
+    int    nMissInnerHits      ;
+    int    nTrkLayers          ;
+    int    nMissInnerTrkLayers ;
+    int    nMissOuterTrkLayers ;
+    int    nMissTrkLayers      ;
+    int    nPxlLayers          ;
+    int    nMissInnerPxlLayers ;
+    int    nMissOuterPxlLayers ;
+    int    nMissPxlLayers      ;
+    float  ipXY                ;
+    float  ipZ                 ;
+    float  ipXYSig             ;
+    float  dRToJetAxis         ;
+    float  distanceToJet       ;
     //[[[end]]]
   };
   class Vertex {
   public:
-    Vertex() {
+    Vertex() {}
+    void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
       //import vars_EmJetAnalyzer as m
       //for vardict in m.jet_vertex_vardicts: m.replaceSingleLine(template_string, vardict)
       //]]]
+      index                = DEFAULTVALUE;
+      source               = DEFAULTVALUE;
+      x                    = DEFAULTVALUE;
+      y                    = DEFAULTVALUE;
+      z                    = DEFAULTVALUE;
+      xError               = DEFAULTVALUE;
+      yError               = DEFAULTVALUE;
+      zError               = DEFAULTVALUE;
+      deltaR               = DEFAULTVALUE;
+      Lxy                  = DEFAULTVALUE;
+      mass                 = DEFAULTVALUE;
+      chi2                 = DEFAULTVALUE;
+      ndof                 = DEFAULTVALUE;
+      pt2sum               = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
-    //template_string = "$type $name;"
+    //template_string = "$cpptype $name;"
     //import vars_EmJetAnalyzer as m
     //for vardict in m.jet_vertex_vardicts: m.replaceSingleLine(template_string, vardict)
     //]]]
+    int    index               ;
+    int    source              ;
+    float  x                   ;
+    float  y                   ;
+    float  z                   ;
+    float  xError              ;
+    float  yError              ;
+    float  zError              ;
+    float  deltaR              ;
+    float  Lxy                 ;
+    float  mass                ;
+    float  chi2                ;
+    float  ndof                ;
+    float  pt2sum              ;
     //[[[end]]]
   };
 }

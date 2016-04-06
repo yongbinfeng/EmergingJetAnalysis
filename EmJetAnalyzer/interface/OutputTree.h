@@ -20,7 +20,7 @@ namespace emjet
     // Do NOT edit until "end"
     //[[[cog
     //import cog
-    //import emjet_event_code as mod; mod.genOutputTree()
+    //import vars_EmJetAnalyzer as mod; mod.gen_OutputTree()
     //]]]
     int                      run                           ;
     int                      lumi                          ;
@@ -113,7 +113,7 @@ emjet::OutputTree::Init() {
   // Do NOT edit until "end"
   //[[[cog
   //import cog
-  //import emjet_event_code as mod; mod.genInit()
+  //import vars_EmJetAnalyzer as mod; mod.gen_Init()
   //]]]
   run                           = -1;
   lumi                          = -1;
@@ -206,7 +206,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   // Do NOT edit until "end"
   //[[[cog
   //import cog
-  //import emjet_event_code as mod; mod.genBranch()
+  //import vars_EmJetAnalyzer as mod; mod.gen_Branch()
   //]]]
   BRANCH(tree, run                           );
   BRANCH(tree, lumi                          );

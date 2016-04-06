@@ -140,30 +140,63 @@ WriteEventToOutput(Event event, emjet::OutputTree* otree)
   otree->Init(); // Reset all values and clear all vectors
   // Event-level variables, e.g. int, float, etc.
   {
+    //[[[cog
     //template_string = "otree->$name = event.$name;"
+    //import emjet_event_code as m
+    //for var in m.event_vars: m.replaceSingleLine(template_string, var)
+    //]]]
+    //[[[end]]]
     otree->run      = event.run      ;
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.
   {
     //[[[cog
-    //  template_string = "vectorize<Jet, $cpptype>(event.jet_vector, [](const emjet::Jet& obj ){return obj.$name;}, otree->jet_$name);"
-    //  import emjet_event_code as m
-    //  for var in jet_vars: m.replaceSingleLine(template_string, var)
+    //template_string = "vectorize<Jet, $cpptype>(event.jet_vector, [](const emjet::Jet& obj ){return obj.$name;}, otree->jet_$name);"
+    //import emjet_event_code as m
+    //for var in m.jet_vars: m.replaceSingleLine(template_string, var)
     //]]]
-    //[[[end]]
-    vectorize<Jet, int>(event.jet_vector, [](const Jet& obj ){return obj.index;          }, otree->jet_index          );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.index               ;}, otree->jet_index               );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.source              ;}, otree->jet_source              );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.pt                  ;}, otree->jet_pt                  );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.eta                 ;}, otree->jet_eta                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.phi                 ;}, otree->jet_phi                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.cef                 ;}, otree->jet_cef                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nef                 ;}, otree->jet_nef                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.chf                 ;}, otree->jet_chf                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nhf                 ;}, otree->jet_nhf                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.phf                 ;}, otree->jet_phf                 );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nPromptTracks       ;}, otree->jet_nPromptTracks       );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDispTracks         ;}, otree->jet_nDispTracks         );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nSV                 ;}, otree->jet_nSV                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.medianLogIpSig      ;}, otree->jet_medianLogIpSig      );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.missHits            ;}, otree->jet_missHits            );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.muonHits            ;}, otree->jet_muonHits            );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax            ;}, otree->jet_alphaMax            );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkPions          ;}, otree->jet_nDarkPions          );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.minDRDarkPion       ;}, otree->jet_minDRDarkPion       );
+    //[[[end]]]
   }
   // Jet-Track-level variables
   {
     for (const auto jet : event.jet_vector) {
+      //[[[cog
+      //import emjet_event_code as m
       //template_string = "auto $name = vectorize_new<Track, $cpptype>(jet.track_vector, [](const Track& obj ){return obj.$name;}); otree->track_$name.push_back($name);"
+      //for var in m.jet_track_vars: m.replaceSingleLine(template_string, var)
+      //]]]
+      //[[[end]]]
       auto index = vectorize_new<Track, int>(jet.track_vector, [](const Track& obj ){return obj.index;}); otree->track_index.push_back(index);
     }
   }
   // Jet-Vertex-level variables
   {
     for (const auto jet : event.jet_vector) {
+      //[[[cog
+      //import emjet_event_code as m
       //template_string = "auto $name = vectorize_new<Vertex, $cpptype>(jet.vertex_vector, [](const Vertex& obj ){return obj.$name;}); otree->vertex_$name.push_back($name);"
+      //for var in m.jet_vertex_vars: m.replaceSingleLine(template_string, var)
+      //]]]
+      //[[[end]]]
       auto index = vectorize_new<Vertex, int>(jet.vertex_vector, [](const Vertex& obj ){return obj.index;}); otree->vertex_index.push_back(index);
     }
   }

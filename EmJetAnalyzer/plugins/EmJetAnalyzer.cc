@@ -119,11 +119,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     emjet::OutputTree otree_ ; // OutputTree object
     TTree* t_tree;
 
-    std::unique_ptr<emjet:: Event > event_  ; // Current event
-    emjet:: Event event_temp  ; // Current event
-    std::unique_ptr<emjet:: Jet   > jet_    ; // Current jet
-    std::unique_ptr<emjet:: Track > track_  ; // Current track
-    std::unique_ptr<emjet:: Vertex> vertex_ ; // Current vertex
+    emjet:: Event  event_  ; // Current event
+    emjet:: Jet    jet_    ; // Current jet
+    emjet:: Track  track_  ; // Current track
+    emjet:: Vertex vertex_ ; // Current vertex
     int jet_index_    ; // Current jet index
     int track_index_  ; // Current track index
     int vertex_index_ ; // Current vertex index
@@ -154,18 +153,19 @@ class EmJetAnalyzer : public edm::EDFilter {
 //
 // constructors and destructor
 //
-EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig) :
-  event_  (new Event  ()),
-  jet_    (new Jet    ()),
-  track_  (new Track  ()),
-  vertex_ (new Vertex ())
+EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
+  // event_  (new Event  ()),
+  // jet_    (new Jet    ()),
+  // track_  (new Track  ()),
+  // vertex_ (new Vertex ())
+  event_  (),
+  jet_    (),
+  track_  (),
+  vertex_ ()
 {
-  Event a;
-  event_temp = a;
-  OUTPUT(jet_->track_vector.size());
-  OUTPUT(jet_->vertex_vector.size());
-  OUTPUT(event_temp.jet_vector.size());
-  OUTPUT(event_->jet_vector.size());
+  OUTPUT(jet_.track_vector.size());
+  // OUTPUT(jet_.vertex_vector.size());
+  OUTPUT(event_.jet_vector.size());
   // Config-independent initialization
   {
     t_tree           = fs->make<TTree>("emJetTree","emJetTree");
@@ -210,21 +210,23 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   // Reset output tree to default values
   otree_.Init();
-  OUTPUT(jet_->track_vector.size());
-  OUTPUT(jet_->vertex_vector.size());
-  OUTPUT(event_->jet_vector.size());
+  OUTPUT(jet_.track_vector.size());
+  // OUTPUT(jet_.vertex_vector.size());
+  OUTPUT(event_.jet_vector.size());
+  Event a;
+  event_ = a;
   // Reset Event variables
   std::cout<<"1" << std::endl;
-  vertex_->Init();
+  vertex_.Init();
   std::cout<<"2" << std::endl;
-  jet_->Init();
+  jet_.Init();
   std::cout<<"3" << std::endl;
-  event_->Init();
+  event_.Init();
 
-  event_->run   = iEvent.id().run();
-  event_->event = iEvent.id().event();
-  event_->lumi  = iEvent.id().luminosityBlock();
-  event_->bx    = iEvent.bunchCrossing();
+  event_.run   = iEvent.id().run();
+  event_.event = iEvent.id().event();
+  event_.lumi  = iEvent.id().luminosityBlock();
+  event_.bx    = iEvent.bunchCrossing();
 
   // Calculate Vertex info :EVENTLEVEL:
   {
@@ -236,14 +238,14 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       for (auto const& puInfo : *PileupInfo) {
         int bx = puInfo.getBunchCrossing();
         if (bx == 0) {
-          event_->nTrueInt = puInfo.getTrueNumInteractions();
+          event_.nTrueInt = puInfo.getTrueNumInteractions();
         }
       }
     }
     for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
-      event_->nVtx ++;
+      event_.nVtx ++;
       if ( (ipv->isFake()) || (ipv->ndof() <= 4.) || (ipv->position().Rho() > 2.0) || (fabs(ipv->position().Z()) > 24.0) ) continue; // :CUT: Primary vertex cut for counting
-      event_->nGoodVtx++;
+      event_.nGoodVtx++;
     }
   }
 
@@ -251,12 +253,12 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   {
     edm::Handle<reco::PFMETCollection> pfmet;
     iEvent.getByLabel("pfMet",pfmet);
-    event_->met_pt = pfmet->begin()->pt();
-    event_->met_phi = pfmet->begin()->phi();
+    event_.met_pt = pfmet->begin()->pt();
+    event_.met_phi = pfmet->begin()->phi();
   }
 
   // Write current Event to OutputTree
-  WriteEventToOutput(*event_, &otree_);
+  WriteEventToOutput(event_, &otree_);
   // Write OutputTree to TTree
   t_tree->Fill();
 

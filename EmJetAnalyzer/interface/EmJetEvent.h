@@ -22,6 +22,10 @@ namespace emjet
   class Event {
   public:
     Event() {}
+    ~Event(){
+      std::cout<<"Deleting event" << std::endl;
+      OUTPUT(jet_vector.size());
+    }
     void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
@@ -63,9 +67,12 @@ namespace emjet
   };
   class Jet {
   public:
-    Jet(){}
+    Jet(){
+      std::cout<<"Constructing jet" << std::endl;
+    }
     ~Jet(){
       std::cout<<"Deleting jet" << std::endl;
+      OUTPUT(int_vector.size());
       OUTPUT(track_vector.size());
     }
     void Init(){
@@ -96,7 +103,8 @@ namespace emjet
       //[[[end]]]
 
       track_vector.clear();
-      vertex_vector.clear();
+      int_vector.clear();
+      // vertex_vector.clear();
     }
     //[[[cog
     //template_string = "$cpptype $name;"
@@ -124,11 +132,16 @@ namespace emjet
     float  minDRDarkPion       ;
     //[[[end]]]
     vector<Track>    track_vector;
-    vector<Vertex>   vertex_vector;
+    vector<int>    int_vector;
+    // vector<Vertex>   vertex_vector;
   };
   class Track {
   public:
     Track() {}
+    ~Track(){
+      // std::cout<<"Deleting track" << std::endl;
+      // OUTPUT(track_vector.size());
+    }
     void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
@@ -197,6 +210,10 @@ namespace emjet
   class Vertex {
   public:
     Vertex() {}
+    ~Vertex(){
+      std::cout<<"Deleting Vertex" << std::endl;
+      // OUTPUT(Vertex_vector.size());
+    }
     void Init() {
       //[[[cog
       //template_string = "$name = DEFAULTVALUE;"
@@ -271,7 +288,7 @@ using emjet::Jet;
 using emjet::Event;
 
 void
-WriteEventToOutput(Event event, emjet::OutputTree* otree)
+WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
 {
   otree->Init(); // Reset all values and clear all vectors
   // Event-level variables, e.g. int, float, etc.
@@ -291,7 +308,6 @@ WriteEventToOutput(Event event, emjet::OutputTree* otree)
     otree->met_pt               = event.met_pt              ;
     otree->met_phi              = event.met_phi             ;
     //[[[end]]]
-    otree->run      = event.run      ;
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.
   {
@@ -358,27 +374,28 @@ WriteEventToOutput(Event event, emjet::OutputTree* otree)
     }
   }
   // Jet-Vertex-level variables
+  if (0)
   {
     for (const auto jet : event.jet_vector) {
       //[[[cog
       //import vars_EmJetAnalyzer as m
-      //template_string = "auto $name = vectorize_new<Vertex, $cpptype>(jet.vertex_vector, [](const Vertex& obj ){return obj.$name;}); otree->vertex_$name.push_back($name);"
+      //template_string = "//auto $name = vectorize_new<Vertex, $cpptype>(jet.vertex_vector, [](const Vertex& obj ){return obj.$name;}); otree->vertex_$name.push_back($name);"
       //for vardict in m.jet_vertex_vardicts: m.replaceSingleLine(template_string, vardict)
       //]]]
-      auto index                = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.index               ;}); otree->vertex_index               .push_back(index               );
-      auto source               = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.source              ;}); otree->vertex_source              .push_back(source              );
-      auto x                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.x                   ;}); otree->vertex_x                   .push_back(x                   );
-      auto y                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.y                   ;}); otree->vertex_y                   .push_back(y                   );
-      auto z                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.z                   ;}); otree->vertex_z                   .push_back(z                   );
-      auto xError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.xError              ;}); otree->vertex_xError              .push_back(xError              );
-      auto yError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.yError              ;}); otree->vertex_yError              .push_back(yError              );
-      auto zError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.zError              ;}); otree->vertex_zError              .push_back(zError              );
-      auto deltaR               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.deltaR              ;}); otree->vertex_deltaR              .push_back(deltaR              );
-      auto Lxy                  = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.Lxy                 ;}); otree->vertex_Lxy                 .push_back(Lxy                 );
-      auto mass                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.mass                ;}); otree->vertex_mass                .push_back(mass                );
-      auto chi2                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.chi2                ;}); otree->vertex_chi2                .push_back(chi2                );
-      auto ndof                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.ndof                ;}); otree->vertex_ndof                .push_back(ndof                );
-      auto pt2sum               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.pt2sum              ;}); otree->vertex_pt2sum              .push_back(pt2sum              );
+      //auto index                = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.index               ;}); otree->vertex_index               .push_back(index               );
+      //auto source               = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.source              ;}); otree->vertex_source              .push_back(source              );
+      //auto x                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.x                   ;}); otree->vertex_x                   .push_back(x                   );
+      //auto y                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.y                   ;}); otree->vertex_y                   .push_back(y                   );
+      //auto z                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.z                   ;}); otree->vertex_z                   .push_back(z                   );
+      //auto xError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.xError              ;}); otree->vertex_xError              .push_back(xError              );
+      //auto yError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.yError              ;}); otree->vertex_yError              .push_back(yError              );
+      //auto zError               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.zError              ;}); otree->vertex_zError              .push_back(zError              );
+      //auto deltaR               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.deltaR              ;}); otree->vertex_deltaR              .push_back(deltaR              );
+      //auto Lxy                  = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.Lxy                 ;}); otree->vertex_Lxy                 .push_back(Lxy                 );
+      //auto mass                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.mass                ;}); otree->vertex_mass                .push_back(mass                );
+      //auto chi2                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.chi2                ;}); otree->vertex_chi2                .push_back(chi2                );
+      //auto ndof                 = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.ndof                ;}); otree->vertex_ndof                .push_back(ndof                );
+      //auto pt2sum               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.pt2sum              ;}); otree->vertex_pt2sum              .push_back(pt2sum              );
       //[[[end]]]
     }
   }

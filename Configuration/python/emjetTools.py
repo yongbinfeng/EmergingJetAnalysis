@@ -134,13 +134,13 @@ def addWJetSkim(process, isData=False):
 
 def addAnalyze(process, isData=False, sample=''):
     from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock
-    process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
-        TrackAssociatorParameterBlock,
-        srcJets = cms.InputTag("jetFilter", "selectedJets"),
-        isData = cms.untracked.bool(False),
-    )
-    if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
-    if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+    # process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
+    #     TrackAssociatorParameterBlock,
+    #     srcJets = cms.InputTag("jetFilter", "selectedJets"),
+    #     isData = cms.untracked.bool(False),
+    # )
+    # if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
+    # if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
 
     process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
         TrackAssociatorParameterBlock,
@@ -150,7 +150,8 @@ def addAnalyze(process, isData=False, sample=''):
     if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
     if sample=='wjet': process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
 
-    return cms.Sequence(process.emergingJetAnalyzer+process.emJetAnalyzer)
+    # return cms.Sequence(process.emergingJetAnalyzer+process.emJetAnalyzer)
+    return cms.Sequence(process.emJetAnalyzer)
 
 def addEdmOutput(process, isData=False, sample=''):
     from Configuration.EventContent.EventContent_cff import AODSIMEventContent

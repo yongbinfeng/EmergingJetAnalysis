@@ -111,6 +111,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     void fillJetVertex(const TransientVertex& ivertex, Jet& ojet, Vertex& overtex);
     bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
 
+    // Computation functions
+    double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs);
+
+
     // ----------member data ---------------------------
     bool isData_;
 
@@ -372,6 +376,21 @@ EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
     ojet.phi = ijet.phi() ;
     ojet.p4.SetPtEtaPhiM(ojet.pt, ojet.eta, ojet.phi, 0.);
   }
+
+  // Fill PF Jet specific variables
+  {
+    ojet.cef = ijet.chargedEmEnergyFraction()     ;
+    ojet.nef = ijet.neutralEmEnergyFraction()     ;
+    ojet.chf = ijet.chargedHadronEnergyFraction() ;
+    ojet.nhf = ijet.neutralHadronEnergyFraction() ;
+    ojet.phf = ijet.photonEnergyFraction()        ;
+  }
+
+  // Fill alphaMax
+  {
+    reco::TrackRefVector trackRefs = ijet.getTrackRefs();
+    ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
+  }
 }
 
 void
@@ -463,6 +482,38 @@ EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& oje
   if (deltaR > 0.4) return false;
 
   return true;
+}
+
+// Calculate jet alphaMax
+double
+EmJetAnalyzer::compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs)
+{
+  double alphaMax = -1.;
+  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  double jet_pt_sum = 0.;
+  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+    jet_pt_sum += (*ijt)->pt();
+  } // End of track loop
+
+  auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
+  double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+    // std::cout << "New vertex\n";
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+      double trackWeight = ipv->trackWeight(*ijt);
+      // std::cout << "Track weight: " << trackWeight << std::endl;
+      if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+    } // End of track loop
+    if (vertex_pt_sum > max_vertex_pt_sum) {
+      max_vertex_pt_sum = vertex_pt_sum;
+      ipv_chosen = ipv;
+      // Calculate alpha
+      alphaMax = vertex_pt_sum / jet_pt_sum;
+    }
+  } // End of vertex loop
+  return alphaMax;
 }
 
 //define this as a plug-in

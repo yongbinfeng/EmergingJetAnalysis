@@ -52,6 +52,7 @@ namespace emjet
     vector<float>           jet_minDRDarkPion       ;
     vector<vector<int> >    track_index               ;
     vector<vector<int> >    track_source              ;
+    vector<vector<int> >    track_jet_index           ;
     vector<vector<float> >  track_pt                  ;
     vector<vector<float> >  track_eta                 ;
     vector<vector<float> >  track_phi                 ;
@@ -77,6 +78,7 @@ namespace emjet
     vector<vector<float> >  track_distanceToJet       ;
     vector<vector<int> >    vertex_index               ;
     vector<vector<int> >    vertex_source              ;
+    vector<vector<int> >    vertex_jet_index           ;
     vector<vector<float> >  vertex_x                   ;
     vector<vector<float> >  vertex_y                   ;
     vector<vector<float> >  vertex_z                   ;
@@ -131,6 +133,7 @@ emjet::OutputTree::Init() {
   jet_minDRDarkPion       .clear();
   track_index               .clear();
   track_source              .clear();
+  track_jet_index           .clear();
   track_pt                  .clear();
   track_eta                 .clear();
   track_phi                 .clear();
@@ -156,6 +159,7 @@ emjet::OutputTree::Init() {
   track_distanceToJet       .clear();
   vertex_index               .clear();
   vertex_source              .clear();
+  vertex_jet_index           .clear();
   vertex_x                   .clear();
   vertex_y                   .clear();
   vertex_z                   .clear();
@@ -210,6 +214,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, jet_minDRDarkPion       );
   BRANCH(tree, track_index               );
   BRANCH(tree, track_source              );
+  BRANCH(tree, track_jet_index           );
   BRANCH(tree, track_pt                  );
   BRANCH(tree, track_eta                 );
   BRANCH(tree, track_phi                 );
@@ -235,6 +240,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, track_distanceToJet       );
   BRANCH(tree, vertex_index               );
   BRANCH(tree, vertex_source              );
+  BRANCH(tree, vertex_jet_index           );
   BRANCH(tree, vertex_x                   );
   BRANCH(tree, vertex_y                   );
   BRANCH(tree, vertex_z                   );

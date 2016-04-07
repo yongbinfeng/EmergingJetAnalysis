@@ -67,6 +67,7 @@ jet_vars = [
 jet_track_vars = [
     Var("index"               , "int"   , 2 , ) ,
     Var("source"              , "int"   , 2 , ) ,
+    Var("jet_index"           , "int"   , 2 , ) ,
     Var("pt"                  , "float" , 2 , ) ,
     Var("eta"                 , "float" , 2 , ) ,
     Var("phi"                 , "float" , 2 , ) ,
@@ -94,6 +95,7 @@ jet_track_vars = [
 jet_vertex_vars = [
     Var("index"               , "int"   , 2 , ) ,
     Var("source"              , "int"   , 2 , ) ,
+    Var("jet_index"           , "int"   , 2 , ) ,
     Var("x"                   , "float" , 2 , ) ,
     Var("y"                   , "float" , 2 , ) ,
     Var("z"                   , "float" , 2 , ) ,

@@ -162,6 +162,7 @@ namespace emjet
       //]]]
       index                = DEFAULTVALUE;
       source               = DEFAULTVALUE;
+      jet_index            = DEFAULTVALUE;
       pt                   = DEFAULTVALUE;
       eta                  = DEFAULTVALUE;
       phi                  = DEFAULTVALUE;
@@ -194,6 +195,7 @@ namespace emjet
     //]]]
     int    index               ;
     int    source              ;
+    int    jet_index           ;
     float  pt                  ;
     float  eta                 ;
     float  phi                 ;
@@ -218,6 +220,9 @@ namespace emjet
     float  dRToJetAxis         ;
     float  distanceToJet       ;
     //[[[end]]]
+    // Variables used for calculation only
+    // These are not written to output
+    TLorentzVector p4;
   };
   class Vertex {
   public:
@@ -235,6 +240,7 @@ namespace emjet
       //]]]
       index                = DEFAULTVALUE;
       source               = DEFAULTVALUE;
+      jet_index            = DEFAULTVALUE;
       x                    = DEFAULTVALUE;
       y                    = DEFAULTVALUE;
       z                    = DEFAULTVALUE;
@@ -256,6 +262,7 @@ namespace emjet
     //]]]
     int    index               ;
     int    source              ;
+    int    jet_index           ;
     float  x                   ;
     float  y                   ;
     float  z                   ;
@@ -269,6 +276,9 @@ namespace emjet
     float  ndof                ;
     float  pt2sum              ;
     //[[[end]]]
+    // Variables used for calculation only
+    // These are not written to output
+    TLorentzVector p4;
   };
 }
 
@@ -360,6 +370,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       //]]]
       auto index                = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.index               ;}); otree->track_index               .push_back(index               );
       auto source               = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.source              ;}); otree->track_source              .push_back(source              );
+      auto jet_index            = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.jet_index           ;}); otree->track_jet_index           .push_back(jet_index           );
       auto pt                   = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pt                  ;}); otree->track_pt                  .push_back(pt                  );
       auto eta                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.eta                 ;}); otree->track_eta                 .push_back(eta                 );
       auto phi                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.phi                 ;}); otree->track_phi                 .push_back(phi                 );
@@ -397,6 +408,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       //]]]
       //auto index                = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.index               ;}); otree->vertex_index               .push_back(index               );
       //auto source               = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.source              ;}); otree->vertex_source              .push_back(source              );
+      //auto jet_index            = vectorize_new<Vertex, int   >(jet.vertex_vector, [](const Vertex& obj ){return obj.jet_index           ;}); otree->vertex_jet_index           .push_back(jet_index           );
       //auto x                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.x                   ;}); otree->vertex_x                   .push_back(x                   );
       //auto y                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.y                   ;}); otree->vertex_y                   .push_back(y                   );
       //auto z                    = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.z                   ;}); otree->vertex_z                   .push_back(z                   );

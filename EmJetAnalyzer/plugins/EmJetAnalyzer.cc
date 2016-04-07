@@ -106,9 +106,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-    void fillJet    (Jet&    , const reco::PFJet&);
-    void fillTrack  (Track&  );
-    void fillVertex (Vertex& );
+    void fillJet(const reco::PFJet& ijet, Jet& ojet);
+    void fillJetTrack(const reco::TransientTrack& itrack, Jet& ojet, Track& otrack);
+    void fillJetVertex(const TransientVertex& ivertex, Jet& ojet, Vertex& overtex);
+    bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
 
     // ----------member data ---------------------------
     bool isData_;
@@ -134,7 +135,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     // Retrieve once per event
     // Intermediate objects used for calculations
     edm::Handle<reco::VertexCollection> primary_verticesH_;
-
+    edm::Handle<reco::PFJetCollection> selectedJets_;
     edm::ESHandle<TransientTrackBuilder> transienttrackbuilderH_;
     std::vector<reco::TransientTrack> generalTracks_;
     edm::Handle<reco::GenParticleCollection> genParticlesH_;
@@ -215,6 +216,10 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   vertex_.Init();
   jet_.Init();
   event_.Init();
+  // Reset object counters
+  jet_index_=0;
+  track_index_=0;
+  vertex_index_=0;
 
   event_.run   = iEvent.id().run();
   event_.event = iEvent.id().event();
@@ -253,14 +258,35 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Retrieve selectedJets
   edm::Handle<reco::PFJetCollection> pfjetH;
   iEvent.getByToken(jetCollectionToken_, pfjetH);
-  auto selectedJets = *pfjetH;
+  selectedJets_ = pfjetH;
+  // Retrieve TransientTrackBuilder
+  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilderH_);
+  // Retrieve generalTracks and build TransientTrackCollection
+  edm::Handle<reco::TrackCollection> genTrackH;
+  iEvent.getByLabel("generalTracks", genTrackH);
+  generalTracks_ = transienttrackbuilderH_->build(genTrackH);
+
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
-  jet_index_=0;
-  for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); jet++ ) {
+  for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
     jet_.Init();
     jet_.index = jet_index_;
     jet_.source = 1; // source = 1 for PF jets :JETSOURCE:
-    fillJet(jet_, *jet);
+    // Fill Jet-level quantities
+    fillJet(*jet, jet_);
+
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+      if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
+      track_.Init();
+      track_.index = track_index_;
+      track_.source = 1; // source = 1 for generalTracks :TRACKSOURCE:
+      track_.jet_index = jet_index_;
+      // Fill Jet-Track level quantities
+      fillJetTrack(*itk, jet_, track_);
+      // Write current Track to Jet
+      jet_.track_vector.push_back(track_);
+      track_index_++;
+    }
+
     // Write current Jet to Event
     event_.jet_vector.push_back(jet_);
     jet_index_++;
@@ -337,22 +363,106 @@ EmJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 void
-EmJetAnalyzer::fillJet(Jet& ojet, const reco::PFJet& jet)
+EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
 {
-  ojet.p4.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
-  ojet.pt  = jet.pt()  ;
-  ojet.eta = jet.eta() ;
-  ojet.phi = jet.phi() ;
+  // Fill basic kinematic variables
+  {
+    ojet.pt  = ijet.pt()  ;
+    ojet.eta = ijet.eta() ;
+    ojet.phi = ijet.phi() ;
+    ojet.p4.SetPtEtaPhiM(ojet.pt, ojet.eta, ojet.phi, 0.);
+  }
 }
 
 void
-EmJetAnalyzer::fillTrack(Track& ctrack)
+EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, Jet& ojet, Track& otrack)
 {
+  auto itk = &itrack;
+  // Fill basic kinematic variables
+  {
+    otrack.pt  = itrack.track().pt()  ;
+    otrack.eta = itrack.track().eta() ;
+    otrack.phi = itrack.track().phi() ;
+    otrack.p4.SetPtEtaPhiM(otrack.pt, otrack.eta, otrack.phi, 0.);
+  }
+
+  // Fill geometric variables
+  {
+    const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+    GlobalVector direction(ojet.p4.Px(), ojet.p4.Py(), ojet.p4.Pz());
+    TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, direction, itk->field());
+    GlobalPoint closestPoint = pca.globalPosition();
+    GlobalVector jetVector = direction.unit();
+    Line::PositionType posJet(GlobalPoint(primary_vertex.position().x(),primary_vertex.position().y(),primary_vertex.position().z()));
+    Line::DirectionType dirJet(jetVector);
+    Line jetLine(posJet, dirJet);
+    GlobalVector pcaToJet = jetLine.distance(closestPoint);
+    TLorentzVector& trackVector = otrack.p4;
+    trackVector.SetPxPyPzE(
+                           closestPoint.x() - primary_vertex.position().x(),
+                           closestPoint.y() - primary_vertex.position().y(),
+                           closestPoint.z() - primary_vertex.position().z(),
+                           itk->track().p());
+    otrack.dRToJetAxis = trackVector.DeltaR(ojet.p4);
+    // Calculate PCA coordinates
+    otrack.pca_r   = closestPoint.perp();
+    otrack.pca_eta = closestPoint.eta();
+    otrack.pca_phi = closestPoint.phi();
+    otrack.distanceToJet = pcaToJet.mag();
+
+    auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
+    otrack.ipXY    = fabs(dxy_ipv.second.value());
+    otrack.ipXYSig = fabs(dxy_ipv.second.significance());
+  }
+
+  otrack.algo                = itk->track().algo();
+  otrack.originalAlgo        = itk->track().originalAlgo();
+  otrack.nHits               = itk->numberOfValidHits();
+  otrack.nMissInnerHits      = itk->hitPattern().numberOfLostTrackerHits(reco::HitPattern::MISSING_INNER_HITS);
+  otrack.nTrkLayers          = itk->hitPattern().trackerLayersWithMeasurement();
+  otrack.nMissTrkLayers      = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::TRACK_HITS);
+  otrack.nMissInnerTrkLayers = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::MISSING_INNER_HITS);
+  otrack.nMissOuterTrkLayers = itk->hitPattern().trackerLayersWithoutMeasurement(reco::HitPattern::MISSING_OUTER_HITS);
+  otrack.nPxlLayers          = itk->hitPattern().pixelLayersWithMeasurement();
+  otrack.nMissPxlLayers      = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::TRACK_HITS);
+  otrack.nMissInnerPxlLayers = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::MISSING_INNER_HITS);
+  otrack.nMissOuterPxlLayers = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::MISSING_OUTER_HITS);
 }
 
 void
-EmJetAnalyzer::fillVertex(Vertex& cvertex)
+EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, Jet& ojet, Vertex& overtex)
 {
+}
+
+bool
+EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+{
+  auto itk = &itrack;
+  // Skip tracks with pt<1 :CUT:
+  if (itk->track().pt() < 1.) return false;
+
+  // Skip tracks with invalid point-of-closest-approach :CUT:
+  const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+  GlobalVector direction(ojet.p4.Px(), ojet.p4.Py(), ojet.p4.Pz());
+  TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, direction, itk->field());
+  if (!pca.isValid()) return false;
+  GlobalPoint closestPoint = pca.globalPosition();
+
+  // Skip tracks if point-of-closest-approach has -nan or nan x/y/z coordinates :CUT:
+  if ( !( std::isfinite(closestPoint.x()) && std::isfinite(closestPoint.y()) && std::isfinite(closestPoint.z()) ) ) return false;
+
+  // Skip tracks with deltaR > 0.4 w.r.t. current jet :CUT:
+  TLorentzVector trackVector;
+  trackVector.SetPxPyPzE(
+                         closestPoint.x() - primary_vertex.position().x(),
+                         closestPoint.y() - primary_vertex.position().y(),
+                         closestPoint.z() - primary_vertex.position().z(),
+                         itk->track().p());
+  float deltaR = trackVector.DeltaR(ojet.p4);
+  // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
+  if (deltaR > 0.4) return false;
+
+  return true;
 }
 
 //define this as a plug-in

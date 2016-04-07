@@ -106,6 +106,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
+    void fillJet    (Jet&    , const reco::PFJet&);
+    void fillTrack  (Track&  );
+    void fillVertex (Vertex& );
+
     // ----------member data ---------------------------
     bool isData_;
 
@@ -246,6 +250,22 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     event_.met_phi = pfmet->begin()->phi();
   }
 
+  // Retrieve selectedJets
+  edm::Handle<reco::PFJetCollection> pfjetH;
+  iEvent.getByToken(jetCollectionToken_, pfjetH);
+  auto selectedJets = *pfjetH;
+  // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
+  jet_index_=0;
+  for ( reco::PFJetCollection::const_iterator jet = selectedJets.begin(); jet != selectedJets.end(); jet++ ) {
+    jet_.Init();
+    jet_.index = jet_index_;
+    jet_.source = 1; // source = 1 for PF jets :JETSOURCE:
+    fillJet(jet_, *jet);
+    // Write current Jet to Event
+    event_.jet_vector.push_back(jet_);
+    jet_index_++;
+  }
+
   // Write current Event to OutputTree
   WriteEventToOutput(event_, &otree_);
   // Write OutputTree to TTree
@@ -315,5 +335,25 @@ EmJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   desc.setUnknown();
   descriptions.addDefault(desc);
 }
+
+void
+EmJetAnalyzer::fillJet(Jet& ojet, const reco::PFJet& jet)
+{
+  ojet.p4.SetPtEtaPhiM(jet.pt(),jet.eta(),jet.phi(),0.);
+  ojet.pt  = jet.pt()  ;
+  ojet.eta = jet.eta() ;
+  ojet.phi = jet.phi() ;
+}
+
+void
+EmJetAnalyzer::fillTrack(Track& ctrack)
+{
+}
+
+void
+EmJetAnalyzer::fillVertex(Vertex& cvertex)
+{
+}
+
 //define this as a plug-in
 DEFINE_FWK_MODULE(EmJetAnalyzer);

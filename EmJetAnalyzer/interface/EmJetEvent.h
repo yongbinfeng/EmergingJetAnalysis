@@ -5,6 +5,9 @@
 
 #include <vector>
 #include <functional>
+
+#include "TLorentzVector.h"
+
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #define DEFAULTVALUE -1
 
@@ -137,8 +140,11 @@ namespace emjet
     float  minDRDarkPion       ;
     //[[[end]]]
     vector<Track>    track_vector;
-    vector<int>    int_vector;
     // vector<Vertex>   vertex_vector;
+    vector<int>    int_vector;
+    // Variables used for calculation only
+    // These are not written to output
+    TLorentzVector p4;
   };
   class Track {
   public:

@@ -163,9 +163,6 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   track_  (),
   vertex_ ()
 {
-  OUTPUT(jet_.track_vector.size());
-  // OUTPUT(jet_.vertex_vector.size());
-  OUTPUT(event_.jet_vector.size());
   // Config-independent initialization
   {
     t_tree           = fs->make<TTree>("emJetTree","emJetTree");
@@ -210,17 +207,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   // Reset output tree to default values
   otree_.Init();
-  OUTPUT(jet_.track_vector.size());
-  // OUTPUT(jet_.vertex_vector.size());
-  OUTPUT(event_.jet_vector.size());
-  Event a;
-  event_ = a;
   // Reset Event variables
-  std::cout<<"1" << std::endl;
   vertex_.Init();
-  std::cout<<"2" << std::endl;
   jet_.Init();
-  std::cout<<"3" << std::endl;
   event_.Init();
 
   event_.run   = iEvent.id().run();

@@ -12,6 +12,7 @@
 #define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
 #endif
 
+
 using std::vector;
 
 namespace emjet
@@ -23,8 +24,10 @@ namespace emjet
   public:
     Event() {}
     ~Event(){
+#ifdef DEBUG
       std::cout<<"Deleting event" << std::endl;
       OUTPUT(jet_vector.size());
+#endif
     }
     void Init() {
       //[[[cog
@@ -43,9 +46,7 @@ namespace emjet
       met_phi              = DEFAULTVALUE;
       //[[[end]]]
 
-      if (!jet_vector.empty()) {
-        jet_vector.clear();
-      }
+      jet_vector.clear();
     };
     //[[[cog
     //template_string = "$cpptype $name;"
@@ -68,12 +69,16 @@ namespace emjet
   class Jet {
   public:
     Jet(){
+#ifdef DEBUG
       std::cout<<"Constructing jet" << std::endl;
+#endif
     }
     ~Jet(){
+#ifdef DEBUG
       std::cout<<"Deleting jet" << std::endl;
       OUTPUT(int_vector.size());
       OUTPUT(track_vector.size());
+#endif
     }
     void Init(){
       //[[[cog
@@ -139,8 +144,9 @@ namespace emjet
   public:
     Track() {}
     ~Track(){
+#ifdef DEBUG
       // std::cout<<"Deleting track" << std::endl;
-      // OUTPUT(track_vector.size());
+#endif
     }
     void Init() {
       //[[[cog
@@ -211,8 +217,9 @@ namespace emjet
   public:
     Vertex() {}
     ~Vertex(){
+#ifdef DEBUG
       std::cout<<"Deleting Vertex" << std::endl;
-      // OUTPUT(Vertex_vector.size());
+#endif
     }
     void Init() {
       //[[[cog

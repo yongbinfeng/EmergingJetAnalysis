@@ -4,7 +4,7 @@ STARTINGDIR=${PWD}
 echo $STARTINGDIR
 # cd cogFiles
 export PYTHONPATH=${PWD}/cogFiles
-declare -a FILES_TO_COG=("EmergingJetAnalyzer/plugins/EmergingJetAnalyzer.cc" "EmergingJetAnalyzer/interface/OutputTree.h")
+declare -a FILES_TO_COG=("EmergingJetAnalyzer/plugins/EmergingJetAnalyzer.cc" "EmergingJetAnalyzer/interface/OutputTree.h" "EmJetAnalyzer/interface/OutputTree.h" "EmJetAnalyzer/interface/EmJetEvent.h")
 for file in "${FILES_TO_COG[@]}"
 do
     # echo "Trying to cog file: ${file}"

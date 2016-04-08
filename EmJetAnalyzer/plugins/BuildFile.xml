@@ -6,6 +6,7 @@
 <use name="FWCore/ServiceRegistry"/>
 <use name="TrackingTools/TransientTrack"/>
 <use name="TrackingTools/Records"/>
+<use name="RecoVertex/ConfigurableVertexReco"/>
 <use name="RecoVertex/AdaptiveVertexFinder"/>
 <use name="RecoVertex/TrimmedKalmanVertexFinder"/>
 <use name="TrackingTools/TrackAssociator"/>

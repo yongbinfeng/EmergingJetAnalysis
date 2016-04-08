@@ -56,7 +56,7 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
 
-#include "RecoVertex/AdaptiveVertexFinder/interface/AdaptiveVertexReconstructor.h"
+#include "RecoVertex/ConfigurableVertexReco/interface/ConfigurableVertexReconstructor.h"
 #include "RecoVertex/TrimmedKalmanVertexFinder/interface/KalmanTrimmedVertexFinder.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexSmoother.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -107,12 +107,16 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
     void fillJet(const reco::PFJet& ijet, Jet& ojet);
-    void fillJetTrack(const reco::TransientTrack& itrack, Jet& ojet, Track& otrack);
-    void fillJetVertex(const TransientVertex& ivertex, Jet& ojet, Vertex& overtex);
+    void fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack);
+    void fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex);
+    bool selectTrack(const reco::TransientTrack& itrack, const Track& otrack);
     bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
+    bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
+    bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex);
 
     // Computation functions
-    double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs);
+    double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const;
+    double compute_pt2Sum (const TransientVertex& ivertex) const;
 
 
     // ----------member data ---------------------------
@@ -124,6 +128,9 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::ParameterSet         m_trackParameterSet;
     TrackDetectorAssociator   m_trackAssociator;
     TrackAssociatorParameters m_trackParameters;
+
+    edm::ParameterSet         vtxconfig_;
+    ConfigurableVertexReconstructor vtxmaker_;
 
     emjet::OutputTree otree_ ; // OutputTree object
     TTree* t_tree;
@@ -167,6 +174,8 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   // jet_    (new Jet    ()),
   // track_  (new Track  ()),
   // vertex_ (new Vertex ())
+  vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexreco")),
+  vtxmaker_(vtxconfig_),
   event_  (),
   jet_    (),
   track_  (),
@@ -230,7 +239,14 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   event_.lumi  = iEvent.id().luminosityBlock();
   event_.bx    = iEvent.bunchCrossing();
 
-  // Calculate Vertex info :EVENTLEVEL:
+  // Retrieve offline beam spot (Used to constrain vertexing)
+  {
+    edm::Handle<reco::BeamSpot> theBeamSpotHandle;
+    iEvent.getByLabel("offlineBeamSpot", theBeamSpotHandle);
+    theBeamSpot_ = theBeamSpotHandle.product();
+  }
+
+  // Calculate basic primary vertex and pileup info :EVENTLEVEL:
   {
     iEvent.getByLabel("offlinePrimaryVerticesWithBS", primary_verticesH_);
     const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
@@ -270,6 +286,16 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByLabel("generalTracks", genTrackH);
   generalTracks_ = transienttrackbuilderH_->build(genTrackH);
 
+  // Reconstruct AVR vertices using all generalTracks passing basic selection
+  avrVertices_.clear();
+  ConfigurableVertexReconstructor avr (vtxconfig_);
+  std::vector<reco::TransientTrack> tracks_for_vertexing;
+  for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+    if ( selectTrack(*itk, track_) ) // :CUT: Apply basic track selection
+      tracks_for_vertexing.push_back(*itk);
+  }
+  avrVertices_ = avr.vertices(tracks_for_vertexing);
+
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
   for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
     jet_.Init();
@@ -278,6 +304,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // Fill Jet-level quantities
     fillJet(*jet, jet_);
 
+    // Calculate Jet-Track-level quantities and fill into jet_ :JETTRACKLEVEL:
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
       if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
       track_.Init();
@@ -290,6 +317,48 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       jet_.track_vector.push_back(track_);
       track_index_++;
     }
+
+    // Per-jet vertex reconstruction
+    {
+      // Add tracks to be used for vertexing
+      std::vector<reco::TransientTrack> tracks_for_vertexing;
+      for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+        if ( selectJetTrackForVertexing(*itk, jet_, track_) ) // :CUT: Apply Track selection for vertexing
+          tracks_for_vertexing.push_back(*itk);
+      }
+
+      // Reconstruct vertex from tracks associated with current jet
+      std::vector<TransientVertex> vertices_for_current_jet;
+      {
+        vertices_for_current_jet = vtxmaker_.vertices(generalTracks_, tracks_for_vertexing, *theBeamSpot_);
+      }
+      // Fill Jet-Vertex level quantities for per-jet vertices
+      for (auto vtx : vertices_for_current_jet) {
+        if ( !selectJetVertex(vtx, jet_, vertex_) ) continue; // :CUT: Apply Vertex selection
+        vertex_.Init();
+        vertex_.index = vertex_index_;
+        vertex_.source = 1; // source = 1 for per-jet AVR vertices
+        // Fill Jet-Vertex level quantities
+        fillJetVertex(vtx, jet_, vertex_);
+        // Write current Vertex to Jet
+        jet_.vertex_vector.push_back(vertex_);
+        vertex_index_++;
+      }
+    }
+
+    // Fill Jet-Vertex level quantities for globally reconstructed AVR vertices
+    for (auto vtx : avrVertices_) {
+      if ( !selectJetVertex(vtx, jet_, vertex_) ) continue; // :CUT: Apply Vertex selection
+      vertex_.Init();
+      vertex_.index = vertex_index_;
+      vertex_.source = 2; // source = 2 for global AVR vertices
+      // Fill Jet-Vertex level quantities
+      fillJetVertex(vtx, jet_, vertex_);
+      // Write current Vertex to Jet
+      jet_.vertex_vector.push_back(vertex_);
+      vertex_index_++;
+    }
+
 
     // Write current Jet to Event
     event_.jet_vector.push_back(jet_);
@@ -394,7 +463,7 @@ EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
 }
 
 void
-EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, Jet& ojet, Track& otrack)
+EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack)
 {
   auto itk = &itrack;
   // Fill basic kinematic variables
@@ -449,16 +518,47 @@ EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, Jet& ojet, Track
 }
 
 void
-EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, Jet& ojet, Vertex& overtex)
+EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex)
 {
+  auto vtx = reco::Vertex(ivertex);
+  const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+  TLorentzVector vertexVector;
+  vertexVector.SetXYZT(vtx.x(), vtx.y(), vtx.z(), 0.0);
+  double deltaR = vertexVector.DeltaR(ojet.p4);
+  double Lxy = 0;
+  float dx = primary_vertex.position().x() - vtx.position().x();
+  float dy = primary_vertex.position().y() - vtx.position().y();
+  Lxy = TMath::Sqrt( dx*dx + dy*dy );
+  float mass = vtx.p4().mass();
+  float pt2sum = compute_pt2Sum(ivertex);
+  overtex.x      = ( vtx.x()      );
+  overtex.y      = ( vtx.y()      );
+  overtex.z      = ( vtx.z()      );
+  overtex.xError = ( vtx.xError() );
+  overtex.yError = ( vtx.yError() );
+  overtex.zError = ( vtx.zError() );
+  overtex.deltaR = ( deltaR       );
+  overtex.Lxy    = ( Lxy          );
+  overtex.mass   = ( mass         );
+  overtex.chi2   = ( vtx.chi2()   );
+  overtex.ndof   = ( vtx.ndof()   );
+  overtex.pt2sum = ( pt2sum       );
+}
+
+bool
+EmJetAnalyzer::selectTrack(const reco::TransientTrack& itrack, const Track& otrack)
+{
+  auto itk = &itrack;
+  // Skip tracks with pt<1 :CUT:
+  if (itk->track().pt() < 1.) return false;
+  return true;
 }
 
 bool
 EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
 {
   auto itk = &itrack;
-  // Skip tracks with pt<1 :CUT:
-  if (itk->track().pt() < 1.) return false;
+  if (!selectTrack(itrack, otrack)) return false; // :CUT: Require track to pass basic selection
 
   // Skip tracks with invalid point-of-closest-approach :CUT:
   const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
@@ -480,13 +580,30 @@ EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& oje
   float deltaR = trackVector.DeltaR(ojet.p4);
   // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
   if (deltaR > 0.4) return false;
+  return true;
+}
 
+bool
+EmJetAnalyzer::selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+{
+  return selectJetTrack(itrack, ojet, otrack);
+}
+
+bool
+EmJetAnalyzer::selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex)
+{
+  auto vtx = reco::Vertex(ivertex);
+
+  TLorentzVector vertexVector;
+  vertexVector.SetXYZT(vtx.x(), vtx.y(), vtx.z(), 0.0);
+  double deltaR = vertexVector.DeltaR(ojet.p4);
+  if (deltaR > 0.4) return false; // Ignore vertices outside jet cone :CUT:
   return true;
 }
 
 // Calculate jet alphaMax
 double
-EmJetAnalyzer::compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs)
+EmJetAnalyzer::compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const
 {
   double alphaMax = -1.;
   // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
@@ -514,6 +631,30 @@ EmJetAnalyzer::compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& t
     }
   } // End of vertex loop
   return alphaMax;
+}
+
+double
+EmJetAnalyzer::compute_pt2Sum (const TransientVertex& ivertex) const {
+  auto vtx = reco::Vertex(ivertex);
+  // Modified from reco::Vertex::p4()
+  double sum = 0.;
+  double pt = 0.;
+  if(vtx.hasRefittedTracks()) {
+    for(std::vector<reco::Track>::const_iterator iter = vtx.refittedTracks().begin();
+        iter != vtx.refittedTracks().end(); ++iter) {
+      pt = iter->pt();
+      sum += pt*pt;
+    }
+  }
+  else
+    {
+      for(std::vector<reco::TrackBaseRef>::const_iterator iter = vtx.tracks_begin();
+          iter != vtx.tracks_end(); iter++) {
+        pt = (*iter)->pt();
+        sum += pt*pt;
+      }
+    }
+  return sum;
 }
 
 //define this as a plug-in

@@ -129,6 +129,8 @@ if 'CMSSW_7_4_12' in cmssw_version:
     globalTags=['74X_mcRun2_design_v2','74X_dataRun2_Prompt_v3']
 elif 'CMSSW_7_4_1_patch4' in cmssw_version:
     globalTags=['MCRUN2_74_V9','74X_dataRun2_Prompt_v0']
+elif 'CMSSW_7_6_3' in cmssw_version:
+    globalTags=['76X_mcRun2_asymptotic_RunIIFall15DR76_v1','76X_dataRun2_16Dec2015_v0']
 print 'CMSSW_VERSION is %s' % cmssw_version
 print 'Using the following global tags [MC, DATA]:'
 print globalTags

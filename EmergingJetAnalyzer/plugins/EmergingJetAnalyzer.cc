@@ -117,6 +117,8 @@ class EmergingJetAnalyzer : public edm::EDAnalyzer {
     // ----------member data ---------------------------
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    edm::EDGetTokenT< reco::METCollection > HtMhtCollectionToken_;
+    edm::EDGetTokenT< reco::BeamSpot > beamSpotToken_;
 
     emjet::OutputTree otree_;
 
@@ -170,6 +172,25 @@ EmergingJetAnalyzer::EmergingJetAnalyzer(const edm::ParameterSet& iConfig) :
   m_trackAssociator.useDefaultPropagator();
 
   jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+
+  // Register inputs
+  consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
+  consumes<reco::TrackCollection> (edm::InputTag("generalTracks"));
+  consumes<reco::TrackCollection> (edm::InputTag("displacedStandAloneMuons"));
+  consumes<reco::PFMETCollection> (edm::InputTag("pfMet"));
+  consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVerticesWithBS"));
+  consumes<reco::VertexCollection> (edm::InputTag("inclusiveSecondaryVertices"));
+
+  consumes<DTRecSegment4DCollection> (edm::InputTag("dt4DSegments"));
+  consumes<CSCSegmentCollection> (edm::InputTag("cscSegments"));
+  consumes<RPCRecHitCollection> (edm::InputTag("rpcRecHits"));
+
+  if (!isData_) { // :MCONLY:
+    consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
+    consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
+    consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
+    consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
+  }
 
   t_tree           = fs->make<TTree>("emergingJetsTree","emergingJetsTree");
   otree_.Branch(t_tree);

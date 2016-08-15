@@ -34,6 +34,7 @@ Implementation:
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "DataFormats/METReco/interface/METFwd.h"
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"

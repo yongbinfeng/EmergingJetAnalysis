@@ -2,7 +2,7 @@
 //
 // Package:    PFJetTrackAnalysis/PFJetTrackAnalyzer
 // Class:      PFJetTrackAnalyzer
-// 
+//
 /**\class PFJetTrackAnalyzer PFJetTrackAnalyzer.cc PFJetTrackAnalysis/PFJetTrackAnalyzer/plugins/PFJetTrackAnalyzer.cc
 
 Description: [one line class summary]
@@ -92,12 +92,12 @@ class PFJetTrackAnalyzer : public edm::EDProducer {
 //
 PFJetTrackAnalyzer::PFJetTrackAnalyzer(const edm::ParameterSet& iConfig)
 {
-    ofile_ = new TFile("file.root","RECREATE","PFJetTrackAnalyzer output file");
-    tree_ = new TTree("PFJetTrackTree", "PFJetTrackAnalyzer output tree");
-    tree_->Branch("index"        , &PFJetIndex_                   ) ;
-    tree_->Branch("pt"           , &PFJetPt_                      ) ;
-    tree_->Branch("eta"          , &PFJetEta_                     ) ;
-    tree_->Branch("phi"          , &PFJetPhi_                     ) ;
+    // ofile_ = new TFile("file.root","RECREATE","PFJetTrackAnalyzer output file");
+    // tree_ = new TTree("PFJetTrackTree", "PFJetTrackAnalyzer output tree");
+    // tree_->Branch("index"        , &PFJetIndex_                   ) ;
+    // tree_->Branch("pt"           , &PFJetPt_                      ) ;
+    // tree_->Branch("eta"          , &PFJetEta_                     ) ;
+    // tree_->Branch("phi"          , &PFJetPhi_                     ) ;
 
     jetToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
 
@@ -109,8 +109,8 @@ PFJetTrackAnalyzer::~PFJetTrackAnalyzer()
 {
     // do anything here that needs to be done at desctruction time
     // (e.g. close files, deallocate resources etc.)
-    ofile_->Write();
-    delete ofile_;
+    // ofile_->Write();
+    // delete ofile_;
 
 }
 
@@ -124,7 +124,7 @@ void
 PFJetTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     using namespace edm;
-    edm::Handle<reco::PFJetCollection> inputJets; 
+    edm::Handle<reco::PFJetCollection> inputJets;
     iEvent.getByToken(jetToken_, inputJets);
     PFJetIndex_                   . clear();
     PFJetPt_                      . clear();
@@ -146,22 +146,23 @@ PFJetTrackAnalyzer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
         for (unsigned int i=0; i!=assoTracks.size(); ++i) {
             edm::RefToBase<reco::Track> track(assoTracks[i]);
             associatedTracks_ -> push_back( *assoTracks[i] );
-        } 
+        }
 
 
     }
     std::cout<<"Check the first track in assoTrackCollection by its pt: "<< (*associatedTracks_)[0].pt()<<std::endl;
-    tree_->Fill();
+    // tree_->Fill();
+    iEvent.put(associatedTracks_, "associatedTracks");
 }
 
 // ------------ method called once each job just before starting event loop  ------------
-void 
+void
 PFJetTrackAnalyzer::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
-void 
+void
 PFJetTrackAnalyzer::endJob() {
 }
 

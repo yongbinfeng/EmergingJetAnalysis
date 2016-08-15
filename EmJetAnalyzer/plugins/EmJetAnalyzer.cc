@@ -16,6 +16,16 @@
 //
 //
 
+// Useful keywords
+// :MCONLY: Code that applies only when processing MC events
+// :CUT: Code that applies cuts to objects/events
+// :EVENTLEVEL: Code that calculates event-level quantities
+// :JETLEVEL: Code that calculates jet-level quantities
+// :JETTRACKLEVEL: Code that calculates jet-track-level quantities
+// :JETSOURCE: Code that assigns "source" variable for a jet
+// :TRACKSOURCE: Code that assigns "source" variable for a track
+// :VERTEXSOURCE:
+
 
 // system include files
 #include <memory>
@@ -65,9 +75,15 @@
 
 #include "DataFormats/JetReco/interface/GenJet.h"
 
+// Hit pattern
+#include "PhysicsTools/RecoUtils/interface/CheckHitPattern.h"
+
 // track association
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
+
+// Jet Tracks Association
+#include "DataFormats/JetReco/interface/JetTracksAssociation.h"
 
 #include "TTree.h"
 #include "TH2F.h"
@@ -75,6 +91,7 @@
 #include "TMath.h"
 #include "TLorentzVector.h"
 #include "TStopwatch.h"
+#include "TParameter.h"
 
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetEvent.h"
@@ -106,6 +123,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
+    void prepareJet(const reco::PFJet& ijet, Jet& ojet, int source);
+    void prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source);
+    void prepareJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex, int source);
+    void prepareJetVertexTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, const TransientVertex& ivertex, int source, const edm::EventSetup& iSetup);
     void fillJet(const reco::PFJet& ijet, Jet& ojet);
     void fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack);
     void fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex);
@@ -116,7 +137,17 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     // Computation functions
     double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const;
+    double compute_alphaMax(reco::TrackRefVector& trackRefs) const;
+    int    compute_nDarkPions(const reco::PFJet& ijet) const;
+    int    compute_nDarkGluons(const reco::PFJet& ijet) const;
     double compute_pt2Sum (const TransientVertex& ivertex) const;
+
+    // Utility functions
+    reco::TrackRefVector MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2);
+
+
+    // Scanning functions (Called for specific events/objects)
+    void jetdump(reco::TrackRefVector& trackRefs) const;
 
 
     // ----------member data ---------------------------
@@ -124,6 +155,9 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    edm::EDGetTokenT<edm::View<reco::CaloJet> > jet_collT_;
+    edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
+    edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
 
     edm::ParameterSet         m_trackParameterSet;
     TrackDetectorAssociator   m_trackAssociator;
@@ -133,7 +167,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     ConfigurableVertexReconstructor vtxmaker_;
 
     emjet::OutputTree otree_ ; // OutputTree object
-    TTree* t_tree;
+    TTree* tree_;
 
     emjet:: Event  event_  ; // Current event
     emjet:: Jet    jet_    ; // Current jet
@@ -156,6 +190,20 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::Handle<reco::GenJetCollection> genJets_;
     std::vector<GlobalPoint> dt_points_;
     std::vector<GlobalPoint> csc_points_;
+
+    // Testing counters
+    int pfjet;
+    int pfjet_notracks;
+    int pfjet_nopv;
+    int pfjet_alphazero;
+    int pfjet_alphaneg;
+    int pfjet_alphazero_total;
+    int calojet;
+    int calojet_notracks;
+    int calojet_nopv;
+    int calojet_alphazero;
+    int calojet_alphaneg;
+    int calojet_alphazero_total;
 };
 
 //
@@ -174,6 +222,9 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   // jet_    (new Jet    ()),
   // track_  (new Track  ()),
   // vertex_ (new Vertex ())
+  jet_collT_ (consumes<edm::View<reco::CaloJet> >(iConfig.getUntrackedParameter<edm::InputTag>("jets"))),
+  assocVTXToken_ (consumes<reco::JetTracksAssociationCollection>(iConfig.getUntrackedParameter<edm::InputTag>("associatorVTX"))),
+  assocCALOToken_ (consumes<reco::JetTracksAssociationCollection>(iConfig.getUntrackedParameter<edm::InputTag>("associatorCALO"))),
   vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexreco")),
   vtxmaker_(vtxconfig_),
   event_  (),
@@ -183,12 +234,26 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 {
   // Config-independent initialization
   {
-    t_tree           = fs->make<TTree>("emJetTree","emJetTree");
-    otree_.Branch(t_tree);
+    // Initialize tree
+    std::string modulename = iConfig.getParameter<std::string>("@module_label");
+    tree_           = fs->make<TTree>("emJetTree","emJetTree");
+    otree_.Branch(tree_);
   }
 
   // Config-dependent initialization
   {
+    // Save Adaptive Vertex Reco config parameters to tree_->GetUserInfo()
+    {
+      double primcut = vtxconfig_.getParameter<double>("primcut");
+      tree_->GetUserInfo()->AddLast( new TParameter<double> ("primcut", primcut) );
+      double seccut = vtxconfig_.getParameter<double>("seccut");
+      tree_->GetUserInfo()->AddLast( new TParameter<double> ("seccut", seccut) );
+      bool smoothing = vtxconfig_.getParameter<bool>("smoothing");
+      tree_->GetUserInfo()->AddLast( new TParameter<bool> ("smoothing", smoothing) );
+      double minweight = vtxconfig_.getParameter<double>("minweight");
+      tree_->GetUserInfo()->AddLast( new TParameter<double> ("minweight", minweight) );
+    }
+
     isData_ = iConfig.getUntrackedParameter<bool>("isData");
     m_trackParameterSet = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
     if (isData_) {
@@ -202,6 +267,29 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     m_trackAssociator.useDefaultPropagator();
 
     jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+
+    // Register hard-coded inputs
+    consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
+    consumes<reco::TrackCollection> (edm::InputTag("generalTracks"));
+    consumes<reco::TrackCollection> (edm::InputTag("displacedStandAloneMuons"));
+    consumes<reco::PFMETCollection> (edm::InputTag("pfMet"));
+    consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVerticesWithBS"));
+    consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVertices"));
+    consumes<reco::VertexCollection> (edm::InputTag("inclusiveSecondaryVertices"));
+
+    consumes<DTRecSegment4DCollection> (edm::InputTag("dt4DSegments"));
+    consumes<CSCSegmentCollection> (edm::InputTag("cscSegments"));
+    consumes<RPCRecHitCollection> (edm::InputTag("rpcRecHits"));
+
+    consumes<reco::PFCandidateCollection> (edm::InputTag("particleFlow"));
+
+    if (!isData_) { // :MCONLY:
+      consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
+      consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
+      consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
+      consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
+    }
+
   }
 }
 
@@ -233,6 +321,17 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   jet_index_=0;
   track_index_=0;
   vertex_index_=0;
+  // Reset Testing counters
+  pfjet = 0;
+  pfjet_notracks = 0;
+  pfjet_nopv = 0;
+  pfjet_alphazero = 0;
+  pfjet_alphaneg = 0;
+  calojet = 0;
+  calojet_notracks = 0;
+  calojet_nopv = 0;
+  calojet_alphazero = 0;
+  calojet_alphaneg = 0;
 
   event_.run   = iEvent.id().run();
   event_.event = iEvent.id().event();
@@ -248,7 +347,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   // Calculate basic primary vertex and pileup info :EVENTLEVEL:
   {
-    iEvent.getByLabel("offlinePrimaryVerticesWithBS", primary_verticesH_);
+    // iEvent.getByLabel("offlinePrimaryVerticesWithBS", primary_verticesH_);
+    iEvent.getByLabel("offlinePrimaryVertices", primary_verticesH_);
     const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
     if (!isData_) { // :MCONLY: Add true number of interactions
       edm::Handle<std::vector<PileupSummaryInfo> > PileupInfo;
@@ -284,6 +384,36 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Retrieve generalTracks and build TransientTrackCollection
   edm::Handle<reco::TrackCollection> genTrackH;
   iEvent.getByLabel("generalTracks", genTrackH);
+  // Track dump
+  {
+    int itk=0;
+    // std::cout << "Dumping tracks\n";
+    for ( auto trk = genTrackH->begin(); trk != genTrackH->end(); trk++ ) {
+      if (itk==10) break;
+      reco::TrackRef trkref(genTrackH, itk);
+      bool hasNonZeroWeight = false;
+      for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+        double trackWeight = ipv->trackWeight(trkref);
+        if (trackWeight>0) hasNonZeroWeight = true;
+        // std::cout << "Track weight: " << trackWeight << std::endl;
+      } // End of vertex loop
+      // OUTPUT(hasNonZeroWeight);
+      itk++;
+    }
+
+    edm::Handle<reco::PFCandidateCollection> pfcandidatesH;
+    iEvent.getByLabel("particleFlow", pfcandidatesH);
+    for ( auto cand = pfcandidatesH->begin(); cand != pfcandidatesH->end(); cand++) {
+      bool matched = false;
+      if (cand->charge()==0) continue;
+      auto candtrkref = cand->trackRef();
+      for ( auto trk = genTrackH->begin(); trk != genTrackH->end(); trk++ ) {
+        reco::TrackRef trkref(genTrackH, itk);
+        if (candtrkref==trkref) matched = true;
+      }
+      // OUTPUT(matched);
+    }
+  }
   generalTracks_ = transienttrackbuilderH_->build(genTrackH);
 
   // Reconstruct AVR vertices using all generalTracks passing basic selection
@@ -298,28 +428,20 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
   for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
-    jet_.Init();
-    jet_.index = jet_index_;
-    jet_.source = 1; // source = 1 for PF jets :JETSOURCE:
     // Fill Jet-level quantities
-    fillJet(*jet, jet_);
+    prepareJet(*jet, jet_, 1); // source = 1 for PF jets :JETSOURCE:
 
     // Calculate Jet-Track-level quantities and fill into jet_ :JETTRACKLEVEL:
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
       if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
-      track_.Init();
-      track_.index = track_index_;
-      track_.source = 1; // source = 1 for generalTracks :TRACKSOURCE:
-      track_.jet_index = jet_index_;
       // Fill Jet-Track level quantities
+      prepareJetTrack(*itk, jet_, track_, 1); // source = 1 for generalTracks :TRACKSOURCE:
       fillJetTrack(*itk, jet_, track_);
-      // Write current Track to Jet
-      jet_.track_vector.push_back(track_);
-      track_index_++;
     }
 
     // Per-jet vertex reconstruction
     {
+      // std::cout << "Starting vertex reconstruction\n";
       // Add tracks to be used for vertexing
       std::vector<reco::TransientTrack> tracks_for_vertexing;
       for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
@@ -335,40 +457,116 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       // Fill Jet-Vertex level quantities for per-jet vertices
       for (auto vtx : vertices_for_current_jet) {
         if ( !selectJetVertex(vtx, jet_, vertex_) ) continue; // :CUT: Apply Vertex selection
-        vertex_.Init();
-        vertex_.index = vertex_index_;
-        vertex_.source = 1; // source = 1 for per-jet AVR vertices
         // Fill Jet-Vertex level quantities
+        prepareJetVertex(vtx, jet_, vertex_, 1); // source = 1 for per-jet AVR vertices :VERTEXSOURCE:
+        {
+          // Fill original tracks from current vertex
+          for (auto trk : vtx.originalTracks()) {
+            // Fill Jet-Track level quantities (for Tracks from Vertices)
+            prepareJetVertexTrack(trk, jet_, track_, vtx, 2, iSetup);
+            track_.source = 2; // source = 2 for original tracks from per-jet AVR vertices :TRACKSOURCE:
+            // Write current Track to Jet
+            jet_.track_vector.push_back(track_);
+          }
+        }
+        if (vtx.hasRefittedTracks()) {
+          // Fill refitted tracks from current vertex
+          for (auto trk : vtx.refittedTracks()) {
+            // Fill Jet-Track level quantities (for Tracks from Vertices)
+            prepareJetVertexTrack(trk, jet_, track_, vtx, 3, iSetup);
+            // source = 3 for refitted tracks from per-jet AVR vertices :TRACKSOURCE:
+            // Write current Track to Jet
+            jet_.track_vector.push_back(track_);
+          }
+        }
+        else {
+          std::cout << "No refitted tracks for current vertex!\n";
+        }
         fillJetVertex(vtx, jet_, vertex_);
-        // Write current Vertex to Jet
-        jet_.vertex_vector.push_back(vertex_);
-        vertex_index_++;
       }
     }
 
     // Fill Jet-Vertex level quantities for globally reconstructed AVR vertices
     for (auto vtx : avrVertices_) {
       if ( !selectJetVertex(vtx, jet_, vertex_) ) continue; // :CUT: Apply Vertex selection
-      vertex_.Init();
-      vertex_.index = vertex_index_;
-      vertex_.source = 2; // source = 2 for global AVR vertices
       // Fill Jet-Vertex level quantities
-      fillJetVertex(vtx, jet_, vertex_);
+      prepareJetVertex(vtx, jet_, vertex_, 2); // source = 2 for global AVR vertices :VERTEXSOURCE:
       // Write current Vertex to Jet
       jet_.vertex_vector.push_back(vertex_);
-      vertex_index_++;
+      if (vtx.hasRefittedTracks()) {
+        // Fill refitted tracks from current vertex
+        for (auto trk : vtx.refittedTracks()) {
+          // Fill Jet-Track level quantities
+          prepareJetVertexTrack(trk, jet_, track_, vtx, 4, iSetup);
+          // source = 4 for refitted tracks from global AVR vertices :TRACKSOURCE:
+          // Write current Track to Jet
+          jet_.track_vector.push_back(track_);
+        }
+      }
+      else {
+        std::cout << "No refitted tracks for current vertex!\n";
+      }
     }
+    fillJet(*jet, jet_);
+  }
 
+  // Testing CALO jet association
+  {
+    edm::Handle<edm::View<reco::CaloJet> > jet_coll;
+    edm::Handle<reco::JetTracksAssociationCollection> JetTracksCALO;
+    edm::Handle<reco::JetTracksAssociationCollection> JetTracksVTX;
+    iEvent.getByToken(jet_collT_, jet_coll);
+    iEvent.getByToken(assocCALOToken_, JetTracksCALO);
+    iEvent.getByToken(assocVTXToken_, JetTracksVTX);
+    for(size_t i=0; i<jet_coll->size()-1; i++){
+      edm::RefToBase<reco::CaloJet> jet1_ref = jet_coll->refAt(i);
+      if (!(jet1_ref->pt() > 50)) continue; // :CUT: Skip CALO jets with pt < 50
+      // Retrieve Jet Tracks Association
+      reco::TrackRefVector dijettrks_CALO  = reco::JetTracksAssociation::getValue(*JetTracksCALO, (edm::RefToBase<reco::Jet>)jet1_ref);
+      reco::TrackRefVector dijettrks_VTX  = reco::JetTracksAssociation::getValue(*JetTracksVTX, (edm::RefToBase<reco::Jet>)jet1_ref);
+      reco::TrackRefVector dijettrks = MergeTracks(dijettrks_CALO, dijettrks_VTX);
+      for(size_t j = 0; j<dijettrks.size(); j++){
+        const reco::TrackRef trk = dijettrks[j];
+        if(!trk->quality(reco::TrackBase::highPurity)) continue;
+        if(trk->pt() < 5) continue;
+      }
+      calojet++;
+      double alphaMax = compute_alphaMax(dijettrks);
+      if (alphaMax==0) {
+        jetdump(dijettrks);
+      }
 
-    // Write current Jet to Event
-    event_.jet_vector.push_back(jet_);
-    jet_index_++;
+      if (primary_verticesH_->size()==0) calojet_nopv++;
+      if (dijettrks.size()==0) calojet_notracks++;
+      if (alphaMax==0) calojet_alphazero++;
+      if (alphaMax<0) calojet_alphaneg++;
+    }
+  }
+
+  if (pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
+    std::cout << "Event summary:";
+    OUTPUT(event_.run);
+    OUTPUT(event_.lumi);
+    OUTPUT(event_.event);
+    OUTPUT(pfjet);
+    OUTPUT(pfjet_notracks);
+    OUTPUT(pfjet_nopv);
+    OUTPUT(pfjet_alphazero);
+    OUTPUT(pfjet_alphaneg);
+    OUTPUT(calojet);
+    OUTPUT(calojet_notracks);
+    OUTPUT(calojet_nopv);
+    OUTPUT(calojet_alphazero);
+    OUTPUT(calojet_alphaneg);
+    pfjet_alphazero_total += pfjet_alphazero;
+    calojet_alphazero_total += calojet_alphazero;
+    std::cout << "\n";
   }
 
   // Write current Event to OutputTree
   WriteEventToOutput(event_, &otree_);
   // Write OutputTree to TTree
-  t_tree->Fill();
+  tree_->Fill();
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
   Handle<ExampleData> pIn;
@@ -386,11 +584,15 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 void
 EmJetAnalyzer::beginJob()
 {
+  pfjet_alphazero_total = 0;
+  calojet_alphazero_total = 0;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void
 EmJetAnalyzer::endJob() {
+  OUTPUT(pfjet_alphazero_total);
+  OUTPUT(calojet_alphazero_total);
 }
 
 // ------------ method called when starting to processes a run  ------------
@@ -436,8 +638,14 @@ EmJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 void
-EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
+EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
 {
+
+  pfjet++; // DEBUG
+  ojet.Init();
+  ojet.index = jet_index_;
+  ojet.source = source;
+
   // Fill basic kinematic variables
   {
     ojet.pt  = ijet.pt()  ;
@@ -459,12 +667,49 @@ EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
   {
     reco::TrackRefVector trackRefs = ijet.getTrackRefs();
     ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
+    if (ojet.alphaMax<=0)
+      {
+        std::cout << "Dumping jet\n";
+        // OUTPUT(event_.run);
+        // OUTPUT(event_.lumi);
+        // OUTPUT(event_.event);
+        // OUTPUT(event_.nTrueInt);
+        OUTPUT(primary_verticesH_->size());
+        OUTPUT(trackRefs.size());
+        // OUTPUT(ojet.pt);
+        // OUTPUT(ojet.alphaMax);
+        jetdump(trackRefs);
+        std::cout << "\n";
+      }
+    if (primary_verticesH_->size()==0) pfjet_nopv++;
+    if (trackRefs.size()==0) pfjet_notracks++;
+    if (ojet.alphaMax==0) pfjet_alphazero++;
+    if (ojet.alphaMax<0) pfjet_alphaneg++;
+  }
+
+  // Fill nDarkPions and nDarkGluons
+  {
+    ojet.nDarkPions = compute_nDarkPions(ijet);
+    ojet.nDarkGluons = compute_nDarkGluons(ijet);
   }
 }
 
 void
-EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack)
+EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
 {
+  // Write current Jet to Event
+  event_.jet_vector.push_back(ojet);
+
+  jet_index_++;
+}
+
+void
+EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source)
+{
+  otrack.Init();
+  otrack.index = track_index_;
+  otrack.source = source;
+  otrack.jet_index = jet_index_;
   auto itk = &itrack;
   // Fill basic kinematic variables
   {
@@ -479,7 +724,10 @@ EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet,
     const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
     GlobalVector direction(ojet.p4.Px(), ojet.p4.Py(), ojet.p4.Pz());
     TrajectoryStateOnSurface pca = IPTools::closestApproachToJet(itk->impactPointState(), primary_vertex, direction, itk->field());
-    GlobalPoint closestPoint = pca.globalPosition();
+    GlobalPoint closestPoint;
+    if (pca.isValid()) {
+      closestPoint = pca.globalPosition();
+    }
     GlobalVector jetVector = direction.unit();
     Line::PositionType posJet(GlobalPoint(primary_vertex.position().x(),primary_vertex.position().y(),primary_vertex.position().z()));
     Line::DirectionType dirJet(jetVector);
@@ -503,6 +751,7 @@ EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet,
     otrack.ipXYSig = fabs(dxy_ipv.second.significance());
   }
 
+  otrack.quality             = itk->track().qualityMask();
   otrack.algo                = itk->track().algo();
   otrack.originalAlgo        = itk->track().originalAlgo();
   otrack.nHits               = itk->numberOfValidHits();
@@ -518,8 +767,37 @@ EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet,
 }
 
 void
-EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex)
+EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack)
 {
+  // Write current Track to Jet
+  jet_.track_vector.push_back(track_);
+
+  track_index_++;
+}
+
+
+void
+EmJetAnalyzer::prepareJetVertexTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, const TransientVertex& ivertex, int source, const edm::EventSetup& iSetup)
+{
+  static CheckHitPattern checkHitPattern;
+
+  prepareJetTrack(itrack, ojet, otrack, source);
+  otrack.vertex_index = vertex_index_;
+  otrack.vertex_weight = ivertex.trackWeight(itrack);
+  bool fixHitPattern = true;
+  CheckHitPattern::Result hitInfo = checkHitPattern.analyze(iSetup, itrack.track(), ivertex.vertexState(), fixHitPattern);
+  otrack.nHitsInFrontOfVert = hitInfo.hitsInFrontOfVert;
+  otrack.missHitsAfterVert  = hitInfo.missHitsAfterVert;
+}
+
+void
+EmJetAnalyzer::prepareJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex, int source)
+{
+  overtex.Init();
+  overtex.index = vertex_index_;
+  overtex.source = source;
+  overtex.jet_index = jet_index_;
+
   auto vtx = reco::Vertex(ivertex);
   const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
   TLorentzVector vertexVector;
@@ -543,6 +821,15 @@ EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Ve
   overtex.chi2   = ( vtx.chi2()   );
   overtex.ndof   = ( vtx.ndof()   );
   overtex.pt2sum = ( pt2sum       );
+}
+
+void
+EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex)
+{
+  // Write current Vertex to Jet
+  jet_.vertex_vector.push_back(vertex_);
+
+  vertex_index_++;
 }
 
 bool
@@ -617,20 +904,124 @@ EmJetAnalyzer::compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& t
   // Loop over all PVs and choose the one with highest scalar pt contribution to jet
   for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
     double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-    // std::cout << "New vertex\n";
     for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
       double trackWeight = ipv->trackWeight(*ijt);
-      // std::cout << "Track weight: " << trackWeight << std::endl;
       if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
     } // End of track loop
     if (vertex_pt_sum > max_vertex_pt_sum) {
       max_vertex_pt_sum = vertex_pt_sum;
       ipv_chosen = ipv;
-      // Calculate alpha
-      alphaMax = vertex_pt_sum / jet_pt_sum;
     }
   } // End of vertex loop
+  // Calculate alpha
+  alphaMax = max_vertex_pt_sum / jet_pt_sum;
   return alphaMax;
+}
+
+// Calculate jet alphaMax
+double
+EmJetAnalyzer::compute_alphaMax(reco::TrackRefVector& trackRefs) const
+{
+  double alphaMax = -1.;
+  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  double jet_pt_sum = 0.;
+  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+    jet_pt_sum += (*ijt)->pt();
+  } // End of track loop
+
+  auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
+  double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+      double trackWeight = ipv->trackWeight(*ijt);
+      if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+    } // End of track loop
+    if (vertex_pt_sum > max_vertex_pt_sum) {
+      max_vertex_pt_sum = vertex_pt_sum;
+      ipv_chosen = ipv;
+    }
+  } // End of vertex loop
+  // Calculate alpha
+  alphaMax = max_vertex_pt_sum / jet_pt_sum;
+  return alphaMax;
+}
+
+int
+EmJetAnalyzer::compute_nDarkPions(const reco::PFJet& ijet) const
+{
+  TLorentzVector jetVector;
+  jetVector.SetPtEtaPhiM(ijet.pt(),ijet.eta(),ijet.phi(),0.);
+  // Count number of dark pions
+  int nDarkPions = 0;
+  double minDist = 9999.;
+  {
+    if (!isData_) {
+      for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
+        if (fabs(gp->pdgId()) != 4900111) continue;
+        TLorentzVector gpVector;
+        gpVector.SetPtEtaPhiM(gp->pt(),gp->eta(),gp->phi(),gp->mass());
+        double dist = jetVector.DeltaR(gpVector);
+        if (dist < 0.4) {
+          nDarkPions++;
+        }
+        if (dist < minDist) minDist = dist;
+      }
+    }
+  }
+  return nDarkPions;
+}
+
+int
+EmJetAnalyzer::compute_nDarkGluons(const reco::PFJet& ijet) const
+{
+  TLorentzVector jetVector;
+  jetVector.SetPtEtaPhiM(ijet.pt(),ijet.eta(),ijet.phi(),0.);
+  // Count number of dark pions
+  int nDarkPions = 0;
+  double minDist = 9999.;
+  {
+    if (!isData_) {
+      for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
+        if (fabs(gp->pdgId()) != 4900021) continue;
+        TLorentzVector gpVector;
+        gpVector.SetPtEtaPhiM(gp->pt(),gp->eta(),gp->phi(),gp->mass());
+        double dist = jetVector.DeltaR(gpVector);
+        if (dist < 0.4) {
+          nDarkPions++;
+        }
+        if (dist < minDist) minDist = dist;
+      }
+    }
+  }
+  return nDarkPions;
+}
+
+void
+EmJetAnalyzer::jetdump(reco::TrackRefVector& trackRefs) const
+{
+  // auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
+  // double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+  // std::cout << "Track qualities:\n";
+  // for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //   // OUTPUT((*ijt)->qualityName(reco::TrackBase::highPurity));
+  //   // OUTPUT((*ijt)->qualityName(reco::TrackBase::loose));
+  //   // OUTPUT((*ijt)->qualityName(reco::TrackBase::tight));
+  //   // OUTPUT((*ijt)->qualityName(reco::TrackBase::goodIterative));
+  //   OUTPUT((*ijt)->quality(reco::TrackBase::highPurity));
+  //   OUTPUT((*ijt)->quality(reco::TrackBase::loose));
+  //   OUTPUT((*ijt)->quality(reco::TrackBase::tight));
+  //   OUTPUT((*ijt)->quality(reco::TrackBase::goodIterative));
+  // }
+  // for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+  //   std::cout << "New vertex\n";
+  //   for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //     double trackWeight = ipv->trackWeight(*ijt);
+  //     std::cout << "Track weight: " << trackWeight << std::endl;
+  //   } // End of track loop
+  // } // End of vertex loop
 }
 
 double
@@ -656,6 +1047,25 @@ EmJetAnalyzer::compute_pt2Sum (const TransientVertex& ivertex) const {
     }
   return sum;
 }
+
+// Merge two TrackRefVector objects
+reco::TrackRefVector
+EmJetAnalyzer::MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2){
+  reco::TrackRefVector mergedtrks;
+  mergedtrks = trks1;
+  for(size_t i = 0; i<trks2.size(); i++){
+    bool new_trk = true;
+    for(size_t j = 0; j< trks1.size(); j++){
+      if(trks2[i].index()==trks1[j].index()){
+        new_trk = false;
+      }
+    }
+    if(new_trk) mergedtrks.push_back(trks2[i]);
+  }
+  return mergedtrks;
+
+}
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(EmJetAnalyzer);

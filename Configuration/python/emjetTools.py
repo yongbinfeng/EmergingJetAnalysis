@@ -134,18 +134,26 @@ def addWJetSkim(process, isData=False):
 
 def addAnalyze(process, isData=False, sample=''):
     from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock
-    # process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
-    #     TrackAssociatorParameterBlock,
-    #     srcJets = cms.InputTag("jetFilter", "selectedJets"),
-    #     isData = cms.untracked.bool(False),
-    # )
-    # if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
-    # if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+    process.emergingJetAnalyzer = cms.EDAnalyzer('EmergingJetAnalyzer',
+        TrackAssociatorParameterBlock,
+        srcJets = cms.InputTag("jetFilter", "selectedJets"),
+        isData = cms.untracked.bool(False),
+    )
+    if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
+    if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
 
     process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
         TrackAssociatorParameterBlock,
         srcJets = cms.InputTag("jetFilter", "selectedJets"),
         isData = cms.untracked.bool(False),
+        vertexreco = cms.PSet(
+            primcut = cms.double( 3.0 ),
+            seccut = cms.double( 5.0 ),
+            smoothing = cms.bool( True ),
+            # weightthreshold = cms.double( 0.0010 ),
+            minweight = cms.double( 0.5 ),
+            finder = cms.string( "avr" )
+        ),
     )
     if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
     if sample=='wjet': process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
@@ -174,3 +182,26 @@ def addEdmOutput(process, isData=False, sample=''):
     else      : process.out.outputCommands.extend(AODSIMEventContent.outputCommands)
     if sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
     else              : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+
+def addTesting(process, isData=False, sample=''):
+    # Jet Track Association
+    process.load('RecoJets.JetAssociationProducers.ak4JTA_cff')
+    process.emJetAnalyzer.jets = cms.untracked.InputTag('ak4CaloJets')
+    process.emJetAnalyzer.associatorVTX = cms.untracked.InputTag("ak4JTAatVX")
+    process.emJetAnalyzer.associatorCALO = cms.untracked.InputTag("ak4JTAatCAL")
+    process.ak4JTAatVX = cms.EDProducer("JetTracksAssociatorAtVertex",
+        tracks = cms.InputTag("generalTracks"),
+        coneSize = cms.double(0.4),
+        useAssigned = cms.bool(False),
+        pvSrc = cms.InputTag("offlinePrimaryVertices"),
+        jets = cms.InputTag("ak4CaloJets")
+    )
+    process.ak4JTAatCAL = cms.EDProducer("JetTracksAssociatorAtCaloFace",
+        tracks = cms.InputTag("generalTracks"),
+        extrapolations = cms.InputTag("trackExtrapolator"),
+        trackQuality = cms.string("goodIterative"),
+        coneSize = cms.double(0.4),
+        useAssigned = cms.bool(False),
+        jets = cms.InputTag("ak4CaloJets")
+    )
+    return cms.Sequence(process.ak4JTAatVX*process.ak4JTAatCAL)

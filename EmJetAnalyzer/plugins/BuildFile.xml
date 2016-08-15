@@ -3,6 +3,7 @@
 <use name="FWCore/ParameterSet"/>
 <use name="DataFormats/ParticleFlowCandidate"/>
 <use name="PhysicsTools/UtilAlgos"/>
+<use name="PhysicsTools/RecoUtils"/>
 <use name="FWCore/ServiceRegistry"/>
 <use name="TrackingTools/TransientTrack"/>
 <use name="TrackingTools/Records"/>

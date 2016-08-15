@@ -99,14 +99,11 @@ namespace emjet
       chf                  = DEFAULTVALUE;
       nhf                  = DEFAULTVALUE;
       phf                  = DEFAULTVALUE;
-      nPromptTracks        = DEFAULTVALUE;
-      nDispTracks          = DEFAULTVALUE;
-      nSV                  = DEFAULTVALUE;
-      medianLogIpSig       = DEFAULTVALUE;
       missHits             = DEFAULTVALUE;
       muonHits             = DEFAULTVALUE;
       alphaMax             = DEFAULTVALUE;
       nDarkPions           = DEFAULTVALUE;
+      nDarkGluons          = DEFAULTVALUE;
       minDRDarkPion        = DEFAULTVALUE;
       //[[[end]]]
 
@@ -129,14 +126,11 @@ namespace emjet
     float  chf                 ;
     float  nhf                 ;
     float  phf                 ;
-    int    nPromptTracks       ;
-    int    nDispTracks         ;
-    int    nSV                 ;
-    float  medianLogIpSig      ;
     int    missHits            ;
     int    muonHits            ;
     float  alphaMax            ;
     int    nDarkPions          ;
+    int    nDarkGluons         ;
     float  minDRDarkPion       ;
     //[[[end]]]
     vector<Track>    track_vector;
@@ -163,12 +157,17 @@ namespace emjet
       index                = DEFAULTVALUE;
       source               = DEFAULTVALUE;
       jet_index            = DEFAULTVALUE;
+      vertex_index         = DEFAULTVALUE;
+      vertex_weight        = DEFAULTVALUE;
+      nHitsInFrontOfVert   = DEFAULTVALUE;
+      missHitsAfterVert    = DEFAULTVALUE;
       pt                   = DEFAULTVALUE;
       eta                  = DEFAULTVALUE;
       phi                  = DEFAULTVALUE;
       pca_r                = DEFAULTVALUE;
       pca_eta              = DEFAULTVALUE;
       pca_phi              = DEFAULTVALUE;
+      quality              = DEFAULTVALUE;
       algo                 = DEFAULTVALUE;
       originalAlgo         = DEFAULTVALUE;
       nHits                = DEFAULTVALUE;
@@ -196,12 +195,17 @@ namespace emjet
     int    index               ;
     int    source              ;
     int    jet_index           ;
+    int    vertex_index        ;
+    float  vertex_weight       ;
+    int    nHitsInFrontOfVert  ;
+    int    missHitsAfterVert   ;
     float  pt                  ;
     float  eta                 ;
     float  phi                 ;
     float  pca_r               ;
     float  pca_eta             ;
     float  pca_phi             ;
+    int    quality             ;
     int    algo                ;
     int    originalAlgo        ;
     int    nHits               ;
@@ -349,14 +353,11 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.chf                 ;}, otree->jet_chf                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nhf                 ;}, otree->jet_nhf                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.phf                 ;}, otree->jet_phf                 );
-    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nPromptTracks       ;}, otree->jet_nPromptTracks       );
-    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDispTracks         ;}, otree->jet_nDispTracks         );
-    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nSV                 ;}, otree->jet_nSV                 );
-    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.medianLogIpSig      ;}, otree->jet_medianLogIpSig      );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.missHits            ;}, otree->jet_missHits            );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.muonHits            ;}, otree->jet_muonHits            );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax            ;}, otree->jet_alphaMax            );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkPions          ;}, otree->jet_nDarkPions          );
+    vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkGluons         ;}, otree->jet_nDarkGluons         );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.minDRDarkPion       ;}, otree->jet_minDRDarkPion       );
     //[[[end]]]
   }
@@ -371,12 +372,17 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto index                = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.index               ;}); otree->track_index               .push_back(index               );
       auto source               = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.source              ;}); otree->track_source              .push_back(source              );
       auto jet_index            = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.jet_index           ;}); otree->track_jet_index           .push_back(jet_index           );
+      auto vertex_index         = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.vertex_index        ;}); otree->track_vertex_index        .push_back(vertex_index        );
+      auto vertex_weight        = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.vertex_weight       ;}); otree->track_vertex_weight       .push_back(vertex_weight       );
+      auto nHitsInFrontOfVert   = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.nHitsInFrontOfVert  ;}); otree->track_nHitsInFrontOfVert  .push_back(nHitsInFrontOfVert  );
+      auto missHitsAfterVert    = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.missHitsAfterVert   ;}); otree->track_missHitsAfterVert   .push_back(missHitsAfterVert   );
       auto pt                   = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pt                  ;}); otree->track_pt                  .push_back(pt                  );
       auto eta                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.eta                 ;}); otree->track_eta                 .push_back(eta                 );
       auto phi                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.phi                 ;}); otree->track_phi                 .push_back(phi                 );
       auto pca_r                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_r               ;}); otree->track_pca_r               .push_back(pca_r               );
       auto pca_eta              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_eta             ;}); otree->track_pca_eta             .push_back(pca_eta             );
       auto pca_phi              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_phi             ;}); otree->track_pca_phi             .push_back(pca_phi             );
+      auto quality              = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.quality             ;}); otree->track_quality             .push_back(quality             );
       auto algo                 = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.algo                ;}); otree->track_algo                .push_back(algo                );
       auto originalAlgo         = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.originalAlgo        ;}); otree->track_originalAlgo        .push_back(originalAlgo        );
       auto nHits                = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.nHits               ;}); otree->track_nHits               .push_back(nHits               );
@@ -398,7 +404,6 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     }
   }
   // Jet-Vertex-level variables
-  if (0)
   {
     for (const auto jet : event.jet_vector) {
       //[[[cog

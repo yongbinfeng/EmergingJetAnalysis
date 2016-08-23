@@ -156,7 +156,8 @@ def addAnalyze(process, isData=False, sample=''):
         ),
     )
     if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
-    if sample=='wjet': process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+    if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
+    if sample=='recotest' : process.emJetAnalyzer.srcJets = cms.InputTag("ak4PFJetsCHS")
 
     # return cms.Sequence(process.emergingJetAnalyzer+process.emJetAnalyzer)
     return cms.Sequence(process.emJetAnalyzer)

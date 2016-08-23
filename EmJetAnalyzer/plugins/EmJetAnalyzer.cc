@@ -367,6 +367,14 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 
+  // Retrieve event level GEN quantities
+  if (!isData_) {
+    // edm::Handle<std::vector<reco::GenMET> > genMetH;
+    // iEvent.getByLabel("genMetTrue", genMetH);
+    iEvent.getByLabel("genParticles", genParticlesH_);
+    // iEvent.getByLabel("ak4GenJets",   genJets_);
+  }
+
   // Calculate MET :EVENTLEVEL:
   {
     edm::Handle<reco::PFMETCollection> pfmet;

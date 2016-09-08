@@ -20,8 +20,9 @@ git clone https://github.com/yhshin11/EmergingJetAnalysis.git
 cd EmergingJetAnalysis
 git checkout rewrite-20160401
 #+END_SRC
-*** To compile
+*** To setup environment and compile
 #+BEGIN_SRC
+cmsenv
 ./buildAll.sh
 #+END_SRC
 *** To run main example config file

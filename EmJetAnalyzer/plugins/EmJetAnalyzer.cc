@@ -169,6 +169,9 @@ class EmJetAnalyzer : public edm::EDFilter {
     emjet::OutputTree otree_ ; // OutputTree object
     TTree* tree_;
 
+    std::auto_ptr< reco::PFJetCollection > scanJet_;
+    std::auto_ptr< reco::TrackCollection > scanJetTracks_;
+
     emjet:: Event  event_  ; // Current event
     emjet:: Jet    jet_    ; // Current jet
     emjet:: Track  track_  ; // Current track
@@ -209,6 +212,7 @@ class EmJetAnalyzer : public edm::EDFilter {
 //
 // constants, enums and typedefs
 //
+bool scanMode_ = true;
 
 //
 // static data member definitions
@@ -290,6 +294,12 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
     }
 
+    // For scanning jets with alphaMax==0
+    {
+      produces< reco::PFJetCollection > ("scanJet"). setBranchAlias( "scanJet" );
+      produces< reco::TrackCollection > ("scanJetTracks"). setBranchAlias( "scanJetTracks" );
+    }
+
   }
 }
 
@@ -313,6 +323,10 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   // Reset output tree to default values
   otree_.Init();
+  // Reset output collections
+  // Initialize output collections
+  scanJet_ = std::auto_ptr< reco::PFJetCollection > ( new reco::PFJetCollection() );
+  scanJetTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   // Reset Event variables
   vertex_.Init();
   jet_.Init();
@@ -585,6 +599,11 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   ESHandle<SetupData> pSetup;
   iSetup.get<SetupRecord>().get(pSetup);
 #endif
+
+  iEvent.put(scanJet_, "scanJet"); // scanJet_
+  iEvent.put(scanJetTracks_, "scanJetTracks"); // scanJetTracks_
+
+  if (scanMode_) return (pfjet_alphazero>0);
   return true;
 }
 
@@ -675,6 +694,12 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
   {
     reco::TrackRefVector trackRefs = ijet.getTrackRefs();
     ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
+    if (ojet.alphaMax==0) {
+      scanJet_->push_back(ijet);
+      for (auto tref : trackRefs) {
+        scanJetTracks_->push_back(*tref);
+      }
+    }
     if (ojet.alphaMax<=0)
       {
         std::cout << "Dumping jet\n";

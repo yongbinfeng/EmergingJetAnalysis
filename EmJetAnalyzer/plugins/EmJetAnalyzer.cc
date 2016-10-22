@@ -29,6 +29,7 @@
 
 // system include files
 #include <memory>
+#include <stdlib.h> // For rand()
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -132,6 +133,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     void fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex);
     bool selectTrack(const reco::TransientTrack& itrack, const Track& otrack);
     bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
+    bool selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
     bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
     bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex);
 
@@ -148,6 +150,7 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     // Scanning functions (Called for specific events/objects)
     void jetdump(reco::TrackRefVector& trackRefs) const;
+    void jetscan(const reco::PFJet& ijet);
 
 
     // ----------member data ---------------------------
@@ -171,6 +174,7 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     std::auto_ptr< reco::PFJetCollection > scanJet_;
     std::auto_ptr< reco::TrackCollection > scanJetTracks_;
+    std::auto_ptr< reco::TrackCollection > scanJetSelectedTracks_;
 
     emjet:: Event  event_  ; // Current event
     emjet:: Jet    jet_    ; // Current jet
@@ -213,6 +217,7 @@ class EmJetAnalyzer : public edm::EDFilter {
 // constants, enums and typedefs
 //
 bool scanMode_ = true;
+bool scanRandomJet_ = true;
 
 //
 // static data member definitions
@@ -296,8 +301,9 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 
     // For scanning jets with alphaMax==0
     {
-      produces< reco::PFJetCollection > ("scanJet"). setBranchAlias( "scanJet" );
-      produces< reco::TrackCollection > ("scanJetTracks"). setBranchAlias( "scanJetTracks" );
+      produces< reco::PFJetCollection > ("scanJet"). setBranchAlias( "scanJet" ); // scanJet_
+      produces< reco::TrackCollection > ("scanJetTracks"). setBranchAlias( "scanJetTracks" ); // scanJetTracks_
+      produces< reco::TrackCollection > ("scanJetSelectedTracks"). setBranchAlias( "scanJetSelectedTracks" ); // scanJetSelectedTracks_
     }
 
   }
@@ -327,6 +333,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Initialize output collections
   scanJet_ = std::auto_ptr< reco::PFJetCollection > ( new reco::PFJetCollection() );
   scanJetTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
+  scanJetSelectedTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   // Reset Event variables
   vertex_.Init();
   jet_.Init();
@@ -454,6 +461,12 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     prepareJet(*jet, jet_, 1); // source = 1 for PF jets :JETSOURCE:
 
     // Calculate Jet-Track-level quantities and fill into jet_ :JETTRACKLEVEL:
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+      if ( !selectJetTrackDeltaR(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
+      // Fill Jet-Track level quantities
+      prepareJetTrack(*itk, jet_, track_, 0); // source = 0 for generalTracks with simple deltaR :TRACKSOURCE:
+      fillJetTrack(*itk, jet_, track_);
+    }
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
       if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
       // Fill Jet-Track level quantities
@@ -602,7 +615,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   iEvent.put(scanJet_, "scanJet"); // scanJet_
   iEvent.put(scanJetTracks_, "scanJetTracks"); // scanJetTracks_
+  iEvent.put(scanJetSelectedTracks_, "scanJetSelectedTracks"); // scanJetSelectedTracks_
 
+  if (scanRandomJet_) return true;
   if (scanMode_) return (pfjet_alphazero>0);
   return true;
 }
@@ -672,6 +687,10 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
   ojet.Init();
   ojet.index = jet_index_;
   ojet.source = source;
+  // Scan one jet at random
+  if (scanRandomJet_ && scanJet_->size()==0) {
+    if (rand() % 2 == 0) jetscan(ijet);
+  }
 
   // Fill basic kinematic variables
   {
@@ -695,10 +714,7 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
     reco::TrackRefVector trackRefs = ijet.getTrackRefs();
     ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
     if (ojet.alphaMax==0) {
-      scanJet_->push_back(ijet);
-      for (auto tref : trackRefs) {
-        scanJetTracks_->push_back(*tref);
-      }
+      // jetscan(ijet);
     }
     if (ojet.alphaMax<=0)
       {
@@ -904,9 +920,29 @@ EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& oje
 }
 
 bool
+EmJetAnalyzer::selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+{
+  auto itk = &itrack;
+  if (!selectTrack(itrack, otrack)) return false; // :CUT: Require track to pass basic selection
+
+  // Skip tracks with deltaR > 0.4 w.r.t. current jet :CUT:
+  TLorentzVector trackVector;
+  trackVector.SetPxPyPzE(
+                         itk->track().px(),
+                         itk->track().py(),
+                         itk->track().pz(),
+                         itk->track().p());
+  float deltaR = trackVector.DeltaR(ojet.p4);
+  // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
+  if (deltaR > 0.4) return false;
+
+  return true;
+}
+
+bool
 EmJetAnalyzer::selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
 {
-  return selectJetTrack(itrack, ojet, otrack);
+  return selectJetTrackDeltaR(itrack, ojet, otrack);
 }
 
 bool
@@ -1055,6 +1091,19 @@ EmJetAnalyzer::jetdump(reco::TrackRefVector& trackRefs) const
   //     std::cout << "Track weight: " << trackWeight << std::endl;
   //   } // End of track loop
   // } // End of vertex loop
+}
+
+void
+EmJetAnalyzer::jetscan(const reco::PFJet& ijet) {
+  reco::TrackRefVector trackRefs = ijet.getTrackRefs();
+  scanJet_->push_back(ijet);
+  for (auto tref : trackRefs) {
+    scanJetTracks_->push_back(*tref);
+  }
+  for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+    if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
+    scanJetSelectedTracks_->push_back(itk->track());
+  }
 }
 
 double

@@ -102,6 +102,14 @@
 #endif
 
 //
+// constants, enums and typedefs
+//
+// bool scanMode_ = true;
+// bool scanRandomJet_ = true;
+
+// typedef std::vector<TransientVertex> TransientVertexCollection;
+
+//
 // class declaration
 //
 
@@ -124,6 +132,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
+    // n-tuple filling
     void prepareJet(const reco::PFJet& ijet, Jet& ojet, int source);
     void prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source);
     void prepareJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex, int source);
@@ -136,6 +145,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
     bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
     bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex);
+    void fillGenParticles () ;
+
+    // EDM output
+    void findDarkPionVertices () ;
 
     // Computation functions
     double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const;
@@ -155,6 +168,8 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     // ----------member data ---------------------------
     bool isData_;
+    bool scanMode_;
+    bool scanRandomJet_;
 
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
@@ -175,14 +190,21 @@ class EmJetAnalyzer : public edm::EDFilter {
     std::auto_ptr< reco::PFJetCollection > scanJet_;
     std::auto_ptr< reco::TrackCollection > scanJetTracks_;
     std::auto_ptr< reco::TrackCollection > scanJetSelectedTracks_;
+    std::auto_ptr< reco::VertexCollection > avrVerticesGlobalOutput_;
+    std::auto_ptr< reco::VertexCollection > avrVerticesLocalOutput_;
+    std::auto_ptr< reco::TrackCollection > avrVerticesRFTracksGlobalOutput_;
+    std::auto_ptr< reco::TrackCollection > avrVerticesRFTracksLocalOutput_;
+    std::auto_ptr< reco::VertexCollection > darkPionVertices_;
 
-    emjet:: Event  event_  ; // Current event
-    emjet:: Jet    jet_    ; // Current jet
-    emjet:: Track  track_  ; // Current track
-    emjet:: Vertex vertex_ ; // Current vertex
-    int jet_index_    ; // Current jet index
-    int track_index_  ; // Current track index
-    int vertex_index_ ; // Current vertex index
+    emjet:: Event  event_            ; // Current event
+    emjet:: Jet    jet_              ; // Current jet
+    emjet:: Track  track_            ; // Current track
+    emjet:: Vertex vertex_           ; // Current vertex
+    emjet:: GenParticle genparticle_ ; // Current genparticle
+    int jet_index_         ; // Current jet index
+    int track_index_       ; // Current track index
+    int vertex_index_      ; // Current vertex index
+    int genparticle_index_ ; // Current genparticle index
 
     // Retrieve once per event
     // Intermediate objects used for calculations
@@ -214,12 +236,6 @@ class EmJetAnalyzer : public edm::EDFilter {
 };
 
 //
-// constants, enums and typedefs
-//
-bool scanMode_ = true;
-bool scanRandomJet_ = true;
-
-//
 // static data member definitions
 //
 
@@ -236,10 +252,11 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   assocCALOToken_ (consumes<reco::JetTracksAssociationCollection>(iConfig.getUntrackedParameter<edm::InputTag>("associatorCALO"))),
   vtxconfig_(iConfig.getParameter<edm::ParameterSet>("vertexreco")),
   vtxmaker_(vtxconfig_),
-  event_  (),
-  jet_    (),
-  track_  (),
-  vertex_ ()
+  event_       (),
+  jet_         (),
+  track_       (),
+  vertex_      (),
+  genparticle_ ()
 {
   // Config-independent initialization
   {
@@ -251,6 +268,11 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 
   // Config-dependent initialization
   {
+    // Important execution switches
+    isData_ = iConfig.getParameter<bool>("isData");
+    scanMode_ = iConfig.getParameter<bool>("scanMode");
+    scanRandomJet_ = iConfig.getParameter<bool>("scanRandomJet");
+
     // Save Adaptive Vertex Reco config parameters to tree_->GetUserInfo()
     {
       double primcut = vtxconfig_.getParameter<double>("primcut");
@@ -263,7 +285,6 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       tree_->GetUserInfo()->AddLast( new TParameter<double> ("minweight", minweight) );
     }
 
-    isData_ = iConfig.getUntrackedParameter<bool>("isData");
     m_trackParameterSet = iConfig.getParameter<edm::ParameterSet>("TrackAssociatorParameters");
     if (isData_) {
       std::cout << "running on data" << std::endl;
@@ -304,6 +325,12 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       produces< reco::PFJetCollection > ("scanJet"). setBranchAlias( "scanJet" ); // scanJet_
       produces< reco::TrackCollection > ("scanJetTracks"). setBranchAlias( "scanJetTracks" ); // scanJetTracks_
       produces< reco::TrackCollection > ("scanJetSelectedTracks"). setBranchAlias( "scanJetSelectedTracks" ); // scanJetSelectedTracks_
+      // produces< TransientVertexCollection > ("avrVerticesGlobalOutput"). setBranchAlias( "avrVerticesGlobalOutput" ); // avrVerticesGlobalOutput_
+      produces< reco::VertexCollection > ("avrVerticesGlobalOutput"). setBranchAlias( "avrVerticesGlobalOutput" ); // avrVerticesGlobalOutput_
+      produces< reco::VertexCollection > ("avrVerticesLocalOutput"). setBranchAlias( "avrVerticesLocalOutput" ); // avrVerticesLocalOutput_
+      produces< reco::TrackCollection > ("avrVerticesRFTracksGlobalOutput"). setBranchAlias( "avrVerticesRFTracksGlobalOutput" ); // avrVerticesRFTracksGlobalOutput_
+      produces< reco::TrackCollection > ("avrVerticesRFTracksLocalOutput"). setBranchAlias( "avrVerticesRFTracksLocalOutput" ); // avrVerticesRFTracksLocalOutput_
+      produces< reco::VertexCollection > ("darkPionVertices"). setBranchAlias( "darkPionVertices" ); // darkPionVertices_
     }
 
   }
@@ -334,14 +361,21 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   scanJet_ = std::auto_ptr< reco::PFJetCollection > ( new reco::PFJetCollection() );
   scanJetTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   scanJetSelectedTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
+  avrVerticesGlobalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
+  avrVerticesLocalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
+  avrVerticesRFTracksGlobalOutput_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
+  avrVerticesRFTracksLocalOutput_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
+  darkPionVertices_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
   // Reset Event variables
   vertex_.Init();
   jet_.Init();
   event_.Init();
+  genparticle_.Init();
   // Reset object counters
   jet_index_=0;
   track_index_=0;
   vertex_index_=0;
+  genparticle_index_=0;
   // Reset Testing counters
   pfjet = 0;
   pfjet_notracks = 0;
@@ -395,6 +429,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByLabel("genParticles", genParticlesH_);
     // iEvent.getByLabel("ak4GenJets",   genJets_);
   }
+  fillGenParticles();
+  findDarkPionVertices();
 
   // Calculate MET :EVENTLEVEL:
   {
@@ -454,6 +490,14 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       tracks_for_vertexing.push_back(*itk);
   }
   avrVertices_ = avr.vertices(tracks_for_vertexing);
+  for (auto tv : avrVertices_) {
+    avrVerticesGlobalOutput_->push_back(reco::Vertex(tv));
+    if (tv.hasRefittedTracks()) {
+      for (auto rftrk : tv.refittedTracks()) {
+        avrVerticesRFTracksGlobalOutput_->push_back(rftrk.track());
+      }
+    }
+  }
 
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
   for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
@@ -476,9 +520,17 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     // Per-jet vertex reconstruction
     {
-      // std::cout << "Starting vertex reconstruction\n";
       // Add tracks to be used for vertexing
       std::vector<reco::TransientTrack> tracks_for_vertexing;
+      std::vector<reco::TransientTrack> primary_tracks;
+      const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+      for(std::vector<reco::TrackBaseRef>::const_iterator iter = primary_vertex.tracks_begin();
+          iter != primary_vertex.tracks_end(); iter++) {
+        // reco::Track trk = **iter;
+        // Cast iter to TrackRef and build into TransientTrack
+        reco::TransientTrack ttrk = transienttrackbuilderH_->build(iter->castTo<reco::TrackRef>());
+        primary_tracks.push_back(ttrk);
+      }
       for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
         if ( selectJetTrackForVertexing(*itk, jet_, track_) ) // :CUT: Apply Track selection for vertexing
           tracks_for_vertexing.push_back(*itk);
@@ -487,7 +539,15 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       // Reconstruct vertex from tracks associated with current jet
       std::vector<TransientVertex> vertices_for_current_jet;
       {
-        vertices_for_current_jet = vtxmaker_.vertices(generalTracks_, tracks_for_vertexing, *theBeamSpot_);
+        vertices_for_current_jet = vtxmaker_.vertices(primary_tracks, tracks_for_vertexing, *theBeamSpot_);
+      }
+      for (auto tv : vertices_for_current_jet) {
+        avrVerticesLocalOutput_->push_back(reco::Vertex(tv));
+        if (tv.hasRefittedTracks()) {
+          for (auto rftrk : tv.refittedTracks()) {
+            avrVerticesRFTracksLocalOutput_->push_back(rftrk.track());
+          }
+        }
       }
       // Fill Jet-Vertex level quantities for per-jet vertices
       for (auto vtx : vertices_for_current_jet) {
@@ -546,6 +606,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
   // Testing CALO jet association
+  if (false)
   {
     edm::Handle<edm::View<reco::CaloJet> > jet_coll;
     edm::Handle<reco::JetTracksAssociationCollection> JetTracksCALO;
@@ -616,6 +677,11 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.put(scanJet_, "scanJet"); // scanJet_
   iEvent.put(scanJetTracks_, "scanJetTracks"); // scanJetTracks_
   iEvent.put(scanJetSelectedTracks_, "scanJetSelectedTracks"); // scanJetSelectedTracks_
+  iEvent.put(avrVerticesGlobalOutput_, "avrVerticesGlobalOutput"); // avrVerticesGlobalOutput_
+  iEvent.put(avrVerticesLocalOutput_, "avrVerticesLocalOutput"); // avrVerticesLocalOutput_
+  iEvent.put(avrVerticesRFTracksGlobalOutput_, "avrVerticesRFTracksGlobalOutput"); // avrVerticesRFTracksGlobalOutput_
+  iEvent.put(avrVerticesRFTracksLocalOutput_, "avrVerticesRFTracksLocalOutput"); // avrVerticesRFTracksLocalOutput_
+  iEvent.put(darkPionVertices_, "darkPionVertices"); // darkPionVertices_
 
   if (scanRandomJet_) return true;
   if (scanMode_) return (pfjet_alphazero>0);
@@ -955,6 +1021,39 @@ EmJetAnalyzer::selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, 
   double deltaR = vertexVector.DeltaR(ojet.p4);
   if (deltaR > 0.4) return false; // Ignore vertices outside jet cone :CUT:
   return true;
+}
+
+void
+EmJetAnalyzer::fillGenParticles () {
+  for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
+    genparticle_.status = gp->status();
+    genparticle_.pdgId = gp->pdgId();
+    genparticle_.charge = gp->charge();
+    genparticle_.pt = gp->pt();
+    genparticle_.eta = gp->eta();
+    genparticle_.phi = gp->phi();
+    event_.genparticle_vector.push_back(genparticle_);
+    genparticle_.index++;
+  }
+}
+
+void
+EmJetAnalyzer::findDarkPionVertices () {
+  for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
+    if (gp->pdgId()==4900111) {
+      auto dau = gp->daughter(0);
+      double x = dau->vx();
+      double y = dau->vy();
+      double z = dau->vz();
+      reco::Vertex::Error e;
+      // e(0, 0) = 0.0015 * 0.0015;
+      // e(1, 1) = 0.0015 * 0.0015;
+      // e(2, 2) = 15. * 15.;
+      reco::Vertex::Point p(x, y, z);
+      reco::Vertex dpVertex(p, e, 0, 0, 0);
+      darkPionVertices_->push_back(dpVertex);
+    }
+  }
 }
 
 // Calculate jet alphaMax

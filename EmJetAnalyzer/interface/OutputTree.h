@@ -93,6 +93,13 @@ namespace emjet
     vector<vector<float> >  vertex_chi2                ;
     vector<vector<float> >  vertex_ndof                ;
     vector<vector<float> >  vertex_pt2sum              ;
+    vector<int>             genparticle_index               ;
+    vector<int>             genparticle_status              ;
+    vector<int>             genparticle_pdgId               ;
+    vector<int>             genparticle_charge              ;
+    vector<float>           genparticle_pt                  ;
+    vector<float>           genparticle_eta                 ;
+    vector<float>           genparticle_phi                 ;
     //[[[end]]]
   };
 }
@@ -176,6 +183,13 @@ emjet::OutputTree::Init() {
   vertex_chi2                .clear();
   vertex_ndof                .clear();
   vertex_pt2sum              .clear();
+  genparticle_index               .clear();
+  genparticle_status              .clear();
+  genparticle_pdgId               .clear();
+  genparticle_charge              .clear();
+  genparticle_pt                  .clear();
+  genparticle_eta                 .clear();
+  genparticle_phi                 .clear();
   //[[[end]]]
 }
 
@@ -259,6 +273,13 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, vertex_chi2                );
   BRANCH(tree, vertex_ndof                );
   BRANCH(tree, vertex_pt2sum              );
+  BRANCH(tree, genparticle_index               );
+  BRANCH(tree, genparticle_status              );
+  BRANCH(tree, genparticle_pdgId               );
+  BRANCH(tree, genparticle_charge              );
+  BRANCH(tree, genparticle_pt                  );
+  BRANCH(tree, genparticle_eta                 );
+  BRANCH(tree, genparticle_phi                 );
   //[[[end]]]
 }
 

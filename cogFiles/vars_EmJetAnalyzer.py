@@ -1,4 +1,4 @@
-"""Generates code for EmergingJetAnalyzer"""
+"""Generates code for EmJetAnalyzer/OutputTree"""
 
 ############################################################
 # Cog file boiler plate
@@ -115,7 +115,16 @@ jet_vertex_vars = [
     Var("ndof"                , "float" , 2 , ) ,
     Var("pt2sum"              , "float" , 2 , ) ,
 ]
-all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars
+genparticle_vars = [
+    Var("index"               , "int"   , 1 , ) ,
+    Var("status"              , "int"   , 1 , ) ,
+    Var("pdgId"               , "int"   , 1 , ) ,
+    Var("charge"              , "int"   , 1 , ) ,
+    Var("pt"                  , "float" , 1 , ) ,
+    Var("eta"                 , "float" , 1 , ) ,
+    Var("phi"                 , "float" , 1 , ) ,
+]
+all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars + genparticle_vars
 # Pad Var fields with appropriate number of spaces
 namelength_list = [len(var.name) for var in all_vars]
 maxnamelength = max(namelength_list)
@@ -137,20 +146,22 @@ def make_fullname_builder(prefix="", postfix=""):
     return lambda x : x.update({'fullname': prefix + x['name'] + postfix}) or x
 
 # Turn list of Var objects, to dictionary objects
-event_vardicts      = map( var_to_dict, event_vars      )
-jet_vardicts        = map( var_to_dict, jet_vars        )
-jet_track_vardicts  = map( var_to_dict, jet_track_vars  )
-jet_vertex_vardicts = map( var_to_dict, jet_vertex_vars )
+event_vardicts       = map( var_to_dict, event_vars       )
+jet_vardicts         = map( var_to_dict, jet_vars         )
+jet_track_vardicts   = map( var_to_dict, jet_track_vars   )
+jet_vertex_vardicts  = map( var_to_dict, jet_vertex_vars  )
+genparticle_vardicts = map( var_to_dict, genparticle_vars )
 # Add appropriate prefix for variable names
-event_vardicts      = map( make_fullname_builder(""        ) , event_vardicts      )
-jet_vardicts        = map( make_fullname_builder("jet_"    ) , jet_vardicts        )
-jet_track_vardicts  = map( make_fullname_builder("track_"  ) , jet_track_vardicts  )
-jet_vertex_vardicts = map( make_fullname_builder("vertex_" ) , jet_vertex_vardicts )
+event_vardicts       = map( make_fullname_builder(""             ) , event_vardicts       )
+jet_vardicts         = map( make_fullname_builder("jet_"         ) , jet_vardicts         )
+jet_track_vardicts   = map( make_fullname_builder("track_"       ) , jet_track_vardicts   )
+jet_vertex_vardicts  = map( make_fullname_builder("vertex_"      ) , jet_vertex_vardicts  )
+genparticle_vardicts = map( make_fullname_builder("genparticle_" ) , genparticle_vardicts )
 # for vardict in event_vardicts      : vardict['prefix'] = ""
 # for vardict in jet_vardicts        : vardict['prefix'] = "jet_"
 # for vardict in jet_track_vardicts  : vardict['prefix'] = "track_"
 # for vardict in jet_vertex_vardicts : vardict['prefix'] = "vertex_"
-all_vardicts = event_vardicts + jet_vardicts + jet_track_vardicts + jet_vertex_vardicts
+all_vardicts = event_vardicts + jet_vardicts + jet_track_vardicts + jet_vertex_vardicts + genparticle_vardicts
 
 from string import Template
 def replaceSingleLine(template_string, vardict):

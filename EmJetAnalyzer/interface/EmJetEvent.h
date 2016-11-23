@@ -23,6 +23,7 @@ namespace emjet
   class Track;
   class Vertex;
   class Jet;
+  class GenParticle;
   class Event {
   public:
     Event() {}
@@ -50,6 +51,7 @@ namespace emjet
       //[[[end]]]
 
       jet_vector.clear();
+      genparticle_vector.clear();
     };
     //[[[cog
     //template_string = "$cpptype $name;"
@@ -68,6 +70,7 @@ namespace emjet
     //[[[end]]]
 
     vector<Jet> jet_vector;
+    vector<GenParticle> genparticle_vector;
   };
   class Jet {
   public:
@@ -284,6 +287,39 @@ namespace emjet
     // These are not written to output
     TLorentzVector p4;
   };
+  class GenParticle {
+  public:
+    GenParticle() {}
+    ~GenParticle() {}
+    void Init(){
+      //[[[cog
+      //template_string = "$name = DEFAULTVALUE;"
+      //import vars_EmJetAnalyzer as m
+      //for vardict in m.genparticle_vardicts: m.replaceSingleLine(template_string, vardict)
+      //]]]
+      index                = DEFAULTVALUE;
+      status               = DEFAULTVALUE;
+      pdgId                = DEFAULTVALUE;
+      charge               = DEFAULTVALUE;
+      pt                   = DEFAULTVALUE;
+      eta                  = DEFAULTVALUE;
+      phi                  = DEFAULTVALUE;
+      //[[[end]]]
+    }
+    //[[[cog
+    //template_string = "$cpptype $name;"
+    //import vars_EmJetAnalyzer as m
+    //for vardict in m.genparticle_vardicts: m.replaceSingleLine(template_string, vardict)
+    //]]]
+    int    index               ;
+    int    status              ;
+    int    pdgId               ;
+    int    charge              ;
+    float  pt                  ;
+    float  eta                 ;
+    float  phi                 ;
+    //[[[end]]]
+  };
 }
 
 // Turn vector of objects, into vector of member variable by calling func(object)
@@ -309,6 +345,7 @@ vectorize_new(const vector<Object>& input, std::function<T (const Object &)> fun
   return output;
 }
 
+using emjet::GenParticle;
 using emjet::Track;
 using emjet::Vertex;
 using emjet::Jet;
@@ -428,6 +465,22 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto pt2sum               = vectorize_new<Vertex, float >(jet.vertex_vector, [](const Vertex& obj ){return obj.pt2sum              ;}); otree->vertex_pt2sum              .push_back(pt2sum              );
       //[[[end]]]
     }
+  }
+  // GenParticle-level variables, e.g. vector<int>, vector<float>, etc.
+  {
+    //[[[cog
+    //template_string = "vectorize<GenParticle, $cpptype>(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.$name;}, otree->genparticle_$name);"
+    //import vars_EmJetAnalyzer as m
+    //for vardict in m.genparticle_vardicts: m.replaceSingleLine(template_string, vardict)
+    //]]]
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.index               ;}, otree->genparticle_index               );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.status              ;}, otree->genparticle_status              );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pdgId               ;}, otree->genparticle_pdgId               );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.charge              ;}, otree->genparticle_charge              );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pt                  ;}, otree->genparticle_pt                  );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.eta                 ;}, otree->genparticle_eta                 );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.phi                 ;}, otree->genparticle_phi                 );
+    //[[[end]]]
   }
 }
 

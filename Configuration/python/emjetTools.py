@@ -145,7 +145,7 @@ def addAnalyze(process, isData=False, sample=''):
     process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
         TrackAssociatorParameterBlock,
         srcJets = cms.InputTag("jetFilter", "selectedJets"),
-        isData = cms.untracked.bool(False),
+        isData = cms.bool(False),
         vertexreco = cms.PSet(
             primcut = cms.double( 3.0 ),
             seccut = cms.double( 5.0 ),
@@ -154,6 +154,8 @@ def addAnalyze(process, isData=False, sample=''):
             minweight = cms.double( 0.5 ),
             finder = cms.string( "avr" )
         ),
+        scanMode = cms.bool(False),
+        scanRandomJet = cms.bool(False),
     )
     if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")

@@ -42,6 +42,7 @@ event_vars = [
     Var("nTrueInt"            , "int"   , 0 , ) ,
     Var("met_pt"              , "float" , 0 , ) ,
     Var("met_phi"             , "float" , 0 , ) ,
+    Var("nTracks"             , "int"   , 0 , ) ,
 ]
 jet_vars = [
     Var("index"               , "int"   , 1 , ) ,
@@ -120,9 +121,32 @@ genparticle_vars = [
     Var("status"              , "int"   , 1 , ) ,
     Var("pdgId"               , "int"   , 1 , ) ,
     Var("charge"              , "int"   , 1 , ) ,
+    Var("mass"                , "float" , 1 , ) ,
     Var("pt"                  , "float" , 1 , ) ,
     Var("eta"                 , "float" , 1 , ) ,
     Var("phi"                 , "float" , 1 , ) ,
+    Var("vx"                  , "float" , 1 , ) ,
+    Var("vy"                  , "float" , 1 , ) ,
+    Var("vz"                  , "float" , 1 , ) ,
+    # Testing vars
+    Var("min2Ddist"         , "float" , 1 , ) ,
+    Var("min2Dsig"          , "float" , 1 , ) ,
+    Var("min3Ddist"         , "float" , 1 , ) ,
+    Var("min3Dsig"          , "float" , 1 , ) ,
+    Var("minDeltaR"         , "float" , 1 , ) ,
+    Var("matched2Ddist"     , "float" , 1 , ) ,
+    Var("matched2Dsig"      , "float" , 1 , ) ,
+    Var("matched3Ddist"     , "float" , 1 , ) ,
+    Var("matched3Dsig"      , "float" , 1 , ) ,
+    Var("matchedDeltaR"     , "float" , 1 , ) ,
+    Var("Lxy"               , "int"   , 1 , ) ,
+    Var("isDark"            , "int"   , 1 , ) ,
+    Var("nDaughters"        , "int"   , 1 , ) ,
+    # Var("isDarkPion"      , "int"   , 1 , ) ,
+    Var("hasSMDaughter"     , "int"   , 1 , ) ,
+    Var("hasDarkMother"     , "int"   , 1 , ) ,
+    Var("hasDarkPionMother" , "int"   , 1 , ) ,
+    Var("isTrackable"       , "int"   , 1 , ) ,
 ]
 all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars + genparticle_vars
 # Pad Var fields with appropriate number of spaces
@@ -156,7 +180,7 @@ event_vardicts       = map( make_fullname_builder(""             ) , event_vardi
 jet_vardicts         = map( make_fullname_builder("jet_"         ) , jet_vardicts         )
 jet_track_vardicts   = map( make_fullname_builder("track_"       ) , jet_track_vardicts   )
 jet_vertex_vardicts  = map( make_fullname_builder("vertex_"      ) , jet_vertex_vardicts  )
-genparticle_vardicts = map( make_fullname_builder("genparticle_" ) , genparticle_vardicts )
+genparticle_vardicts = map( make_fullname_builder("gp_"          ) , genparticle_vardicts )
 # for vardict in event_vardicts      : vardict['prefix'] = ""
 # for vardict in jet_vardicts        : vardict['prefix'] = "jet_"
 # for vardict in jet_track_vardicts  : vardict['prefix'] = "track_"

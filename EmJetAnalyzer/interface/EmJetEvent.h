@@ -48,6 +48,7 @@ namespace emjet
       nTrueInt             = DEFAULTVALUE;
       met_pt               = DEFAULTVALUE;
       met_phi              = DEFAULTVALUE;
+      nTracks              = DEFAULTVALUE;
       //[[[end]]]
 
       jet_vector.clear();
@@ -67,6 +68,7 @@ namespace emjet
     int    nTrueInt            ;
     float  met_pt              ;
     float  met_phi             ;
+    int    nTracks             ;
     //[[[end]]]
 
     vector<Jet> jet_vector;
@@ -301,9 +303,30 @@ namespace emjet
       status               = DEFAULTVALUE;
       pdgId                = DEFAULTVALUE;
       charge               = DEFAULTVALUE;
+      mass                 = DEFAULTVALUE;
       pt                   = DEFAULTVALUE;
       eta                  = DEFAULTVALUE;
       phi                  = DEFAULTVALUE;
+      vx                   = DEFAULTVALUE;
+      vy                   = DEFAULTVALUE;
+      vz                   = DEFAULTVALUE;
+      min2Ddist            = DEFAULTVALUE;
+      min2Dsig             = DEFAULTVALUE;
+      min3Ddist            = DEFAULTVALUE;
+      min3Dsig             = DEFAULTVALUE;
+      minDeltaR            = DEFAULTVALUE;
+      matched2Ddist        = DEFAULTVALUE;
+      matched2Dsig         = DEFAULTVALUE;
+      matched3Ddist        = DEFAULTVALUE;
+      matched3Dsig         = DEFAULTVALUE;
+      matchedDeltaR        = DEFAULTVALUE;
+      Lxy                  = DEFAULTVALUE;
+      isDark               = DEFAULTVALUE;
+      nDaughters           = DEFAULTVALUE;
+      hasSMDaughter        = DEFAULTVALUE;
+      hasDarkMother        = DEFAULTVALUE;
+      hasDarkPionMother    = DEFAULTVALUE;
+      isTrackable          = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
@@ -315,9 +338,30 @@ namespace emjet
     int    status              ;
     int    pdgId               ;
     int    charge              ;
+    float  mass                ;
     float  pt                  ;
     float  eta                 ;
     float  phi                 ;
+    float  vx                  ;
+    float  vy                  ;
+    float  vz                  ;
+    float  min2Ddist           ;
+    float  min2Dsig            ;
+    float  min3Ddist           ;
+    float  min3Dsig            ;
+    float  minDeltaR           ;
+    float  matched2Ddist       ;
+    float  matched2Dsig        ;
+    float  matched3Ddist       ;
+    float  matched3Dsig        ;
+    float  matchedDeltaR       ;
+    int    Lxy                 ;
+    int    isDark              ;
+    int    nDaughters          ;
+    int    hasSMDaughter       ;
+    int    hasDarkMother       ;
+    int    hasDarkPionMother   ;
+    int    isTrackable         ;
     //[[[end]]]
   };
 }
@@ -371,6 +415,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->nTrueInt             = event.nTrueInt            ;
     otree->met_pt               = event.met_pt              ;
     otree->met_phi              = event.met_phi             ;
+    otree->nTracks              = event.nTracks             ;
     //[[[end]]]
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.
@@ -469,17 +514,38 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
   // GenParticle-level variables, e.g. vector<int>, vector<float>, etc.
   {
     //[[[cog
-    //template_string = "vectorize<GenParticle, $cpptype>(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.$name;}, otree->genparticle_$name);"
+    //template_string = "vectorize<GenParticle, $cpptype>(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.$name;}, otree->gp_$name);"
     //import vars_EmJetAnalyzer as m
     //for vardict in m.genparticle_vardicts: m.replaceSingleLine(template_string, vardict)
     //]]]
-    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.index               ;}, otree->genparticle_index               );
-    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.status              ;}, otree->genparticle_status              );
-    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pdgId               ;}, otree->genparticle_pdgId               );
-    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.charge              ;}, otree->genparticle_charge              );
-    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pt                  ;}, otree->genparticle_pt                  );
-    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.eta                 ;}, otree->genparticle_eta                 );
-    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.phi                 ;}, otree->genparticle_phi                 );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.index               ;}, otree->gp_index               );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.status              ;}, otree->gp_status              );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pdgId               ;}, otree->gp_pdgId               );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.charge              ;}, otree->gp_charge              );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.mass                ;}, otree->gp_mass                );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.pt                  ;}, otree->gp_pt                  );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.eta                 ;}, otree->gp_eta                 );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.phi                 ;}, otree->gp_phi                 );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.vx                  ;}, otree->gp_vx                  );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.vy                  ;}, otree->gp_vy                  );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.vz                  ;}, otree->gp_vz                  );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.min2Ddist           ;}, otree->gp_min2Ddist           );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.min2Dsig            ;}, otree->gp_min2Dsig            );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.min3Ddist           ;}, otree->gp_min3Ddist           );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.min3Dsig            ;}, otree->gp_min3Dsig            );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.minDeltaR           ;}, otree->gp_minDeltaR           );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched2Ddist       ;}, otree->gp_matched2Ddist       );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched2Dsig        ;}, otree->gp_matched2Dsig        );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched3Ddist       ;}, otree->gp_matched3Ddist       );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched3Dsig        ;}, otree->gp_matched3Dsig        );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matchedDeltaR       ;}, otree->gp_matchedDeltaR       );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.Lxy                 ;}, otree->gp_Lxy                 );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.isDark              ;}, otree->gp_isDark              );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.nDaughters          ;}, otree->gp_nDaughters          );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasSMDaughter       ;}, otree->gp_hasSMDaughter       );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasDarkMother       ;}, otree->gp_hasDarkMother       );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasDarkPionMother   ;}, otree->gp_hasDarkPionMother   );
+    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.isTrackable         ;}, otree->gp_isTrackable         );
     //[[[end]]]
   }
 }

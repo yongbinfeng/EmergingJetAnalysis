@@ -96,6 +96,7 @@
 
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetEvent.h"
+#include "EmergingJetAnalysis/GenParticleAnalyzer/plugins/GenParticleAnalyzer.cc"
 
 #ifndef OUTPUT
 #define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
@@ -106,6 +107,7 @@
 //
 // bool scanMode_ = true;
 // bool scanRandomJet_ = true;
+bool jetdump_ = false;
 
 // typedef std::vector<TransientVertex> TransientVertexCollection;
 
@@ -114,6 +116,8 @@
 //
 
 using namespace emjet;
+
+class GenParticleAnalyzer;
 
 class EmJetAnalyzer : public edm::EDFilter {
   public:
@@ -429,7 +433,6 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByLabel("genParticles", genParticlesH_);
     // iEvent.getByLabel("ak4GenJets",   genJets_);
   }
-  fillGenParticles();
   findDarkPionVertices();
 
   // Calculate MET :EVENTLEVEL:
@@ -480,6 +483,11 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
   generalTracks_ = transienttrackbuilderH_->build(genTrackH);
+
+  // Count number of tracks
+  {
+    event_.nTracks = generalTracks_.size();
+  }
 
   // Reconstruct AVR vertices using all generalTracks passing basic selection
   avrVertices_.clear();
@@ -639,7 +647,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 
-  if (pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
+  fillGenParticles();
+
+  if (jetdump_ && pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
     std::cout << "Event summary:";
     OUTPUT(event_.run);
     OUTPUT(event_.lumi);
@@ -782,7 +792,7 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
     if (ojet.alphaMax==0) {
       // jetscan(ijet);
     }
-    if (ojet.alphaMax<=0)
+    if (jetdump_ && ojet.alphaMax<=0)
       {
         std::cout << "Dumping jet\n";
         // OUTPUT(event_.run);
@@ -1026,12 +1036,104 @@ EmJetAnalyzer::selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, 
 void
 EmJetAnalyzer::fillGenParticles () {
   for (auto gp = genParticlesH_->begin(); gp != genParticlesH_->end(); ++gp) {
+    const reco::Candidate* cand = &(*gp);
     genparticle_.status = gp->status();
     genparticle_.pdgId = gp->pdgId();
     genparticle_.charge = gp->charge();
+    genparticle_.mass = gp->mass();
     genparticle_.pt = gp->pt();
     genparticle_.eta = gp->eta();
     genparticle_.phi = gp->phi();
+    genparticle_.vx = gp->vx();
+    genparticle_.vy = gp->vy();
+    genparticle_.vz = gp->vz();
+    double Lxy = -1;
+    if ( cand->numberOfDaughters()>0 ) {
+      const reco::Candidate* dau = cand->daughter(0);
+      if (dau) {
+        Lxy = TMath::Sqrt( dau->vx()*dau->vx() + dau->vy()*dau->vy() );
+      }
+    }
+    genparticle_.Lxy = Lxy;
+    genparticle_.isDark = GenParticleAnalyzer::isDark(cand);
+    genparticle_.nDaughters = cand->numberOfDaughters();
+    bool hasSMDaughter = false;
+    if ( (GenParticleAnalyzer::hasDarkDaughter(cand) == false) && (cand->numberOfDaughters()>1) ) hasSMDaughter = true;
+    genparticle_.hasSMDaughter = hasSMDaughter;
+    genparticle_.hasDarkMother = GenParticleAnalyzer::hasDarkMother(cand);
+    genparticle_.hasDarkPionMother = GenParticleAnalyzer::hasDarkPionMother(cand);
+    // if (genparticle_.hasDarkMother && !genparticle_.isDark) std::cout<< "SM particle with Dark mother - status: " << genparticle_.status << "\t pdgId: " <<  (genparticle_.pdgId) << "\t nDau: " << gp->numberOfDaughters() << std::endl;
+    bool isTrackable = false;
+    int nTrackableDaughters = 0;
+    for ( unsigned int i = 0; i != cand->numberOfDaughters(); ++i){
+      auto dau = cand->daughter(i);
+      if (dau->pt() > 1 && dau->charge()!=0 && !GenParticleAnalyzer::isDark(dau)) nTrackableDaughters++;
+    }
+    if (nTrackableDaughters>1) isTrackable=true;
+    genparticle_.isTrackable = isTrackable;
+    // if (cand->pdgId()==4900111) {GenParticleAnalyzer::printParticleMothers(cand->daughter(0));}
+    // if (cand->numberOfMothers()>2) {
+    //   std::cout<<"GP with more than two mothers\n";
+    //   OUTPUT(cand->pdgId());
+    //   OUTPUT(cand->status());
+    //   OUTPUT(cand->pt());
+    //   OUTPUT(cand->numberOfMothers());
+    //   GenParticleAnalyzer::printParticleMothers(cand);
+    // }
+    float min2Ddist = 999999.;
+    float min2Dsig  = 999999.;
+    float min3Ddist = 999999.;
+    float min3Dsig  = 999999.;
+    float minDeltaR = 999999.;
+    float matched2Ddist = 999999.;
+    float matched2Dsig  = 999999.;
+    float matched3Ddist = 999999.;
+    float matched3Dsig  = 999999.;
+    float matchedDeltaR = 999999.;
+    // GenParticle vx/vy/vz returns production vertex position, so use first daughter to find decay vertex if it exists
+    if (cand->numberOfDaughters()>0) {
+      auto decay = cand->daughter(0);
+      for (auto vtx: avrVertices_) {
+        float dx = decay->vx() - vtx.position().x();
+        float dy = decay->vy() - vtx.position().y();
+        float dz = decay->vz() - vtx.position().z();
+        float exx = vtx.positionError().cxx();
+        float eyy = vtx.positionError().cyy();
+        float ezz = vtx.positionError().czz();
+        float dist2D = TMath::Sqrt( dx*dx + dy*dy );
+        float dist3D = TMath::Sqrt( dx*dx + dy*dy + dz*dz );
+        float error2D = TMath::Sqrt( exx + eyy );
+        float error3D = TMath::Sqrt( exx + eyy + ezz );
+        float sig2D = dist2D/error2D;
+        float sig3D = dist3D/error3D;
+        TLorentzVector decayVector (decay->vx(), decay->vy(), decay->vz(), 0.);
+        TLorentzVector vtxVector (vtx.position().x(), vtx.position().y(), vtx.position().z(), 0.);
+        float deltaR = decayVector.DeltaR(vtxVector);
+        if (dist2D<min2Ddist) {
+          min2Ddist = dist2D;
+          matched2Ddist = dist2D;
+          matched2Dsig = sig2D;
+          matched3Ddist = dist3D;
+          matched3Dsig = sig3D;
+          matchedDeltaR = deltaR;
+        }
+        if (dist3D<min3Ddist) min3Ddist = dist3D;
+        if (sig2D<min2Dsig) min2Dsig = sig2D;
+        if (sig3D<min3Dsig) min3Dsig = sig3D;
+        if (deltaR<minDeltaR) minDeltaR = deltaR;
+      }
+    }
+    genparticle_.min2Ddist = min2Ddist;
+    genparticle_.min2Dsig  = min2Dsig;
+    genparticle_.min3Ddist = min3Ddist;
+    genparticle_.min3Dsig  = min3Dsig;
+    genparticle_.minDeltaR = minDeltaR;
+    genparticle_.matched2Ddist = matched2Ddist;
+    genparticle_.matched2Dsig  = matched2Dsig;
+    genparticle_.matched3Ddist = matched3Ddist;
+    genparticle_.matched3Dsig  = matched3Dsig;
+    genparticle_.matchedDeltaR = matchedDeltaR;
+
     event_.genparticle_vector.push_back(genparticle_);
     genparticle_.index++;
   }

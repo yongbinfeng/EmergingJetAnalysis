@@ -427,13 +427,13 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
   // Retrieve event level GEN quantities
-  if (!isData_) {
+  if (!isData_) { // :MCONLY:
     // edm::Handle<std::vector<reco::GenMET> > genMetH;
     // iEvent.getByLabel("genMetTrue", genMetH);
     iEvent.getByLabel("genParticles", genParticlesH_);
     // iEvent.getByLabel("ak4GenJets",   genJets_);
+    findDarkPionVertices();
   }
-  findDarkPionVertices();
 
   // Calculate MET :EVENTLEVEL:
   {
@@ -647,7 +647,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 
-  fillGenParticles();
+  if (!isData_) { // :MCONLY:
+    fillGenParticles();
+  }
 
   if (jetdump_ && pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
     std::cout << "Event summary:";

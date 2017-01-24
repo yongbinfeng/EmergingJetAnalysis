@@ -139,7 +139,7 @@ def addAnalyze(process, isData=False, sample=''):
         srcJets = cms.InputTag("jetFilter", "selectedJets"),
         isData = cms.untracked.bool(False),
     )
-    if isData: process.emergingJetAnalyzer.isData = cms.untracked.bool( True )
+    if isData: process.emergingJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
 
     process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
@@ -157,7 +157,7 @@ def addAnalyze(process, isData=False, sample=''):
         scanMode = cms.bool(False),
         scanRandomJet = cms.bool(False),
     )
-    if isData: process.emJetAnalyzer.isData = cms.untracked.bool( True )
+    if isData: process.emJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
     if sample=='recotest' : process.emJetAnalyzer.srcJets = cms.InputTag("ak4PFJetsCHS")
 

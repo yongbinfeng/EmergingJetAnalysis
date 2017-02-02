@@ -101,8 +101,8 @@ def addWJetSkim(process, isData=False):
         maxDeltaPhi = cms.double(0.4), # Doesn't do anything
         minPtSelectedJet = cms.double(20.0),
         maxPtAdditionalJets = cms.double(20.0), # Doesn't do anything
-        # electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-loose'),
-        electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium'),
+        electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-medium'),
+        # electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium'),
     )
     if isData: process.wJetFilter.isData = cms.bool(True)
     process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')

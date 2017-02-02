@@ -11,5 +11,6 @@
 <use name="RecoVertex/AdaptiveVertexFinder"/>
 <use name="RecoVertex/TrimmedKalmanVertexFinder"/>
 <use name="TrackingTools/TrackAssociator"/>
+<use name="RecoVertex/PrimaryVertexProducer"/>
 
 <flags EDM_PLUGIN="1"/>

@@ -49,6 +49,23 @@ namespace emjet
       met_pt               = DEFAULTVALUE;
       met_phi              = DEFAULTVALUE;
       nTracks              = DEFAULTVALUE;
+      pv_x                 = DEFAULTVALUE;
+      pv_y                 = DEFAULTVALUE;
+      pv_z                 = DEFAULTVALUE;
+      pv_xError            = DEFAULTVALUE;
+      pv_yError            = DEFAULTVALUE;
+      pv_zError            = DEFAULTVALUE;
+      pv_chi2              = DEFAULTVALUE;
+      pv_ndof              = DEFAULTVALUE;
+      pv_pt2sum            = DEFAULTVALUE;
+      pv_nTracks           = DEFAULTVALUE;
+      pdf_id1              = DEFAULTVALUE;
+      pdf_id2              = DEFAULTVALUE;
+      pdf_x1               = DEFAULTVALUE;
+      pdf_x2               = DEFAULTVALUE;
+      pdf_pdf1             = DEFAULTVALUE;
+      pdf_pdf2             = DEFAULTVALUE;
+      pdf_scalePDF         = DEFAULTVALUE;
       //[[[end]]]
 
       jet_vector.clear();
@@ -69,6 +86,23 @@ namespace emjet
     float  met_pt              ;
     float  met_phi             ;
     int    nTracks             ;
+    float  pv_x                ;
+    float  pv_y                ;
+    float  pv_z                ;
+    float  pv_xError           ;
+    float  pv_yError           ;
+    float  pv_zError           ;
+    float  pv_chi2             ;
+    float  pv_ndof             ;
+    float  pv_pt2sum           ;
+    int    pv_nTracks          ;
+    int    pdf_id1             ;
+    int    pdf_id2             ;
+    float  pdf_x1              ;
+    float  pdf_x2              ;
+    float  pdf_pdf1            ;
+    float  pdf_pdf2            ;
+    float  pdf_scalePDF        ;
     //[[[end]]]
 
     vector<Jet> jet_vector;
@@ -103,7 +137,8 @@ namespace emjet
       nef                  = DEFAULTVALUE;
       chf                  = DEFAULTVALUE;
       nhf                  = DEFAULTVALUE;
-      phf                  = DEFAULTVALUE;
+      pef                  = DEFAULTVALUE;
+      mef                  = DEFAULTVALUE;
       missHits             = DEFAULTVALUE;
       muonHits             = DEFAULTVALUE;
       alphaMax             = DEFAULTVALUE;
@@ -130,7 +165,8 @@ namespace emjet
     float  nef                 ;
     float  chf                 ;
     float  nhf                 ;
-    float  phf                 ;
+    float  pef                 ;
+    float  mef                 ;
     int    missHits            ;
     int    muonHits            ;
     float  alphaMax            ;
@@ -416,6 +452,23 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->met_pt               = event.met_pt              ;
     otree->met_phi              = event.met_phi             ;
     otree->nTracks              = event.nTracks             ;
+    otree->pv_x                 = event.pv_x                ;
+    otree->pv_y                 = event.pv_y                ;
+    otree->pv_z                 = event.pv_z                ;
+    otree->pv_xError            = event.pv_xError           ;
+    otree->pv_yError            = event.pv_yError           ;
+    otree->pv_zError            = event.pv_zError           ;
+    otree->pv_chi2              = event.pv_chi2             ;
+    otree->pv_ndof              = event.pv_ndof             ;
+    otree->pv_pt2sum            = event.pv_pt2sum           ;
+    otree->pv_nTracks           = event.pv_nTracks          ;
+    otree->pdf_id1              = event.pdf_id1             ;
+    otree->pdf_id2              = event.pdf_id2             ;
+    otree->pdf_x1               = event.pdf_x1              ;
+    otree->pdf_x2               = event.pdf_x2              ;
+    otree->pdf_pdf1             = event.pdf_pdf1            ;
+    otree->pdf_pdf2             = event.pdf_pdf2            ;
+    otree->pdf_scalePDF         = event.pdf_scalePDF        ;
     //[[[end]]]
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.
@@ -434,7 +487,8 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nef                 ;}, otree->jet_nef                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.chf                 ;}, otree->jet_chf                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nhf                 ;}, otree->jet_nhf                 );
-    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.phf                 ;}, otree->jet_phf                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.pef                 ;}, otree->jet_pef                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.mef                 ;}, otree->jet_mef                 );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.missHits            ;}, otree->jet_missHits            );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.muonHits            ;}, otree->jet_muonHits            );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax            ;}, otree->jet_alphaMax            );

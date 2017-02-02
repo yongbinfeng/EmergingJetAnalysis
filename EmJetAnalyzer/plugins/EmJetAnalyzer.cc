@@ -43,6 +43,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
@@ -70,6 +71,7 @@
 #include "RecoVertex/ConfigurableVertexReco/interface/ConfigurableVertexReconstructor.h"
 #include "RecoVertex/TrimmedKalmanVertexFinder/interface/KalmanTrimmedVertexFinder.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexSmoother.h"
+#include "RecoVertex/PrimaryVertexProducer/interface/VertexHigherPtSquared.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
@@ -319,6 +321,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 
     if (!isData_) { // :MCONLY:
       consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
+      consumes<GenEventInfoProduct> (edm::InputTag("generator"));
       consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
       consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
       consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
@@ -423,6 +426,36 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.nVtx ++;
       if ( (ipv->isFake()) || (ipv->ndof() <= 4.) || (ipv->position().Rho() > 2.0) || (fabs(ipv->position().Z()) > 24.0) ) continue; // :CUT: Primary vertex cut for counting
       event_.nGoodVtx++;
+    }
+
+    // Fill primary vertex information
+    VertexHigherPtSquared vertexPt2Calculator;
+    double pt2sum = vertexPt2Calculator.sumPtSquared(primary_vertex);
+    double nTracks = primary_vertex.tracksSize();
+    event_.pv_x         = primary_vertex.x();
+    event_.pv_y         = primary_vertex.y();
+    event_.pv_z         = primary_vertex.z();
+    event_.pv_xError    = primary_vertex.xError();
+    event_.pv_yError    = primary_vertex.yError();
+    event_.pv_zError    = primary_vertex.zError();
+    event_.pv_chi2      = primary_vertex.chi2();
+    event_.pv_ndof      = primary_vertex.ndof();
+    event_.pv_pt2sum    = pt2sum;
+    event_.pv_nTracks   = nTracks;
+  }
+
+  // Fill PDF information :EVENTLEVEL:
+  if (!isData_) { // :MCONLY:
+    edm::Handle<GenEventInfoProduct> generatorH_;
+    iEvent.getByLabel("generator", generatorH_);
+    if (generatorH_->hasPDF()) {
+      event_.pdf_id1      = generatorH_->pdf()->id.first;
+      event_.pdf_id2      = generatorH_->pdf()->id.second;
+      event_.pdf_x1       = generatorH_->pdf()->x.first;
+      event_.pdf_x2       = generatorH_->pdf()->x.second;
+      event_.pdf_pdf1     = generatorH_->pdf()->xPDF.first;
+      event_.pdf_pdf2     = generatorH_->pdf()->xPDF.second;
+      event_.pdf_scalePDF = generatorH_->pdf()->scalePDF;
     }
   }
 
@@ -784,7 +817,8 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
     ojet.nef = ijet.neutralEmEnergyFraction()     ;
     ojet.chf = ijet.chargedHadronEnergyFraction() ;
     ojet.nhf = ijet.neutralHadronEnergyFraction() ;
-    ojet.phf = ijet.photonEnergyFraction()        ;
+    ojet.pef = ijet.photonEnergyFraction()        ;
+    ojet.mef = ijet.muonEnergyFraction()          ;
   }
 
   // Fill alphaMax

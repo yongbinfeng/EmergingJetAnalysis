@@ -107,27 +107,75 @@ if 'analyze' in options.steps:
 ########################################
 # Testing step
 ########################################
-testingStep = cms.Sequence()
-testingStep = addTesting(process, options.data, options.sample)
+# testingStep = cms.Sequence()
+# testingStep = addTesting(process, options.data, options.sample)
 
-process.p = cms.Path( skimStep * testingStep * analyzeStep )
+# process.p = cms.Path( skimStep * testingStep * analyzeStep )
 
-if 'skim' in options.steps and len(options.steps)==1:
-    # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
-    print ''
-    print '####################'
-    print 'Adding EDM output'
-    print '####################'
-    print ''
-    addEdmOutput(process, options.data, options.sample)
-else:
-    # Otherwise only save EDM output of jetFilter and wJetFilter
-    process.out = cms.OutputModule("PoolOutputModule",
-        fileName = cms.untracked.string('output.root'),
-        outputCommands = cms.untracked.vstring('drop *'),
+# if 'skim' in options.steps and len(options.steps)==1:
+#     # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
+#     print ''
+#     print '####################'
+#     print 'Adding EDM output'
+#     print '####################'
+#     print ''
+#     addEdmOutput(process, options.data, options.sample)
+# else:
+#     # Otherwise only save EDM output of jetFilter and wJetFilter
+#     process.out = cms.OutputModule("PoolOutputModule",
+#         fileName = cms.untracked.string('output.root'),
+#         outputCommands = cms.untracked.vstring('drop *'),
+#     )
+#     if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+#     else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+#     process.out.outputCommands.extend(cms.untracked.vstring('keep *_emJetAnalyzer_*_*',))
+
+########################################
+# Scanning step
+########################################
+scanningStep = cms.Sequence()
+scanningStep = addTesting(process, options.data, options.sample)
+
+jetFilter = cms.EDFilter("JetFilter",
+    srcJets = cms.InputTag("ak4PFJetsCHS"),
+    # srcJets = cms.InputTag("patJets"),
+    # additionalCut = cms.string(""),
+    additionalCut = cms.string("abs(eta) < 2.5 && pt > 50.0"),
+    jetCuts = cms.VPSet(
+        cms.PSet(
+            minPt = cms.double(0.0),
+            maxEta = cms.double(999.0),
+            stringCut = cms.string(""),
+            ),
+        cms.PSet(
+            minPt = cms.double(0.0),
+            maxEta = cms.double(999.0),
+            stringCut = cms.string(""),
+            ),
+        cms.PSet(
+            minPt = cms.double(0.0),
+            maxEta = cms.double(999.0),
+            stringCut = cms.string(""),
+            ),
+        cms.PSet(
+            minPt = cms.double(0.0),
+            maxEta = cms.double(999.0),
+            stringCut = cms.string(""),
+            ),
     )
-    if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
-    else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+)
+analyzeStep.replace(process.jetFilter, jetFilter)
+
+process.p = cms.Path( skimStep * scanningStep * analyzeStep )
+
+print ''
+print '####################'
+print 'Adding EDM output'
+print '####################'
+print ''
+addEdmOutput(process, options.data, options.sample)
+process.out.outputCommands.extend(cms.untracked.vstring('keep *_emJetAnalyzer_*_*',))
+process.out.fileName = cms.untracked.string('jetscan.root')
 
 ########################################
 # Generic configuration
@@ -150,45 +198,20 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
     fileNames = cms.untracked.vstring(
-        # File with single dark pions
-        # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
-        # Model A
-        '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_1.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_100.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_101.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_102.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_104.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_105.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_106.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_107.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_108.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_109.root',
-        # Model B
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_106.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_107.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_109.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_11.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_110.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_111.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_113.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_114.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_115.root',
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_116.root',
         # signal
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM/150717_090102/0000/aodsim_1.root'
         # QCD MC 74X
         # '/store/mc/RunIISpring15DR74/QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/10198812-0816-E511-A2B5-AC853D9DAC1D.root'
-        # '/store/mc/RunIISpring15DR74/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/025B6100-A217-E511-AF6F-0002C92DB46C.root'
+        '/store/mc/RunIISpring15DR74/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/025B6100-A217-E511-AF6F-0002C92DB46C.root'
         # data skim
         # '/store/group/phys_exotica/EmergingJets/DataSkim-20160302-v0/Run2015D/JetHT/DataSkim-20160302/160303_061653/0000/output_1.root'
         # wjet
         # '/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
-        # 'file:/afs/cern.ch/user/y/yoshin/eos/cms/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
         # wjet MC
         # '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
         # pickevents from data skim with alphaMax==0
@@ -206,13 +229,4 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple
 process.outpath = cms.EndPath(process.out)
 
 process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
-# # Needed for GetTrackTrajInfo
-# process.load("RecoTracker.Configuration.RecoTracker_cff")
 
-# process.load('Configuration.StandardSequences.Reconstruction_cff') #new for navigation
-# process.load('Configuration.StandardSequences.GeometryExtended_cff') #new for navigation
-# # process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff') #new for navigation
-# # process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
-# # process.load('JetMETCorrections.Configuration.CorrectedJetProducers_cff')
-# # # #get the jet energy corrections from the db file
-# # process.load("CondCore.CondDB.CondDB_cfi") 

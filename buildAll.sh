@@ -13,8 +13,8 @@ do
     #     exit 1
     # else
         # echo cog
-        echo "cog.py --verbosity=2 -r ${STARTINGDIR}/${file}"
-        cog.py --verbosity=2 -r "${STARTINGDIR}/${file}"
+        echo "$HOME/.local/bin/cog.py --verbosity=2 -r ${STARTINGDIR}/${file}"
+        $HOME/.local/bin/cog.py --verbosity=2 -r "${STARTINGDIR}/${file}"
     # fi
 done
 # echo "WARNING: Replacing EmergingJetAnalyzer/interface/OutputTree.h"

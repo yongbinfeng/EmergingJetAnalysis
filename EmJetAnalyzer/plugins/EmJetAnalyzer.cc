@@ -1302,7 +1302,7 @@ EmJetAnalyzer::compute_theta2D(const edm::EventSetup& iSetup) const
     vector_theta2D.push_back(theta2D);
   }
   double median_theta2D = get_median(vector_theta2D);
-  OUTPUT(median_theta2D);
+  // OUTPUT(median_theta2D);
   // std::cout << "Exiting compute_theta2D\n";
   return median_theta2D;
 }

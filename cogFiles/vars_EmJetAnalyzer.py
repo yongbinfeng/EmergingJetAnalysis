@@ -23,6 +23,7 @@ def outputline(line):
 
 def pad(input_string, width=20):
     '''Pads input string with spaces to given width'''
+
     format_string = '{0: <%d}' % width
     output_string = format_string.format(input_string)
     return output_string
@@ -83,8 +84,9 @@ jet_vars = [
     Var("muonHits"            , "int"   , 1 , ) ,
     Var("alphaMax"            , "float" , 1 , ) ,
     Var("nDarkPions"          , "int"   , 1 , ) ,
-    Var("nDarkGluons"          , "int"   , 1 , ) ,
+    Var("nDarkGluons"         , "int"   , 1 , ) ,
     Var("minDRDarkPion"       , "float" , 1 , ) ,
+    Var("theta2D"             , "float" , 1 , ) ,
 ]
 jet_track_vars = [
     Var("index"               , "int"   , 2 , ) ,

@@ -145,6 +145,7 @@ namespace emjet
       nDarkPions           = DEFAULTVALUE;
       nDarkGluons          = DEFAULTVALUE;
       minDRDarkPion        = DEFAULTVALUE;
+      theta2D              = DEFAULTVALUE;
       //[[[end]]]
 
       track_vector.clear();
@@ -173,6 +174,7 @@ namespace emjet
     int    nDarkPions          ;
     int    nDarkGluons         ;
     float  minDRDarkPion       ;
+    float  theta2D             ;
     //[[[end]]]
     vector<Track>    track_vector;
     vector<Vertex>   vertex_vector;
@@ -495,6 +497,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkPions          ;}, otree->jet_nDarkPions          );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkGluons         ;}, otree->jet_nDarkGluons         );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.minDRDarkPion       ;}, otree->jet_minDRDarkPion       );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.theta2D             ;}, otree->jet_theta2D             );
     //[[[end]]]
   }
   // Jet-Track-level variables

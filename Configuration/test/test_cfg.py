@@ -158,7 +158,7 @@ process.source = cms.Source("PoolSource",
         # File with single dark pions
         # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
         # Model A
-        # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_1.root',
+        '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_1.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_100.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_101.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_102.root',
@@ -190,7 +190,7 @@ process.source = cms.Source("PoolSource",
         # '/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
         # 'file:/afs/cern.ch/user/y/yoshin/eos/cms/store/group/phys_exotica/EmergingJets/wjetskim-v0/SingleMuonD-PRv3/SingleMuon/WJetSkim/151028_030342/0000/output_1.root'
         # wjet MC
-        '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
+        # '/store/mc/RunIISpring15DR74/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/006D71A7-73FC-E411-8C41-6CC2173BBE60.root'
         # pickevents from data skim with alphaMax==0
         # 'file:/afs/cern.ch/user/y/yoshin/CMSSW_7_6_3/src/EmergingJetAnalysis/scans/pickevents_alphaMax_0.root'
         # pickevents from data skim with alphaMax>0.9
@@ -206,4 +206,13 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple
 process.outpath = cms.EndPath(process.out)
 
 process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
+# # Needed for GetTrackTrajInfo
+# process.load("RecoTracker.Configuration.RecoTracker_cff")
 
+# process.load('Configuration.StandardSequences.Reconstruction_cff') #new for navigation
+# process.load('Configuration.StandardSequences.GeometryExtended_cff') #new for navigation
+# # process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff') #new for navigation
+# # process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
+# # process.load('JetMETCorrections.Configuration.CorrectedJetProducers_cff')
+# # # #get the jet energy corrections from the db file
+# # process.load("CondCore.CondDB.CondDB_cfi") 

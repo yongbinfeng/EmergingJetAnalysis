@@ -66,6 +66,7 @@ namespace emjet
     vector<int>             jet_nDarkPions          ;
     vector<int>             jet_nDarkGluons         ;
     vector<float>           jet_minDRDarkPion       ;
+    vector<float>           jet_theta2D             ;
     vector<vector<int> >    track_index               ;
     vector<vector<int> >    track_source              ;
     vector<vector<int> >    track_jet_index           ;
@@ -196,6 +197,7 @@ emjet::OutputTree::Init() {
   jet_nDarkPions          .clear();
   jet_nDarkGluons         .clear();
   jet_minDRDarkPion       .clear();
+  jet_theta2D             .clear();
   track_index               .clear();
   track_source              .clear();
   track_jet_index           .clear();
@@ -326,6 +328,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, jet_nDarkPions          );
   BRANCH(tree, jet_nDarkGluons         );
   BRANCH(tree, jet_minDRDarkPion       );
+  BRANCH(tree, jet_theta2D             );
   BRANCH(tree, track_index               );
   BRANCH(tree, track_source              );
   BRANCH(tree, track_jet_index           );

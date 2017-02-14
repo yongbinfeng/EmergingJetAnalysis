@@ -29,7 +29,9 @@
 
 // system include files
 #include <memory>
+#include <cassert> // For assert()
 #include <stdlib.h> // For rand()
+#include <math.h> // For asin()
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -88,11 +90,15 @@
 // Jet Tracks Association
 #include "DataFormats/JetReco/interface/JetTracksAssociation.h"
 
+// Track trajectory information
+#include "RecoTracker/DebugTools/interface/GetTrackTrajInfo.h"
+
 #include "TTree.h"
 #include "TH2F.h"
 #include "TH1F.h"
 #include "TMath.h"
 #include "TLorentzVector.h"
+#include "TVector3.h"
 #include "TStopwatch.h"
 #include "TParameter.h"
 
@@ -139,18 +145,18 @@ class EmJetAnalyzer : public edm::EDFilter {
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
     // n-tuple filling
-    void prepareJet(const reco::PFJet& ijet, Jet& ojet, int source);
+    void prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const edm::EventSetup& iSetup);
     void prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source);
     void prepareJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex, int source);
     void prepareJetVertexTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, const TransientVertex& ivertex, int source, const edm::EventSetup& iSetup);
     void fillJet(const reco::PFJet& ijet, Jet& ojet);
     void fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack);
     void fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Vertex& overtex);
-    bool selectTrack(const reco::TransientTrack& itrack, const Track& otrack);
-    bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
-    bool selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
-    bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack);
-    bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex);
+    bool selectTrack(const reco::TransientTrack& itrack) const;
+    bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
+    bool selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet) const;
+    bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
+    bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex) const;
     void fillGenParticles () ;
 
     // EDM output
@@ -159,13 +165,15 @@ class EmJetAnalyzer : public edm::EDFilter {
     // Computation functions
     double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const;
     double compute_alphaMax(reco::TrackRefVector& trackRefs) const;
+    double compute_theta2D(const edm::EventSetup& iSetup) const;
     int    compute_nDarkPions(const reco::PFJet& ijet) const;
     int    compute_nDarkGluons(const reco::PFJet& ijet) const;
     double compute_pt2Sum (const TransientVertex& ivertex) const;
 
     // Utility functions
     reco::TrackRefVector MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2);
-
+    template <class T>
+    T get_median(const vector<T>& input) const;
 
     // Scanning functions (Called for specific events/objects)
     void jetdump(reco::TrackRefVector& trackRefs) const;
@@ -527,7 +535,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   ConfigurableVertexReconstructor avr (vtxconfig_);
   std::vector<reco::TransientTrack> tracks_for_vertexing;
   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
-    if ( selectTrack(*itk, track_) ) // :CUT: Apply basic track selection
+    if ( selectTrack(*itk) ) // :CUT: Apply basic track selection
       tracks_for_vertexing.push_back(*itk);
   }
   avrVertices_ = avr.vertices(tracks_for_vertexing);
@@ -543,11 +551,11 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
   for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
     // Fill Jet-level quantities
-    prepareJet(*jet, jet_, 1); // source = 1 for PF jets :JETSOURCE:
+    prepareJet(*jet, jet_, 1, iSetup); // source = 1 for PF jets :JETSOURCE:
 
     // Calculate Jet-Track-level quantities and fill into jet_ :JETTRACKLEVEL:
     for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
-      if ( !selectJetTrackDeltaR(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
+      if ( !selectJetTrackDeltaR(*itk, jet_) ) continue; // :CUT: Apply Track selection
       // Fill Jet-Track level quantities
       prepareJetTrack(*itk, jet_, track_, 0); // source = 0 for generalTracks with simple deltaR :TRACKSOURCE:
       fillJetTrack(*itk, jet_, track_);
@@ -791,7 +799,7 @@ EmJetAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 void
-EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
+EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const edm::EventSetup& iSetup)
 {
 
   pfjet++; // DEBUG
@@ -852,6 +860,11 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source)
   {
     ojet.nDarkPions = compute_nDarkPions(ijet);
     ojet.nDarkGluons = compute_nDarkGluons(ijet);
+  }
+
+  // Fill theta2D
+  {
+    ojet.theta2D = compute_theta2D(iSetup);
   }
 }
 
@@ -994,7 +1007,7 @@ EmJetAnalyzer::fillJetVertex(const TransientVertex& ivertex, const Jet& ojet, Ve
 }
 
 bool
-EmJetAnalyzer::selectTrack(const reco::TransientTrack& itrack, const Track& otrack)
+EmJetAnalyzer::selectTrack(const reco::TransientTrack& itrack) const
 {
   auto itk = &itrack;
   // Skip tracks with pt<1 :CUT:
@@ -1003,10 +1016,10 @@ EmJetAnalyzer::selectTrack(const reco::TransientTrack& itrack, const Track& otra
 }
 
 bool
-EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const
 {
   auto itk = &itrack;
-  if (!selectTrack(itrack, otrack)) return false; // :CUT: Require track to pass basic selection
+  if (!selectTrack(itrack)) return false; // :CUT: Require track to pass basic selection
 
   // Skip tracks with invalid point-of-closest-approach :CUT:
   const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
@@ -1032,10 +1045,11 @@ EmJetAnalyzer::selectJetTrack(const reco::TransientTrack& itrack, const Jet& oje
 }
 
 bool
-EmJetAnalyzer::selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+EmJetAnalyzer::selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet) const
 {
+  // Gets jet 4 vector from ojet.p4
   auto itk = &itrack;
-  if (!selectTrack(itrack, otrack)) return false; // :CUT: Require track to pass basic selection
+  if (!selectTrack(itrack)) return false; // :CUT: Require track to pass basic selection
 
   // Skip tracks with deltaR > 0.4 w.r.t. current jet :CUT:
   TLorentzVector trackVector;
@@ -1052,13 +1066,13 @@ EmJetAnalyzer::selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Je
 }
 
 bool
-EmJetAnalyzer::selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack)
+EmJetAnalyzer::selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const
 {
-  return selectJetTrackDeltaR(itrack, ojet, otrack);
+  return selectJetTrackDeltaR(itrack, ojet);
 }
 
 bool
-EmJetAnalyzer::selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex)
+EmJetAnalyzer::selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex) const
 {
   auto vtx = reco::Vertex(ivertex);
 
@@ -1254,6 +1268,45 @@ EmJetAnalyzer::compute_alphaMax(reco::TrackRefVector& trackRefs) const
   return alphaMax;
 }
 
+// Calculate jet median theta2D in radians
+double
+EmJetAnalyzer::compute_theta2D(const edm::EventSetup& iSetup) const
+{
+  // std::cout << "Entering compute_theta2D\n";
+  // Uses generalTracks_
+  // Gets jet information from jet_
+  std::vector<float> vector_theta2D;
+  for (std::vector<reco::TransientTrack>::const_iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+    if ( !selectJetTrackDeltaR(*itk, jet_) ) continue; // :CUT: Apply Track selection
+    const reco::TransientTrack& itrack = *itk;
+    // Retrieve track position and momentum direction at inner most hit
+    // std::cout << "Getting inner most trajectory state\n";
+    // TrajectoryStateOnSurface innermost_state = itrack.innermostMeasurementState();
+    TrajectoryStateOnSurface innermost_state;
+    {
+      // trajectory information for acessing hits
+      static GetTrackTrajInfo getTrackTrajInfo;
+      std::vector<GetTrackTrajInfo::Result> trajInfo = getTrackTrajInfo.analyze(iSetup, itrack.track());
+      assert(trajInfo.size()>0);
+      innermost_state = trajInfo[0].detTSOS;
+    }
+    // std::cout << "Sucessfully got inner most trajectory state\n";
+    GlobalPoint innerPos = innermost_state.globalPosition();
+    GlobalVector innerPosMom = innermost_state.globalMomentum();
+    TVector3 innerPos2D(innerPos.x(), innerPos.y(), 0);
+    TVector3 innerMom2D(innerPosMom.x(), innerPosMom.y(), 0);
+    // Retrieve primary vertex position
+    const reco::Vertex& primary_vertex = primary_verticesH_->at(0);
+    TVector3 pvVector2D(primary_vertex.x(), primary_vertex.y(), 0);
+    double theta2D = (-1 * (pvVector2D - innerPos2D)).Angle((innerMom2D));
+    vector_theta2D.push_back(theta2D);
+  }
+  double median_theta2D = get_median(vector_theta2D);
+  OUTPUT(median_theta2D);
+  // std::cout << "Exiting compute_theta2D\n";
+  return median_theta2D;
+}
+
 int
 EmJetAnalyzer::compute_nDarkPions(const reco::PFJet& ijet) const
 {
@@ -1385,6 +1438,23 @@ EmJetAnalyzer::MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trk
 
 }
 
+template <class T>
+T EmJetAnalyzer::get_median(const vector<T>& input) const
+{
+  vector<T> input_copy(input);
+  std::sort(input_copy.begin(), input_copy.end());
+  unsigned size = input_copy.size();
+  double median = -1.;
+  if (size>0) {
+    if ( size % 2 == 0 ) {
+      median = (input_copy[size/2 - 1] + input_copy[size/2]) / 2;
+    }
+    else {
+      median = (input_copy[size/2]);
+    }
+  }
+  return median;
+}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(EmJetAnalyzer);

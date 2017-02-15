@@ -66,6 +66,15 @@ namespace emjet
       pdf_pdf1             = DEFAULTVALUE;
       pdf_pdf2             = DEFAULTVALUE;
       pdf_scalePDF         = DEFAULTVALUE;
+      HLT_PFHT400          = DEFAULTVALUE;
+      HLT_PFHT475          = DEFAULTVALUE;
+      HLT_PFHT600          = DEFAULTVALUE;
+      HLT_PFHT800          = DEFAULTVALUE;
+      HLT_PFHT900          = DEFAULTVALUE;
+      HLT_HT250            = DEFAULTVALUE;
+      HLT_HT350            = DEFAULTVALUE;
+      HLT_HT400            = DEFAULTVALUE;
+      HLT_HT500            = DEFAULTVALUE;
       //[[[end]]]
 
       jet_vector.clear();
@@ -103,6 +112,15 @@ namespace emjet
     float  pdf_pdf1            ;
     float  pdf_pdf2            ;
     float  pdf_scalePDF        ;
+    bool   HLT_PFHT400         ;
+    bool   HLT_PFHT475         ;
+    bool   HLT_PFHT600         ;
+    bool   HLT_PFHT800         ;
+    bool   HLT_PFHT900         ;
+    bool   HLT_HT250           ;
+    bool   HLT_HT350           ;
+    bool   HLT_HT400           ;
+    bool   HLT_HT500           ;
     //[[[end]]]
 
     vector<Jet> jet_vector;
@@ -471,6 +489,15 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->pdf_pdf1             = event.pdf_pdf1            ;
     otree->pdf_pdf2             = event.pdf_pdf2            ;
     otree->pdf_scalePDF         = event.pdf_scalePDF        ;
+    otree->HLT_PFHT400          = event.HLT_PFHT400         ;
+    otree->HLT_PFHT475          = event.HLT_PFHT475         ;
+    otree->HLT_PFHT600          = event.HLT_PFHT600         ;
+    otree->HLT_PFHT800          = event.HLT_PFHT800         ;
+    otree->HLT_PFHT900          = event.HLT_PFHT900         ;
+    otree->HLT_HT250            = event.HLT_HT250           ;
+    otree->HLT_HT350            = event.HLT_HT350           ;
+    otree->HLT_HT400            = event.HLT_HT400           ;
+    otree->HLT_HT500            = event.HLT_HT500           ;
     //[[[end]]]
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.

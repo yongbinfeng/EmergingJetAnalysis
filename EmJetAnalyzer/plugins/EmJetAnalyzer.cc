@@ -93,6 +93,10 @@
 // Track trajectory information
 #include "RecoTracker/DebugTools/interface/GetTrackTrajInfo.h"
 
+// HLT
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "FWCore/Common/interface/TriggerNames.h"
+
 #include "TTree.h"
 #include "TH2F.h"
 #include "TH1F.h"
@@ -179,17 +183,20 @@ class EmJetAnalyzer : public edm::EDFilter {
     void jetdump(reco::TrackRefVector& trackRefs) const;
     void jetscan(const reco::PFJet& ijet);
 
+    bool triggerfired(const edm::Event& ev, edm::Handle<edm::TriggerResults> triggerResultsHandle_, TString trigname);
 
     // ----------member data ---------------------------
     bool isData_;
     bool scanMode_;
     bool scanRandomJet_;
+    bool debug_;
 
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
     edm::EDGetTokenT<edm::View<reco::CaloJet> > jet_collT_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
+    edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
 
     edm::ParameterSet         m_trackParameterSet;
     TrackDetectorAssociator   m_trackAssociator;
@@ -286,6 +293,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     isData_ = iConfig.getParameter<bool>("isData");
     scanMode_ = iConfig.getParameter<bool>("scanMode");
     scanRandomJet_ = iConfig.getParameter<bool>("scanRandomJet");
+    debug_ = iConfig.getUntrackedParameter<bool>("debug",false);
 
     // Save Adaptive Vertex Reco config parameters to tree_->GetUserInfo()
     {
@@ -311,6 +319,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     m_trackAssociator.useDefaultPropagator();
 
     jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+    hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
 
     // Register hard-coded inputs
     consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
@@ -360,6 +369,18 @@ EmJetAnalyzer::~EmJetAnalyzer()
 
 }
 
+// HLT trig path acceptance function to protect from out of range issue if trigger name is not found in TriggerResults
+// Taken from https://twiki.cern.ch/twiki/pub/CMS/SWGuideCMSDataAnalysisSchool2015HLTExerciseFNAL/TriggerMuMuAnalysis.cc
+bool EmJetAnalyzer::triggerfired(const edm::Event& ev, edm::Handle<edm::TriggerResults> TRHandle_, TString trigname){
+  const edm::TriggerNames TrigNames_ = ev.triggerNames(*TRHandle_);
+  const unsigned int ntrigs = TRHandle_->size();
+  for (unsigned int itr=0; itr<ntrigs; itr++){
+    TString trigName=TrigNames_.triggerName(itr);
+    if (!TRHandle_->accept(itr)) continue;
+    if(trigName.Contains(trigname))      return true;
+  }
+  return false;
+}
 
 //
 // member functions
@@ -407,6 +428,31 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   event_.event = iEvent.id().event();
   event_.lumi  = iEvent.id().luminosityBlock();
   event_.bx    = iEvent.bunchCrossing();
+
+  // Retrieve HLT info
+  {
+    edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
+    iEvent.getByToken(hlTriggerResultsToken_, trigResults);
+    if (!trigResults.isValid()) {
+      if (debug_) std::cout << "HLT TriggerResults not found!";
+      return false;
+    }
+
+    const edm::TriggerNames& trigNames = iEvent.triggerNames(*trigResults);
+
+    // EXO-16-003 Triggers
+    event_.HLT_HT250 = triggerfired(iEvent,trigResults,"HLT_HT250_DisplacedDijet40_DisplacedTrack");
+    event_.HLT_HT350 = triggerfired(iEvent,trigResults,"HLT_HT350_DisplacedDijet40_DisplacedTrack");
+    event_.HLT_HT400 = triggerfired(iEvent,trigResults,"HLT_HT400_DisplacedDijet40_Inclusive");
+    event_.HLT_HT500 = triggerfired(iEvent,trigResults,"HLT_HT500_DisplacedDijet40_Inclusive");
+
+    // Emerging Jets Analysis Triggers
+    event_.HLT_PFHT400 = triggerfired(iEvent,trigResults,"HLT_PFHT400");
+    event_.HLT_PFHT475 = triggerfired(iEvent,trigResults,"HLT_PFHT475");
+    event_.HLT_PFHT600 = triggerfired(iEvent,trigResults,"HLT_PFHT600");
+    event_.HLT_PFHT800 = triggerfired(iEvent,trigResults,"HLT_PFHT800");
+    event_.HLT_PFHT900 = triggerfired(iEvent,trigResults,"HLT_PFHT900");
+  }
 
   // Retrieve offline beam spot (Used to constrain vertexing)
   {
@@ -1289,6 +1335,7 @@ EmJetAnalyzer::compute_theta2D(const edm::EventSetup& iSetup) const
       std::vector<GetTrackTrajInfo::Result> trajInfo = getTrackTrajInfo.analyze(iSetup, itrack.track());
       assert(trajInfo.size()>0);
       innermost_state = trajInfo[0].detTSOS;
+      if (!innermost_state.isValid()) continue;
     }
     // std::cout << "Sucessfully got inner most trajectory state\n";
     GlobalPoint innerPos = innermost_state.globalPosition();

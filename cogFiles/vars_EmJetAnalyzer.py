@@ -63,6 +63,17 @@ event_vars = [
     Var("pdf_pdf1"            , "float" , 0 , ) ,
     Var("pdf_pdf2"            , "float" , 0 , ) ,
     Var("pdf_scalePDF"        , "float" , 0 , ) ,
+    Var("HLT_PFHT400"         , "bool"  , 0 , ) ,
+    Var("HLT_PFHT475"         , "bool"  , 0 , ) ,
+    Var("HLT_PFHT600"         , "bool"  , 0 , ) ,
+    Var("HLT_PFHT800"         , "bool"  , 0 , ) ,
+    Var("HLT_PFHT900"         , "bool"  , 0 , ) ,
+    # Temporary (EXO-16-003 triggers)
+    Var("HLT_HT250"           , "bool"  , 0 , ) , #HT250_DisplacedDijet40_DisplacedTrack
+    Var("HLT_HT350"           , "bool"  , 0 , ) , #HT350_DisplacedDijet40_DisplacedTrack
+    Var("HLT_HT400"           , "bool"  , 0 , ) , #HT400_DisplacedDijet40_Inclusive
+    Var("HLT_HT500"           , "bool"  , 0 , ) , #HT500_DisplacedDijet40_Inclusive
+
 ]
 jet_vars = [
     Var("index"               , "int"   , 1 , ) ,

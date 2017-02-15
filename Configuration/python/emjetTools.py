@@ -6,10 +6,19 @@ def addSkim(process, isData=False):
     print "triggerSelection should be verified for new datasets."
     process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
         triggerConditions = cms.vstring(
+            # EXO-16-003
+            'HLT_HT250_DisplacedDijet40_DisplacedTrack_v*',
+            'HLT_HT350_DisplacedDijet40_DisplacedTrack_v*',
+            'HLT_HT400_DisplacedDijet40_Inclusive_v*',
+            'HLT_HT500_DisplacedDijet40_Inclusive_v*',
+
             # Data: Run2015*
+            'HLT_PFHT475_v*',
+            'HLT_PFHT600_v*',
+            'HLT_PFHT750_4Jet_v*',
             'HLT_PFHT800_v*',
             # MC: RunIISpring15DR74
-            'HLT_PFHT900_v*',
+            #'HLT_PFHT900_v*',
         ),
         hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
         l1tResults = cms.InputTag( "gtDigis" ),
@@ -156,8 +165,13 @@ def addAnalyze(process, isData=False, sample=''):
             minweight = cms.double( 0.5 ),
             finder = cms.string( "avr" )
         ),
+        hlTriggerResults = cms.InputTag("TriggerResults"),
+        jets = cms.untracked.InputTag("ak4CaloJets"),
+        associatorVTX = cms.untracked.InputTag("ak4JTAatVX"),
+        associatorCALO = cms.untracked.InputTag("ak4JTAatCAL"),
         scanMode = cms.bool(False),
         scanRandomJet = cms.bool(False),
+        debug = cms.untracked.bool(False),
     )
     if isData: process.emJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")

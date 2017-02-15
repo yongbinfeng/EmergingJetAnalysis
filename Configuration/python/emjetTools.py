@@ -1,7 +1,7 @@
 """Helper functions to consolidate different CMSSW configs"""
 import FWCore.ParameterSet.Config as cms
 
-def addSkim(process, isData=False):
+def addSkim(process, isData=False, doJetFilter=True):
     print "Adding Skim step."
     print "triggerSelection should be verified for new datasets."
     process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
@@ -28,6 +28,7 @@ def addSkim(process, isData=False):
         throw = cms.bool( False )
     )
     process.jetFilter = cms.EDFilter("JetFilter",
+        doFilter = cms.bool( doJetFilter ),
         srcJets = cms.InputTag("ak4PFJetsCHS"),
         # srcJets = cms.InputTag("patJets"),
         # additionalCut = cms.string(""),

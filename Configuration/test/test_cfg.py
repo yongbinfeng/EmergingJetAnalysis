@@ -46,7 +46,7 @@ from EmergingJetAnalysis.Configuration.emjetTools import *
 process = cms.Process('TEST')
 if 'skim' in options.steps and len(options.steps)==1:
     # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
-    process.setName('SKIM')
+    process.setName_('SKIM')
 
 ########################################
 # Stable configuration
@@ -107,8 +107,10 @@ if 'analyze' in options.steps:
 ########################################
 # Testing step
 ########################################
+testing = 0
 testingStep = cms.Sequence()
-testingStep = addTesting(process, options.data, options.sample)
+if testing:
+    testingStep = addTesting(process, options.data, options.sample)
 
 process.p = cms.Path( skimStep * testingStep * analyzeStep )
 

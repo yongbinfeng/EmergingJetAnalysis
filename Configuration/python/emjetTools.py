@@ -1,34 +1,36 @@
 """Helper functions to consolidate different CMSSW configs"""
 import FWCore.ParameterSet.Config as cms
 
-def addSkim(process, isData=False, doJetFilter=True):
+def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
     print "Adding Skim step."
-    print "triggerSelection should be verified for new datasets."
-    process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
-        triggerConditions = cms.vstring(
-            # EXO-16-003
-            'HLT_HT250_DisplacedDijet40_DisplacedTrack_v*',
-            'HLT_HT350_DisplacedDijet40_DisplacedTrack_v*',
-            'HLT_HT400_DisplacedDijet40_Inclusive_v*',
-            'HLT_HT500_DisplacedDijet40_Inclusive_v*',
-
-            # Data: Run2015*
-            'HLT_PFHT475_v*',
-            'HLT_PFHT600_v*',
-            'HLT_PFHT750_4Jet_v*',
-            'HLT_PFHT800_v*',
-            # MC: RunIISpring15DR74
-            #'HLT_PFHT900_v*',
-        ),
-        hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
-        l1tResults = cms.InputTag( "" ),
-        l1tIgnoreMask = cms.bool( False ),
-        l1techIgnorePrescales = cms.bool( False ),
-        daqPartitions = cms.uint32( 1 ),
-        throw = cms.bool( False )
-    )
+    if doHLT:
+        print "Applying HLT trigger selection"
+        print "triggerSelection should be verified for new datasets."
+        process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
+            triggerConditions = cms.vstring(
+                # EXO-16-003
+                'HLT_HT250_DisplacedDijet40_DisplacedTrack_v*',
+                'HLT_HT350_DisplacedDijet40_DisplacedTrack_v*',
+                'HLT_HT400_DisplacedDijet40_Inclusive_v*',
+                'HLT_HT500_DisplacedDijet40_Inclusive_v*',
+                # Data: Run2015*
+                'HLT_PFHT475_v*',
+                'HLT_PFHT600_v*',
+                'HLT_PFHT750_4Jet_v*',
+                'HLT_PFHT800_v*',
+                # MC: RunIISpring15DR74
+                #'HLT_PFHT900_v*',
+            ),
+            hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
+            l1tResults = cms.InputTag( "" ),
+            l1tIgnoreMask = cms.bool( False ),
+            l1techIgnorePrescales = cms.bool( False ),
+            daqPartitions = cms.uint32( 1 ),
+            throw = cms.bool( False )
+        )
+    doFilter = True if doJetFilter else False # doFilter must be boolean type
     process.jetFilter = cms.EDFilter("JetFilter",
-        doFilter = cms.bool( doJetFilter ),
+        doFilter = cms.bool( doFilter ),
         srcJets = cms.InputTag("ak4PFJetsCHS"),
         # srcJets = cms.InputTag("patJets"),
         # additionalCut = cms.string(""),
@@ -59,10 +61,10 @@ def addSkim(process, isData=False, doJetFilter=True):
     process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
     process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
     process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
-    if isData:
+    if doHLT: # Add triggerSelection
         return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
-    else:
-        return cms.Sequence(process.eventCountPreTrigger * cms.ignore(process.triggerSelection) * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
+    else: # Ignore triggerSelection
+        return cms.Sequence(process.eventCountPreTrigger * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
 
 def addWJetSkim(process, isData=False):
     print "Adding WJet Skim step."

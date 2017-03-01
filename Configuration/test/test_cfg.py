@@ -28,8 +28,22 @@ options.register ('steps',
                   VarParsing.VarParsing.varType.string,          # string, int, or float
                   "Steps to execute. Possible values: skim, analyze.")
 options.steps = ['skim', 'analyze'] # default value
+options.register ('doHLT',
+                  0, # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.int,          # string, int, or float
+                  "Set to 1 to turn on HLT selection for skim step.")
+options.register ('doJetFilter',
+                  1, # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.int,          # string, int, or float
+                  "Set to 1 to turn on JetFilter for skim step.")
 # Get and parse the command line arguments
 options.parseArguments()
+print 'Printing options:'
+print options
+print 'Only the following options are used: crab, data, sample, steps, doHLT, doJetFilter'
+
 # Check validity of command line arguments
 if options.sample not in sample_options:
     print 'Invalid sample type. Setting to sample type to signal.'
@@ -45,7 +59,7 @@ from EmergingJetAnalysis.Configuration.emjetTools import *
 
 process = cms.Process('TEST')
 if 'skim' in options.steps and len(options.steps)==1:
-    # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
+    # If only running skim, change process name
     process.setName_('SKIM')
 
 ########################################
@@ -77,6 +91,7 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 import os
 cmssw_version = os.environ['CMSSW_VERSION']
 skimStep = cms.Sequence()
+doJetFilter = True
 if 'skim' in options.steps:
     print ''
     print '####################'
@@ -90,7 +105,8 @@ if 'skim' in options.steps:
         elif 'CMSSW_7_4_1_patch4' in cmssw_version:
             process.wJetFilter.electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium')
     else:
-        skimStep = addSkim(process, options.data)
+        skimStep = addSkim(process, options.data, doJetFilter=options.doJetFilter, doHLT=options.doHLT)
+
 ########################################
 # Analyze
 ########################################
@@ -103,7 +119,6 @@ if 'analyze' in options.steps:
     print ''
     analyzeStep = addAnalyze(process, options.data, options.sample)
 
-
 ########################################
 # Testing step
 ########################################
@@ -114,6 +129,9 @@ if testing:
 
 process.p = cms.Path( skimStep * testingStep * analyzeStep )
 
+########################################
+# Configure EDM Output
+########################################
 if 'skim' in options.steps and len(options.steps)==1:
     # If only running skim, add AOD/AODSIM and jetFilter/wJetFilter to output
     print ''
@@ -143,6 +161,7 @@ elif 'CMSSW_7_6_3' in cmssw_version:
 elif 'CMSSW_8_0_26_patch1' in cmssw_version:
     # globalTags=['80X_mcRun2_asymptotic_2016_miniAODv2_v1','80X_dataRun2_2016SeptRepro_v7']
     globalTags=['80X_mcRun2_asymptotic_2016_v3','80X_dataRun2_2016SeptRepro_v7']
+else: print 'No global tag specified for CMSSW_VERSION: %s' % cmssw_version
 print 'CMSSW_VERSION is %s' % cmssw_version
 print 'Using the following global tags [MC, DATA]:'
 print globalTags
@@ -206,9 +225,9 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISpring16DR80/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/00000/005A737D-5919-E611-910A-02163E0148F1.root',
         # 'file:/home/yhshin/data/testfiles/80X/005A737D-5919-E611-910A-02163E0148F1.root',
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
-        # 'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
+        'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
         # Jet HT Data
-        'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
+        # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
     ),
 )
 

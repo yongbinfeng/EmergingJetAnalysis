@@ -166,7 +166,7 @@ def addAnalyze(process, isData=False, sample=''):
             minweight = cms.double( 0.5 ),
             finder = cms.string( "avr" )
         ),
-        hlTriggerResults = cms.InputTag("TriggerResults"),
+        hlTriggerResults = cms.InputTag("TriggerResults", "", "HLT"),
         jets = cms.untracked.InputTag("ak4CaloJets"),
         associatorVTX = cms.untracked.InputTag("ak4JTAatVX"),
         associatorCALO = cms.untracked.InputTag("ak4JTAatCAL"),

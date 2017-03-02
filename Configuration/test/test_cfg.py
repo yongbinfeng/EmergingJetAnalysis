@@ -160,7 +160,7 @@ elif 'CMSSW_7_6_3' in cmssw_version:
     globalTags=['76X_mcRun2_asymptotic_RunIIFall15DR76_v1','76X_dataRun2_16Dec2015_v0']
 elif 'CMSSW_8_0_26_patch1' in cmssw_version:
     # globalTags=['80X_mcRun2_asymptotic_2016_miniAODv2_v1','80X_dataRun2_2016SeptRepro_v7']
-    globalTags=['80X_mcRun2_asymptotic_2016_v3','80X_dataRun2_2016SeptRepro_v7']
+    globalTags=['80X_mcRun2_asymptotic_2016_TrancheIV_v8','80X_dataRun2_2016SeptRepro_v7']
 else: print 'No global tag specified for CMSSW_VERSION: %s' % cmssw_version
 print 'CMSSW_VERSION is %s' % cmssw_version
 print 'Using the following global tags [MC, DATA]:'

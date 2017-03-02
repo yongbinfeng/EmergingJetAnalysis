@@ -2,7 +2,6 @@
 import FWCore.ParameterSet.Config as cms
 
 def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
-    print "Adding Skim step."
     if doHLT:
         print "Applying HLT trigger selection"
         print "triggerSelection should be verified for new datasets."

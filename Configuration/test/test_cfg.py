@@ -15,7 +15,7 @@ options.register ('data',
                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
                   VarParsing.VarParsing.varType.int,          # string, int, or float
                   "Set to 1 for data.")
-sample_options = ['signal', 'background', 'wjet', 'recotest'] # Valid options for sample
+sample_options = ['signal', 'background', 'wjet'] # Valid options for sample
 options.register ('sample',
                   'signal', # default value
                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
@@ -40,9 +40,11 @@ options.register ('doJetFilter',
                   "Set to 1 to turn on JetFilter for skim step.")
 # Get and parse the command line arguments
 options.parseArguments()
+print ''
 print 'Printing options:'
 print options
 print 'Only the following options are used: crab, data, sample, steps, doHLT, doJetFilter'
+print ''
 
 # Check validity of command line arguments
 if options.sample not in sample_options:

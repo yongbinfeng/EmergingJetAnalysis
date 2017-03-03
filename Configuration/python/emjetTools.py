@@ -13,12 +13,14 @@ def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
                 'HLT_HT400_DisplacedDijet40_Inclusive_v*',
                 'HLT_HT500_DisplacedDijet40_Inclusive_v*',
                 # Data: Run2015*
-                'HLT_PFHT475_v*',
-                'HLT_PFHT600_v*',
-                'HLT_PFHT750_4Jet_v*',
-                'HLT_PFHT800_v*',
+                # 'HLT_PFHT475_v*',
+                # 'HLT_PFHT600_v*',
+                # 'HLT_PFHT750_4Jet_v*',
+                # 'HLT_PFHT800_v*',
                 # MC: RunIISpring15DR74
                 #'HLT_PFHT900_v*',
+                # Signal region
+                'HLT_PFHT800_v*',
             ),
             hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
             l1tResults = cms.InputTag( "" ),

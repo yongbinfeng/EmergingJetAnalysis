@@ -93,7 +93,6 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 import os
 cmssw_version = os.environ['CMSSW_VERSION']
 skimStep = cms.Sequence()
-doJetFilter = True
 if 'skim' in options.steps:
     print ''
     print '####################'

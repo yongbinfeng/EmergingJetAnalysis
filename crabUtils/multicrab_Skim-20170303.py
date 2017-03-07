@@ -4,19 +4,19 @@ DATA=1
 
 jobname = 'Skim-20170303'        # Jobname
 psetname = 'Configuration/test/test_cfg.py'      # Path to pset
-postfix = 'v0'                # Postfix to job, increment for each major version
+postfix = 'v1'                # Postfix to job, increment for each major version
 dryrun = 0
 
 from datasets import dataset
 from wrappers import submit, submit_newthread
 datasets = [
-    # dataset( "Run2016B-v1" , "/JetHT/Run2016B-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    dataset( "Run2016B-v3" , "/JetHT/Run2016B-23Sep2016-v3/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    # dataset( "Run2016C"    , "/JetHT/Run2016C-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    # dataset( "Run2016D"    , "/JetHT/Run2016D-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    # dataset( "Run2016E"    , "/JetHT/Run2016E-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    # dataset( "Run2016F"    , "/JetHT/Run2016F-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
-    # dataset( "Run2016G"    , "/JetHT/Run2016G-23Sep2016-v1/AOD" , DATA , 100 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016B-v1" , "/JetHT/Run2016B-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    dataset( "Run2016B-v3" , "/JetHT/Run2016B-23Sep2016-v3/AOD" , DATA ,  10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016C"    , "/JetHT/Run2016C-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016D"    , "/JetHT/Run2016D-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016E"    , "/JetHT/Run2016E-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016F"    , "/JetHT/Run2016F-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
+    # dataset( "Run2016G"    , "/JetHT/Run2016G-23Sep2016-v1/AOD" , DATA , 10 , 1000000 , splitting='LumiBased' , priority=10 , label='signal' ) ,
 ]
 
 import os

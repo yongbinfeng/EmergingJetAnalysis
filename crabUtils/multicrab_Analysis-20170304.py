@@ -10,25 +10,8 @@ dryrun = 0
 from datasets import dataset
 from wrappers import submit, submit_newthread
 
-# Define short name for datasets
-mass_pi_d_2_tau_pi_d_0p001 = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_0p001_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_0p1   = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_0p1_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_1     = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_1_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_5     = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_25    = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_25_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_60    = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_60_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_100   = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_100_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_150   = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_150_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_2_tau_pi_d_300   = "/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_300_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_0p001 = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_0p001_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_0p1   = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_0p1_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_1     = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_1_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_5     = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_25    = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_25_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_60    = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_60_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_100   = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_100_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_150   = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_150_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
-mass_pi_d_5_tau_pi_d_300   = "/EmergingJets_mass_X_d_1000_mass_pi_d_5_tau_pi_d_300_TuneCUETP8M1_13TeV_pythia8Mod/yoshin-AODSIM-2017-02-20-9b8a2f7f8fb796283f35935e0ffa8bb2/USER"
+# Import short name for datasets
+from datasets_AODSIM_2017_02_20 import *
 
 QCD_HT50to100    = "/QCD_HT50to100_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM"
 QCD_HT100to200   = "/QCD_HT100to200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM"
@@ -40,31 +23,54 @@ QCD_HT1000to1500 = "/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/Run
 QCD_HT1500to2000 = "/QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM"
 QCD_HT2000toInf  = "/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM"
 
-
 datasets = [
     # def __init__(self, alias, fullpath, isData, unitsPerJob=1, totalUnits=1, splitting='FileBased', priority=1, inputDBS='global', label='', doHLT=1, doJetFilter=0):
     # dataset( "Dummy" , Dummy , MC , 1 , 10000 , splitting='FileBased' , priority=99 , label='signal' ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_1"      , mass_pi_d_2_tau_pi_d_1   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_5"      , mass_pi_d_2_tau_pi_d_5   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_25"     , mass_pi_d_2_tau_pi_d_25  , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_60"     , mass_pi_d_2_tau_pi_d_60  , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_100"    , mass_pi_d_2_tau_pi_d_100 , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_2_tau_pi_d_150"    , mass_pi_d_2_tau_pi_d_150 , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_1"      , mass_pi_d_5_tau_pi_d_1   , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_5"      , mass_pi_d_5_tau_pi_d_5   , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_25"     , mass_pi_d_5_tau_pi_d_25  , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_60"     , mass_pi_d_5_tau_pi_d_60  , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_100"    , mass_pi_d_5_tau_pi_d_100 , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    dataset( "mass_pi_d_5_tau_pi_d_150"    , mass_pi_d_5_tau_pi_d_150 , MC , 1 , 10000 , splitting='FileBased' , priority=20 , inputDBS='phys03', label='signal', doHLT=0 ) ,
-    # dataset( "QCD_HT50to100"               , QCD_HT50to100            , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' ) ,
-    # dataset( "QCD_HT100to200"              , QCD_HT100to200           , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' ) ,
-    # dataset( "QCD_HT200to300"              , QCD_HT200to300           , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' ) ,
-    # dataset( "QCD_HT300to500"              , QCD_HT300to500           , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' ) ,
-    dataset( "QCD_HT500to700"              , QCD_HT500to700           , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' ) ,
-    dataset( "QCD_HT700to1000"             , QCD_HT700to1000          , MC , 1 , 10000 , splitting='FileBased' , priority=80 , label='signal' ) ,
-    dataset( "QCD_HT1000to1500"            , QCD_HT1000to1500         , MC , 1 , 10000 , splitting='FileBased' , priority=90 , label='signal' ) ,
-    dataset( "QCD_HT1500to2000"            , QCD_HT1500to2000         , MC , 1 , 10000 , splitting='FileBased' , priority=80 , label='signal' ) ,
-    dataset( "QCD_HT2000toInf"             , QCD_HT2000toInf          , MC , 1 , 10000 , splitting='FileBased' , priority=70 , label='signal' ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_0p001"  , mass_pi_d_1_tau_pi_d_0p001  , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_0p1"    , mass_pi_d_1_tau_pi_d_0p1    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_1"      , mass_pi_d_1_tau_pi_d_1      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_5"      , mass_pi_d_1_tau_pi_d_5      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_25"     , mass_pi_d_1_tau_pi_d_25     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_60"     , mass_pi_d_1_tau_pi_d_60     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_100"    , mass_pi_d_1_tau_pi_d_100    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_150"    , mass_pi_d_1_tau_pi_d_150    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_1_tau_pi_d_300"    , mass_pi_d_1_tau_pi_d_300    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_0p001"  , mass_pi_d_2_tau_pi_d_0p001  , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_0p1"    , mass_pi_d_2_tau_pi_d_0p1    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_1"      , mass_pi_d_2_tau_pi_d_1      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_5"      , mass_pi_d_2_tau_pi_d_5      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_25"     , mass_pi_d_2_tau_pi_d_25     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_60"     , mass_pi_d_2_tau_pi_d_60     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_100"    , mass_pi_d_2_tau_pi_d_100    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_150"    , mass_pi_d_2_tau_pi_d_150    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_2_tau_pi_d_300"    , mass_pi_d_2_tau_pi_d_300    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_0p001"  , mass_pi_d_5_tau_pi_d_0p001  , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_0p1"    , mass_pi_d_5_tau_pi_d_0p1    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_1"      , mass_pi_d_5_tau_pi_d_1      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_5"      , mass_pi_d_5_tau_pi_d_5      , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_25"     , mass_pi_d_5_tau_pi_d_25     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_60"     , mass_pi_d_5_tau_pi_d_60     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_100"    , mass_pi_d_5_tau_pi_d_100    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_150"    , mass_pi_d_5_tau_pi_d_150    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_5_tau_pi_d_300"    , mass_pi_d_5_tau_pi_d_300    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_0p001" , mass_pi_d_10_tau_pi_d_0p001 , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_0p1"   , mass_pi_d_10_tau_pi_d_0p1   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_1"     , mass_pi_d_10_tau_pi_d_1     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_5"     , mass_pi_d_10_tau_pi_d_5     , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_25"    , mass_pi_d_10_tau_pi_d_25    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_60"    , mass_pi_d_10_tau_pi_d_60    , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_100"   , mass_pi_d_10_tau_pi_d_100   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_150"   , mass_pi_d_10_tau_pi_d_150   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "mass_pi_d_10_tau_pi_d_300"   , mass_pi_d_10_tau_pi_d_300   , MC , 1 , 10000 , splitting='FileBased' , priority=99 , inputDBS='phys03' , label='signal' , doHLT=0 ) ,
+    dataset( "QCD_HT50to100"               , QCD_HT50to100               , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' )  ,
+    dataset( "QCD_HT100to200"              , QCD_HT100to200              , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' )  ,
+    dataset( "QCD_HT200to300"              , QCD_HT200to300              , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' )  ,
+    dataset( "QCD_HT300to500"              , QCD_HT300to500              , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' )  ,
+    dataset( "QCD_HT500to700"              , QCD_HT500to700              , MC , 1 , 10000 , splitting='FileBased' , priority=10 , label='signal' )  ,
+    dataset( "QCD_HT700to1000"             , QCD_HT700to1000             , MC , 1 , 10000 , splitting='FileBased' , priority=80 , label='signal' )  ,
+    dataset( "QCD_HT1000to1500"            , QCD_HT1000to1500            , MC , 1 , 10000 , splitting='FileBased' , priority=90 , label='signal' )  ,
+    dataset( "QCD_HT1500to2000"            , QCD_HT1500to2000            , MC , 1 , 10000 , splitting='FileBased' , priority=80 , label='signal' )  ,
+    dataset( "QCD_HT2000toInf"             , QCD_HT2000toInf             , MC , 1 , 10000 , splitting='FileBased' , priority=70 , label='signal' )  ,
 ]
 
 import os

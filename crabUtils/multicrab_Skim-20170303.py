@@ -49,7 +49,7 @@ if __name__ == '__main__':
     config.Data.splitting = 'FileBased'
     config.Data.publication = True
     config.Data.outputDatasetTag = jobname
-    config.Data.ignoreLocality = True
+    # config.Data.ignoreLocality = True
 
     config.section_("Site")
     config.Site.storageSite = "T3_US_UMD"

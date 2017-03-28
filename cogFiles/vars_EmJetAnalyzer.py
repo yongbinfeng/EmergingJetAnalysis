@@ -44,6 +44,7 @@ event_vars = [
     Var("met_pt"              , "float" , 0 , ) ,
     Var("met_phi"             , "float" , 0 , ) ,
     Var("nTracks"             , "int"   , 0 , ) ,
+    Var("alpha_event"         , "float" , 0 , ) ,
     # Primary vertex information
     Var("pv_x"                , "float" , 0 , ) ,
     Var("pv_y"                , "float" , 0 , ) ,

@@ -173,6 +173,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     int    compute_nDarkPions(const reco::PFJet& ijet) const;
     int    compute_nDarkGluons(const reco::PFJet& ijet) const;
     double compute_pt2Sum (const TransientVertex& ivertex) const;
+    double compute_alpha_global () const;
 
     // Utility functions
     reco::TrackRefVector MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2);
@@ -1465,6 +1466,10 @@ EmJetAnalyzer::compute_pt2Sum (const TransientVertex& ivertex) const {
       }
     }
   return sum;
+}
+
+double
+EmJetAnalyzer::compute_alpha_global () const {
 }
 
 // Merge two TrackRefVector objects

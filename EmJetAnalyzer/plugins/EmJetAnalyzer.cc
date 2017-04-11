@@ -169,6 +169,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     // Computation functions
     double compute_alphaMax(const reco::PFJet& ijet, reco::TrackRefVector& trackRefs) const;
     double compute_alphaMax(reco::TrackRefVector& trackRefs) const;
+    double compute_alphaMax_dz(reco::TrackRefVector& trackRefs, double max_dz, double max_dxy) const;
     double compute_theta2D(const edm::EventSetup& iSetup) const;
     int    compute_nDarkPions(const reco::PFJet& ijet) const;
     int    compute_nDarkGluons(const reco::PFJet& ijet) const;
@@ -880,6 +881,22 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
   {
     reco::TrackRefVector trackRefs = ijet.getTrackRefs();
     ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
+    ojet.alphaMax2 = compute_alphaMax(trackRefs);
+    ojet.alphaMax_dz100nm = compute_alphaMax_dz(trackRefs, 0.0001, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz200nm = compute_alphaMax_dz(trackRefs, 0.0002, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz500nm = compute_alphaMax_dz(trackRefs, 0.0005, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz1um  = compute_alphaMax_dz(trackRefs, 0.001, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz2um  = compute_alphaMax_dz(trackRefs, 0.002, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz5um  = compute_alphaMax_dz(trackRefs, 0.005, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz10um  = compute_alphaMax_dz(trackRefs, 0.01, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz20um  = compute_alphaMax_dz(trackRefs, 0.02, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz50um  = compute_alphaMax_dz(trackRefs, 0.05, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz100um = compute_alphaMax_dz(trackRefs, 0.1, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz200um = compute_alphaMax_dz(trackRefs, 0.2, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz500um = compute_alphaMax_dz(trackRefs, 0.5, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz1mm   = compute_alphaMax_dz(trackRefs, 1.0, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz2mm   = compute_alphaMax_dz(trackRefs, 2.0, 0.1); // dxy to beam spot < 0.1mm
+    ojet.alphaMax_dz5mm   = compute_alphaMax_dz(trackRefs, 5.0, 0.1); // dxy to beam spot < 0.1mm
     if (ojet.alphaMax==0) {
       // jetscan(ijet);
     }
@@ -1315,6 +1332,39 @@ EmJetAnalyzer::compute_alphaMax(reco::TrackRefVector& trackRefs) const
   return alphaMax;
 }
 
+// Calculate jet alphaMax based on dz matching between track and vertex
+double
+EmJetAnalyzer::compute_alphaMax_dz(reco::TrackRefVector& trackRefs, double max_dz, double max_dxy) const
+{
+  double alphaMax = -1.;
+  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  double jet_pt_sum = 0.;
+  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+    jet_pt_sum += (*ijt)->pt();
+  } // End of track loop
+
+  auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
+  double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+    for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+      double dxy = (*ijt)->dxy(*theBeamSpot_);
+      double dz = (*ijt)->dz(ipv->position());
+      if ( dxy < max_dxy && dz < max_dz ) vertex_pt_sum += (*ijt)->pt();
+      // double trackWeight = ipv->trackWeight(*ijt);
+      // if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+    } // End of track loop
+    if (vertex_pt_sum > max_vertex_pt_sum) {
+      max_vertex_pt_sum = vertex_pt_sum;
+      ipv_chosen = ipv;
+    }
+  } // End of vertex loop
+  // Calculate alpha
+  alphaMax = max_vertex_pt_sum / jet_pt_sum;
+  return alphaMax;
+}
+
 // Calculate jet median theta2D in radians
 double
 EmJetAnalyzer::compute_theta2D(const edm::EventSetup& iSetup) const
@@ -1470,6 +1520,7 @@ EmJetAnalyzer::compute_pt2Sum (const TransientVertex& ivertex) const {
 
 double
 EmJetAnalyzer::compute_alpha_global () const {
+  return -999.999;
 }
 
 // Merge two TrackRefVector objects

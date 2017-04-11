@@ -2,37 +2,37 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orgf23ff69">1. EmergingJetAnalysis</a>
+<li><a href="#orga9e1c2b">1. EmergingJetAnalysis</a>
 <ul>
-<li><a href="#org524970b">1.1. Sub-packages</a></li>
-<li><a href="#orgcd09575">1.2. Dependencies</a>
+<li><a href="#org9b41fc8">1.1. Sub-packages</a></li>
+<li><a href="#orgaa411af">1.2. Dependencies</a>
 <ul>
-<li><a href="#org07c449b">1.2.1. Cog - </a></li>
+<li><a href="#orge9ea96c">1.2.1. Cog - </a></li>
 </ul>
 </li>
-<li><a href="#orgb1633ac">1.3. Quick instructions</a>
+<li><a href="#orgd1305a8">1.3. Quick instructions</a>
 <ul>
-<li><a href="#orgbb93360">1.3.1. To checkout latest code</a></li>
-<li><a href="#org44bd7b4">1.3.2. To setup environment and compile</a></li>
-<li><a href="#org1c6dcb9">1.3.3. To run main example config file</a></li>
+<li><a href="#org7224d53">1.3.1. To checkout latest code</a></li>
+<li><a href="#orgc3b2b06">1.3.2. To setup environment and compile</a></li>
+<li><a href="#org27a34ee">1.3.3. To run main example config file</a></li>
 </ul>
 </li>
-<li><a href="#orge11c53a">1.4. General steps</a></li>
-<li><a href="#org7d19470">1.5. Example config file</a></li>
+<li><a href="#org0dbe4df">1.4. General steps</a></li>
+<li><a href="#org7e5a8be">1.5. Example config file</a></li>
 </ul>
 </li>
 </ul>
 </div>
 </div>
 
-<a id="orgf23ff69"></a>
+<a id="orga9e1c2b"></a>
 
 # EmergingJetAnalysis
 
 Main repository for Emerging Jet analysis
 
 
-<a id="org524970b"></a>
+<a id="org9b41fc8"></a>
 
 ## Sub-packages
 
@@ -41,12 +41,12 @@ Main repository for Emerging Jet analysis
 -   WJetFilter: Applies W+jet selection and outputs selected jets for analysis
 
 
-<a id="orgcd09575"></a>
+<a id="orgaa411af"></a>
 
 ## Dependencies
 
 
-<a id="org07c449b"></a>
+<a id="orge9ea96c"></a>
 
 ### Cog - <http://nedbatchelder.com/code/cog/index.html>
 
@@ -56,23 +56,23 @@ To install, simply execute:
     pip install --user cogapp
 
 
-<a id="orgb1633ac"></a>
+<a id="orgd1305a8"></a>
 
 ## Quick instructions
 
 
-<a id="orgbb93360"></a>
+<a id="org7224d53"></a>
 
 ### To checkout latest code
 
-    cmsrel CMSSW_7_6_3
-    cd CMSSW_7_6_3/src
+    cmsrel CMSSW_8_0_26_patch1
+    cd CMSSW_8_0_26_patch1/src
     cmsenv
     git cms-merge-topic yhshin11:fix-GetTrackTrajInfo # Needed for track trajectory info.
     git clone https://github.com/yhshin11/EmergingJetAnalysis.git
 
 
-<a id="org44bd7b4"></a>
+<a id="orgc3b2b06"></a>
 
 ### To setup environment and compile
 
@@ -81,14 +81,14 @@ To install, simply execute:
     ./buildAll.sh
 
 
-<a id="org1c6dcb9"></a>
+<a id="org27a34ee"></a>
 
 ### To run main example config file
 
     cmsRun Configuration/test/test_cfg.py
 
 
-<a id="orge11c53a"></a>
+<a id="org0dbe4df"></a>
 
 ## General steps
 
@@ -99,7 +99,7 @@ For our analysis involving Emerging Jets, we follow the following steps:
 3.  Make histograms/plots from the flat ROOT files
 
 
-<a id="org7d19470"></a>
+<a id="org7e5a8be"></a>
 
 ## Example config file
 

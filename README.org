@@ -14,8 +14,8 @@ pip install --user cogapp
 ** Quick instructions
 *** To checkout latest code
 #+BEGIN_SRC
-cmsrel CMSSW_7_6_3
-cd CMSSW_7_6_3/src
+cmsrel CMSSW_8_0_26_patch1
+cd CMSSW_8_0_26_patch1/src
 cmsenv
 git cms-merge-topic yhshin11:fix-GetTrackTrajInfo # Needed for track trajectory info.
 git clone https://github.com/yhshin11/EmergingJetAnalysis.git

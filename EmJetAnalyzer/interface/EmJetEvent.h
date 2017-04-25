@@ -60,6 +60,7 @@ namespace emjet
       pv_ndof              = DEFAULTVALUE;
       pv_pt2sum            = DEFAULTVALUE;
       pv_nTracks           = DEFAULTVALUE;
+      pv_indexInColl       = DEFAULTVALUE;
       pdf_id1              = DEFAULTVALUE;
       pdf_id2              = DEFAULTVALUE;
       pdf_x1               = DEFAULTVALUE;
@@ -107,6 +108,7 @@ namespace emjet
     float  pv_ndof             ;
     float  pv_pt2sum           ;
     int    pv_nTracks          ;
+    int    pv_indexInColl      ;
     int    pdf_id1             ;
     int    pdf_id2             ;
     float  pdf_x1              ;
@@ -161,8 +163,10 @@ namespace emjet
       mef                  = DEFAULTVALUE;
       missHits             = DEFAULTVALUE;
       muonHits             = DEFAULTVALUE;
+      alpha                = DEFAULTVALUE;
       alphaMax             = DEFAULTVALUE;
       alphaMax2            = DEFAULTVALUE;
+      alpha_gen            = DEFAULTVALUE;
       alphaMax_dz100nm     = DEFAULTVALUE;
       alphaMax_dz200nm     = DEFAULTVALUE;
       alphaMax_dz500nm     = DEFAULTVALUE;
@@ -178,6 +182,33 @@ namespace emjet
       alphaMax_dz1mm       = DEFAULTVALUE;
       alphaMax_dz2mm       = DEFAULTVALUE;
       alphaMax_dz5mm       = DEFAULTVALUE;
+      alphaMax_dz1cm       = DEFAULTVALUE;
+      alphaMax_dz2cm       = DEFAULTVALUE;
+      alphaMax_dz5cm       = DEFAULTVALUE;
+      alphaMax_dz10cm      = DEFAULTVALUE;
+      alphaMax_dz20cm      = DEFAULTVALUE;
+      alphaMax_dz50cm      = DEFAULTVALUE;
+      alphaMax2_dz100nm    = DEFAULTVALUE;
+      alphaMax2_dz200nm    = DEFAULTVALUE;
+      alphaMax2_dz500nm    = DEFAULTVALUE;
+      alphaMax2_dz1um      = DEFAULTVALUE;
+      alphaMax2_dz2um      = DEFAULTVALUE;
+      alphaMax2_dz5um      = DEFAULTVALUE;
+      alphaMax2_dz10um     = DEFAULTVALUE;
+      alphaMax2_dz20um     = DEFAULTVALUE;
+      alphaMax2_dz50um     = DEFAULTVALUE;
+      alphaMax2_dz100um    = DEFAULTVALUE;
+      alphaMax2_dz200um    = DEFAULTVALUE;
+      alphaMax2_dz500um    = DEFAULTVALUE;
+      alphaMax2_dz1mm      = DEFAULTVALUE;
+      alphaMax2_dz2mm      = DEFAULTVALUE;
+      alphaMax2_dz5mm      = DEFAULTVALUE;
+      alphaMax2_dz1cm      = DEFAULTVALUE;
+      alphaMax2_dz2cm      = DEFAULTVALUE;
+      alphaMax2_dz5cm      = DEFAULTVALUE;
+      alphaMax2_dz10cm     = DEFAULTVALUE;
+      alphaMax2_dz20cm     = DEFAULTVALUE;
+      alphaMax2_dz50cm     = DEFAULTVALUE;
       nDarkPions           = DEFAULTVALUE;
       nDarkGluons          = DEFAULTVALUE;
       minDRDarkPion        = DEFAULTVALUE;
@@ -206,8 +237,10 @@ namespace emjet
     float  mef                 ;
     int    missHits            ;
     int    muonHits            ;
+    float  alpha               ;
     float  alphaMax            ;
     float  alphaMax2           ;
+    float  alpha_gen           ;
     float  alphaMax_dz100nm    ;
     float  alphaMax_dz200nm    ;
     float  alphaMax_dz500nm    ;
@@ -223,6 +256,33 @@ namespace emjet
     float  alphaMax_dz1mm      ;
     float  alphaMax_dz2mm      ;
     float  alphaMax_dz5mm      ;
+    float  alphaMax_dz1cm      ;
+    float  alphaMax_dz2cm      ;
+    float  alphaMax_dz5cm      ;
+    float  alphaMax_dz10cm     ;
+    float  alphaMax_dz20cm     ;
+    float  alphaMax_dz50cm     ;
+    float  alphaMax2_dz100nm   ;
+    float  alphaMax2_dz200nm   ;
+    float  alphaMax2_dz500nm   ;
+    float  alphaMax2_dz1um     ;
+    float  alphaMax2_dz2um     ;
+    float  alphaMax2_dz5um     ;
+    float  alphaMax2_dz10um    ;
+    float  alphaMax2_dz20um    ;
+    float  alphaMax2_dz50um    ;
+    float  alphaMax2_dz100um   ;
+    float  alphaMax2_dz200um   ;
+    float  alphaMax2_dz500um   ;
+    float  alphaMax2_dz1mm     ;
+    float  alphaMax2_dz2mm     ;
+    float  alphaMax2_dz5mm     ;
+    float  alphaMax2_dz1cm     ;
+    float  alphaMax2_dz2cm     ;
+    float  alphaMax2_dz5cm     ;
+    float  alphaMax2_dz10cm    ;
+    float  alphaMax2_dz20cm    ;
+    float  alphaMax2_dz50cm    ;
     int    nDarkPions          ;
     int    nDarkGluons         ;
     float  minDRDarkPion       ;
@@ -280,6 +340,7 @@ namespace emjet
       ipXYSig              = DEFAULTVALUE;
       dRToJetAxis          = DEFAULTVALUE;
       distanceToJet        = DEFAULTVALUE;
+      minVertexDz          = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
@@ -318,6 +379,7 @@ namespace emjet
     float  ipXYSig             ;
     float  dRToJetAxis         ;
     float  distanceToJet       ;
+    float  minVertexDz         ;
     //[[[end]]]
     // Variables used for calculation only
     // These are not written to output
@@ -445,7 +507,7 @@ namespace emjet
     float  matched3Ddist       ;
     float  matched3Dsig        ;
     float  matchedDeltaR       ;
-    int    Lxy                 ;
+    float  Lxy                 ;
     int    isDark              ;
     int    nDaughters          ;
     int    hasSMDaughter       ;
@@ -517,6 +579,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->pv_ndof              = event.pv_ndof             ;
     otree->pv_pt2sum            = event.pv_pt2sum           ;
     otree->pv_nTracks           = event.pv_nTracks          ;
+    otree->pv_indexInColl       = event.pv_indexInColl      ;
     otree->pdf_id1              = event.pdf_id1             ;
     otree->pdf_id2              = event.pdf_id2             ;
     otree->pdf_x1               = event.pdf_x1              ;
@@ -555,8 +618,10 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.mef                 ;}, otree->jet_mef                 );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.missHits            ;}, otree->jet_missHits            );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.muonHits            ;}, otree->jet_muonHits            );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alpha               ;}, otree->jet_alpha               );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax            ;}, otree->jet_alphaMax            );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2           ;}, otree->jet_alphaMax2           );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alpha_gen           ;}, otree->jet_alpha_gen           );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz100nm    ;}, otree->jet_alphaMax_dz100nm    );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz200nm    ;}, otree->jet_alphaMax_dz200nm    );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz500nm    ;}, otree->jet_alphaMax_dz500nm    );
@@ -572,6 +637,33 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz1mm      ;}, otree->jet_alphaMax_dz1mm      );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz2mm      ;}, otree->jet_alphaMax_dz2mm      );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz5mm      ;}, otree->jet_alphaMax_dz5mm      );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz1cm      ;}, otree->jet_alphaMax_dz1cm      );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz2cm      ;}, otree->jet_alphaMax_dz2cm      );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz5cm      ;}, otree->jet_alphaMax_dz5cm      );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz10cm     ;}, otree->jet_alphaMax_dz10cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz20cm     ;}, otree->jet_alphaMax_dz20cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax_dz50cm     ;}, otree->jet_alphaMax_dz50cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz100nm   ;}, otree->jet_alphaMax2_dz100nm   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz200nm   ;}, otree->jet_alphaMax2_dz200nm   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz500nm   ;}, otree->jet_alphaMax2_dz500nm   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz1um     ;}, otree->jet_alphaMax2_dz1um     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz2um     ;}, otree->jet_alphaMax2_dz2um     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz5um     ;}, otree->jet_alphaMax2_dz5um     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz10um    ;}, otree->jet_alphaMax2_dz10um    );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz20um    ;}, otree->jet_alphaMax2_dz20um    );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz50um    ;}, otree->jet_alphaMax2_dz50um    );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz100um   ;}, otree->jet_alphaMax2_dz100um   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz200um   ;}, otree->jet_alphaMax2_dz200um   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz500um   ;}, otree->jet_alphaMax2_dz500um   );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz1mm     ;}, otree->jet_alphaMax2_dz1mm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz2mm     ;}, otree->jet_alphaMax2_dz2mm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz5mm     ;}, otree->jet_alphaMax2_dz5mm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz1cm     ;}, otree->jet_alphaMax2_dz1cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz2cm     ;}, otree->jet_alphaMax2_dz2cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz5cm     ;}, otree->jet_alphaMax2_dz5cm     );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz10cm    ;}, otree->jet_alphaMax2_dz10cm    );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz20cm    ;}, otree->jet_alphaMax2_dz20cm    );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2_dz50cm    ;}, otree->jet_alphaMax2_dz50cm    );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkPions          ;}, otree->jet_nDarkPions          );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nDarkGluons         ;}, otree->jet_nDarkGluons         );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.minDRDarkPion       ;}, otree->jet_minDRDarkPion       );
@@ -617,6 +709,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto ipXYSig              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ipXYSig             ;}); otree->track_ipXYSig             .push_back(ipXYSig             );
       auto dRToJetAxis          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.dRToJetAxis         ;}); otree->track_dRToJetAxis         .push_back(dRToJetAxis         );
       auto distanceToJet        = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.distanceToJet       ;}); otree->track_distanceToJet       .push_back(distanceToJet       );
+      auto minVertexDz          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.minVertexDz         ;}); otree->track_minVertexDz         .push_back(minVertexDz         );
       //[[[end]]]
     }
   }
@@ -674,7 +767,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched3Ddist       ;}, otree->gp_matched3Ddist       );
     vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matched3Dsig        ;}, otree->gp_matched3Dsig        );
     vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.matchedDeltaR       ;}, otree->gp_matchedDeltaR       );
-    vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.Lxy                 ;}, otree->gp_Lxy                 );
+    vectorize<GenParticle, float >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.Lxy                 ;}, otree->gp_Lxy                 );
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.isDark              ;}, otree->gp_isDark              );
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.nDaughters          ;}, otree->gp_nDaughters          );
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasSMDaughter       ;}, otree->gp_hasSMDaughter       );

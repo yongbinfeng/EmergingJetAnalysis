@@ -15,7 +15,7 @@ options.register ('data',
                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
                   VarParsing.VarParsing.varType.int,          # string, int, or float
                   "Set to 1 for data.")
-sample_options = ['signal', 'background', 'wjet'] # Valid options for sample
+sample_options = ['signal', 'background', 'wjet', 'gjet'] # Valid options for sample
 options.register ('sample',
                   'signal', # default value
                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
@@ -105,6 +105,8 @@ if 'skim' in options.steps:
             process.wJetFilter.electronID = cms.string('cutBasedElectronID-Spring15-25ns-V1-standalone-medium')
         elif 'CMSSW_7_4_1_patch4' in cmssw_version:
             process.wJetFilter.electronID = cms.string('cutBasedElectronID-CSA14-50ns-V1-standalone-medium')
+    elif options.sample=='gjet':
+       skimStep = addGJetSkim(process, options.data)
     else:
         skimStep = addSkim(process, options.data, doJetFilter=options.doJetFilter, doHLT=options.doHLT)
 
@@ -148,6 +150,7 @@ else:
         outputCommands = cms.untracked.vstring('drop *'),
     )
     if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+    elif options.sample=='gjet': process.out.outputCommands.extend(cms.untracked.vstring('keep *_gJetFilter_*_*',))
     else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
 
 ########################################
@@ -175,7 +178,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(300) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
@@ -226,7 +229,7 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISpring16DR80/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/00000/005A737D-5919-E611-910A-02163E0148F1.root',
         # 'file:/home/yhshin/data/testfiles/80X/005A737D-5919-E611-910A-02163E0148F1.root',
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
-        'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
+        '/store/mc/RunIISummer16DR80Premix/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/00E976CF-B3BB-E611-8153-001E674FAF23.root'
         # Jet HT Data
         # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
     ),

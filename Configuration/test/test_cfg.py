@@ -246,8 +246,8 @@ process.source = cms.Source("PoolSource",
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_2.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_20.root',
         # 74X DR test
-        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_1.root',
-        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_10.root',
+        '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_1.root',
+        '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_10.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_14.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_15.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_16.root',
@@ -255,7 +255,7 @@ process.source = cms.Source("PoolSource",
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_18.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_19.root',
         # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_2.root',
-        '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_20.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_20.root',
         # 74X QCD
         # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/0466B78B-1B28-E511-9D25-002590D9D984.root',
         # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/069D0214-2427-E511-9CCE-0025905B859E.root',
@@ -270,9 +270,9 @@ process.source = cms.Source("PoolSource",
     ),
 )
 
-# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple.root") )
-process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-DRtest-20170423.root") )
-# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-QCD-20170423.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple.root") )
+# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-DRtest-20170425.root") )
+# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-QCD-20170425.root") )
 
 # storage
 process.outpath = cms.EndPath(process.out)

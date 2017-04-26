@@ -74,6 +74,7 @@ namespace emjet
     vector<int>             jet_missHits            ;
     vector<int>             jet_muonHits            ;
     vector<float>           jet_alpha               ;
+    vector<float>           jet_alpha2              ;
     vector<float>           jet_alphaMax            ;
     vector<float>           jet_alphaMax2           ;
     vector<float>           jet_alpha_gen           ;
@@ -155,6 +156,7 @@ namespace emjet
     vector<vector<float> >  track_dRToJetAxis         ;
     vector<vector<float> >  track_distanceToJet       ;
     vector<vector<float> >  track_minVertexDz         ;
+    vector<vector<float> >  track_pvWeight            ;
     vector<vector<int> >    vertex_index               ;
     vector<vector<int> >    vertex_source              ;
     vector<vector<int> >    vertex_jet_index           ;
@@ -262,6 +264,7 @@ emjet::OutputTree::Init() {
   jet_missHits            .clear();
   jet_muonHits            .clear();
   jet_alpha               .clear();
+  jet_alpha2              .clear();
   jet_alphaMax            .clear();
   jet_alphaMax2           .clear();
   jet_alpha_gen           .clear();
@@ -343,6 +346,7 @@ emjet::OutputTree::Init() {
   track_dRToJetAxis         .clear();
   track_distanceToJet       .clear();
   track_minVertexDz         .clear();
+  track_pvWeight            .clear();
   vertex_index               .clear();
   vertex_source              .clear();
   vertex_jet_index           .clear();
@@ -450,6 +454,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, jet_missHits            );
   BRANCH(tree, jet_muonHits            );
   BRANCH(tree, jet_alpha               );
+  BRANCH(tree, jet_alpha2              );
   BRANCH(tree, jet_alphaMax            );
   BRANCH(tree, jet_alphaMax2           );
   BRANCH(tree, jet_alpha_gen           );
@@ -531,6 +536,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, track_dRToJetAxis         );
   BRANCH(tree, track_distanceToJet       );
   BRANCH(tree, track_minVertexDz         );
+  BRANCH(tree, track_pvWeight            );
   BRANCH(tree, vertex_index               );
   BRANCH(tree, vertex_source              );
   BRANCH(tree, vertex_jet_index           );

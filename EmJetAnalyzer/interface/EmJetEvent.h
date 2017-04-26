@@ -164,6 +164,7 @@ namespace emjet
       missHits             = DEFAULTVALUE;
       muonHits             = DEFAULTVALUE;
       alpha                = DEFAULTVALUE;
+      alpha2               = DEFAULTVALUE;
       alphaMax             = DEFAULTVALUE;
       alphaMax2            = DEFAULTVALUE;
       alpha_gen            = DEFAULTVALUE;
@@ -238,6 +239,7 @@ namespace emjet
     int    missHits            ;
     int    muonHits            ;
     float  alpha               ;
+    float  alpha2              ;
     float  alphaMax            ;
     float  alphaMax2           ;
     float  alpha_gen           ;
@@ -341,6 +343,7 @@ namespace emjet
       dRToJetAxis          = DEFAULTVALUE;
       distanceToJet        = DEFAULTVALUE;
       minVertexDz          = DEFAULTVALUE;
+      pvWeight             = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
@@ -380,6 +383,7 @@ namespace emjet
     float  dRToJetAxis         ;
     float  distanceToJet       ;
     float  minVertexDz         ;
+    float  pvWeight            ;
     //[[[end]]]
     // Variables used for calculation only
     // These are not written to output
@@ -619,6 +623,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.missHits            ;}, otree->jet_missHits            );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.muonHits            ;}, otree->jet_muonHits            );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alpha               ;}, otree->jet_alpha               );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alpha2              ;}, otree->jet_alpha2              );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax            ;}, otree->jet_alphaMax            );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alphaMax2           ;}, otree->jet_alphaMax2           );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.alpha_gen           ;}, otree->jet_alpha_gen           );
@@ -710,6 +715,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto dRToJetAxis          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.dRToJetAxis         ;}); otree->track_dRToJetAxis         .push_back(dRToJetAxis         );
       auto distanceToJet        = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.distanceToJet       ;}); otree->track_distanceToJet       .push_back(distanceToJet       );
       auto minVertexDz          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.minVertexDz         ;}); otree->track_minVertexDz         .push_back(minVertexDz         );
+      auto pvWeight             = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pvWeight            ;}); otree->track_pvWeight            .push_back(pvWeight            );
       //[[[end]]]
     }
   }

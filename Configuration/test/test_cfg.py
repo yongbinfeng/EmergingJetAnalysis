@@ -230,12 +230,53 @@ process.source = cms.Source("PoolSource",
         # 'file:/home/yhshin/data/testfiles/80X/005A737D-5919-E611-910A-02163E0148F1.root',
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
         '/store/mc/RunIISummer16DR80Premix/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/00E976CF-B3BB-E611-8153-001E674FAF23.root'
+        # 'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
         # Jet HT Data
         # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
+        # SingleMuon Data
+        # 'file:/data/users/yhshin/testfiles/80X/00F3CB69-2998-E611-9CE8-0CC47A7E68AA.root',
+        # 80XDRtest
+        # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_modelB_old_80XDRtest.root'
+        # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_QCD_80XDRtest.root'
+        # 80X DRtest
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_1.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_10.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_14.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_15.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_16.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_17.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_18.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_19.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_2.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-80X/170405_110038/0000/aodsim_20.root',
+        # 74X DR test
+        #'/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_1.root',
+        #'/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_10.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_14.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_15.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_16.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_17.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_18.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_19.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_2.root',
+        # '/store/user/yoshin/EmJetMC/DRtest/mass_X_d_1000_mass_pi_d_2_tau_pi_d_5/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/DRtest-74X/170405_104435/0000/aodsim_20.root',
+        # 74X QCD
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/0466B78B-1B28-E511-9D25-002590D9D984.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/069D0214-2427-E511-9CCE-0025905B859E.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/0C27A159-3C27-E511-A843-A0040420FE80.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/0E369CA3-4428-E511-9020-00266CF9C244.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/100BD79F-E627-E511-AC61-20CF305B0519.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/1C8A6770-3C27-E511-8BA0-A0040420FE80.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/2061CC9A-4428-E511-8123-00266CF9AEA4.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/265F7597-0F27-E511-BA02-0025905A60B8.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/2E309214-2427-E511-951E-0025905B859E.root',
+        # '/store/mc/RunIISpring15DR74/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/Asympt25ns_MCRUN2_74_V9-v2/20000/38A47F4C-4427-E511-9E70-0002C90B7480.root',
     ),
 )
 
 process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple.root") )
+# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-DRtest-20170425.root") )
+# process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-QCD-20170425.root") )
 
 # storage
 process.outpath = cms.EndPath(process.out)

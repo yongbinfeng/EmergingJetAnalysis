@@ -117,6 +117,10 @@
 #define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
 #endif
 
+#ifndef STDOUT
+#define STDOUT(x) std::cout<< x << std::endl
+#endif
+
 //
 // constants, enums and typedefs
 //
@@ -176,6 +180,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     double compute_alphaMax(reco::TrackRefVector& trackRefs) const;
     double compute_alphaMax(vector<reco::TransientTrack> tracks) const;
     double compute_alpha(reco::TrackRefVector& trackRefs) const;
+    double compute_alpha(vector<reco::TransientTrack> tracks) const;
     double compute_alpha_gen(const reco::PFJet& ijet) const;
     double compute_alphaMax_dz(reco::TrackRefVector& trackRefs, double max_dz, double max_dxy) const;
     double compute_alphaMax_dz(vector<reco::TransientTrack> tracks, double max_dz, double max_dxy) const;
@@ -577,6 +582,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<reco::TrackCollection> genTrackH;
   iEvent.getByLabel("generalTracks", genTrackH);
   // Track dump
+	// OUTPUT("track dump"); // :DEBUG:
   {
     int itk=0;
     // std::cout << "Dumping tracks\n";
@@ -971,6 +977,7 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
     ojet.alpha = compute_alpha(trackRefs);
     // ojet.alphaMax = compute_alphaMax(ijet, trackRefs);
     ojet.alphaMax = compute_alphaMax(trackRefs);
+    // OUTPUT(ojet.alphaMax);
     ojet.alpha_gen = compute_alpha_gen(ijet);
     ojet.alphaMax_dz100nm = compute_alphaMax_dz(trackRefs, 0.00001, 0.1); // dxy to beam spot < 0.1cm
     ojet.alphaMax_dz200nm = compute_alphaMax_dz(trackRefs, 0.00002, 0.1); // dxy to beam spot < 0.1cm
@@ -1019,6 +1026,9 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
   // Fill alphaMax with DeltaR tracks
   {
     auto tracks = getJetTrackVectorDeltaR();
+    ojet.alpha2 = compute_alpha(tracks);
+    ojet.alphaMax2 = compute_alphaMax(tracks);
+    // OUTPUT(ojet.alphaMax2);
     ojet.alphaMax2_dz100nm = compute_alphaMax_dz(tracks, 0.00001, 0.1); // dxy to beam spot < 0.1cm
     ojet.alphaMax2_dz200nm = compute_alphaMax_dz(tracks, 0.00002, 0.1); // dxy to beam spot < 0.1cm
     ojet.alphaMax2_dz500nm = compute_alphaMax_dz(tracks, 0.00005, 0.1); // dxy to beam spot < 0.1cm
@@ -1126,6 +1136,17 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
   otrack.nMissOuterPxlLayers = itk->hitPattern().pixelLayersWithoutMeasurement(reco::HitPattern::MISSING_OUTER_HITS);
 
   otrack.minVertexDz = compute_track_minVertexDz(itrack);
+	if (itk->trackBaseRef().isNull()) {
+    // STDOUT("prepareJetTrack: trackBaseRef is null");
+    // OUTPUT(otrack.pt);
+    // OUTPUT(otrack.eta);
+    // OUTPUT(otrack.phi);
+    // OUTPUT(otrack.source);
+	}
+  else {
+    otrack.pvWeight = primary_vertex_->trackWeight(itk->trackBaseRef());
+  }
+
 }
 
 void
@@ -1461,28 +1482,33 @@ double
 EmJetAnalyzer::compute_alphaMax(vector<reco::TransientTrack> tracks) const
 {
   double alphaMax = -1.;
-  // // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
-  // double jet_pt_sum = 0.;
-  // for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-  //   jet_pt_sum += (ijt)->track().pt();
-  // } // End of track loop
+  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  double jet_pt_sum = 0.;
+  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+    jet_pt_sum += (ijt)->track().pt();
+  } // End of track loop
 
-  // auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
-  // double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  // // Loop over all PVs and choose the one with highest scalar pt contribution to jet
-  // for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
-  //   double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  //   for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-  //     double trackWeight = ipv->trackWeight((ijt)->track());
-  //     if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
-  //   } // End of track loop
-  //   if (vertex_pt_sum > max_vertex_pt_sum) {
-  //     max_vertex_pt_sum = vertex_pt_sum;
-  //     ipv_chosen = ipv;
-  //   }
-  // } // End of vertex loop
-  // // Calculate alpha
-  // alphaMax = max_vertex_pt_sum / jet_pt_sum;
+  auto ipv_chosen = primary_verticesH_->end(); // iterator to chosen primary vertex
+  double max_vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // Loop over all PVs and choose the one with highest scalar pt contribution to jet
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+    for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+      if ((ijt)->trackBaseRef().isNull()) {
+        // trackBaseRef is null
+        STDOUT("compute_alpha: trackBaseRef is null");
+        continue;
+      }
+      double trackWeight = ipv->trackWeight((ijt)->trackBaseRef());
+      if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
+    } // End of track loop
+    if (vertex_pt_sum > max_vertex_pt_sum) {
+      max_vertex_pt_sum = vertex_pt_sum;
+      ipv_chosen = ipv;
+    }
+  } // End of vertex loop
+  // Calculate alpha
+  alphaMax = max_vertex_pt_sum / jet_pt_sum;
   return alphaMax;
 }
 
@@ -1502,6 +1528,33 @@ EmJetAnalyzer::compute_alpha(reco::TrackRefVector& trackRefs) const
   for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
     double trackWeight = primary_vertex.trackWeight(*ijt);
     if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+  } // End of track loop
+  // Calculate alpha
+  alpha = vertex_pt_sum / jet_pt_sum;
+  return alpha;
+}
+
+// Calculate jet alpha
+double
+EmJetAnalyzer::compute_alpha(vector<reco::TransientTrack> tracks) const
+{
+  double alpha = -1.;
+  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  double jet_pt_sum = 0.;
+  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+    jet_pt_sum += (ijt)->track().pt();
+  } // End of track loop
+
+  const reco::Vertex& primary_vertex = *primary_vertex_;
+  double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+    if ((ijt)->trackBaseRef().isNull()) {
+      // trackBaseRef is null
+      STDOUT("compute_alpha: trackBaseRef is null");
+      continue;
+    }
+    double trackWeight = primary_vertex.trackWeight((ijt)->trackBaseRef());
+    if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
   } // End of track loop
   // Calculate alpha
   alpha = vertex_pt_sum / jet_pt_sum;
@@ -1785,8 +1838,8 @@ EmJetAnalyzer::compute_track_minVertexDz (const reco::TransientTrack& itrack) co
 {
   double minVertexDz = 999999;
   for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
-    double dz = fabs( itrack.track().dz(ipv->position()) );
-    if (dz < minVertexDz) minVertexDz = dz;
+    double dz = itrack.track().dz(ipv->position());
+    if (fabs(dz) < minVertexDz) minVertexDz = fabs(dz);
   }
   return minVertexDz;
 }

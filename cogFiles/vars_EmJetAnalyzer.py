@@ -96,6 +96,7 @@ jet_vars = [
     Var("missHits"            , "int"   , 1 , ) ,
     Var("muonHits"            , "int"   , 1 , ) ,
     Var("alpha"               , "float" , 1 , ) ,
+    Var("alpha2"              , "float" , 1 , ) ,
     Var("alphaMax"            , "float" , 1 , ) ,
     Var("alphaMax2"           , "float" , 1 , ) ,
     Var("alpha_gen"           , "float" , 1 , ) ,
@@ -179,6 +180,7 @@ jet_track_vars = [
     Var("dRToJetAxis"         , "float" , 2 , ) ,
     Var("distanceToJet"       , "float" , 2 , ) ,
     Var("minVertexDz"         , "float" , 2 , ) ,
+    Var("pvWeight"            , "float" , 2 , ) ,
 ]
 jet_vertex_vars = [
     Var("index"               , "int"   , 2 , ) ,

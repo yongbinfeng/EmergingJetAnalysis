@@ -271,7 +271,7 @@ process.source = cms.Source("PoolSource",
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/step2.root',
         # 80X test with RunIISummer15GS
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim-20170430.root'
-        # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_13.root',
+        'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_13.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_16.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_17.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_18.root',
@@ -288,7 +288,7 @@ process.source = cms.Source("PoolSource",
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_4.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_8.root',
         # 80X WJet MC
-        '/store/mc/RunIISummer16DR80Premix/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/023963AD-CBBE-E611-AC12-D4AE526A048B.root',
+        # '/store/mc/RunIISummer16DR80Premix/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/023963AD-CBBE-E611-AC12-D4AE526A048B.root',
     ),
 )
 

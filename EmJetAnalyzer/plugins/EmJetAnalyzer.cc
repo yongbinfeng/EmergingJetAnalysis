@@ -110,6 +110,9 @@
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetEvent.h"
 #include "EmergingJetAnalysis/GenParticleAnalyzer/plugins/GenParticleAnalyzer.cc"
 
+// JEC corrections
+#include "JetMETCorrections/JetCorrector/interface/JetCorrector.h"
+
 // Testing
 #include "RecoVertex/PrimaryVertexProducer/interface/TrackFilterForPVFinding.h"
 
@@ -210,10 +213,12 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    edm::EDGetTokenT<reco::JetCorrector> jetCorrectorToken_;
     edm::EDGetTokenT<edm::View<reco::CaloJet> > jet_collT_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
     edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
+
 
     edm::ParameterSet         m_trackParameterSet;
     TrackDetectorAssociator   m_trackAssociator;
@@ -250,6 +255,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::Handle<reco::VertexCollection> primary_vertices_withBS_;
     const reco::Vertex* primary_vertex_;
     edm::Handle<reco::PFJetCollection> selectedJets_;
+    edm::Handle<reco::JetCorrector> jetCorrector_;
     edm::ESHandle<TransientTrackBuilder> transienttrackbuilderH_;
     std::vector<reco::TransientTrack> generalTracks_;
     edm::Handle<reco::GenParticleCollection> genParticlesH_;
@@ -338,6 +344,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     m_trackAssociator.useDefaultPropagator();
 
     jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+    jetCorrectorToken_  = consumes<reco::JetCorrector>(edm::InputTag("ak4PFCHSL1FastL2L3Corrector"));
     hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
 
     // Register hard-coded inputs
@@ -576,6 +583,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<reco::PFJetCollection> pfjetH;
   iEvent.getByToken(jetCollectionToken_, pfjetH);
   selectedJets_ = pfjetH;
+  // Retrieve jet correctors
+  iEvent.getByToken(jetCorrectorToken_, jetCorrector_);
   // Retrieve TransientTrackBuilder
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilderH_);
   // Retrieve generalTracks and build TransientTrackCollection
@@ -959,6 +968,9 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
     ojet.eta = ijet.eta() ;
     ojet.phi = ijet.phi() ;
     ojet.p4.SetPtEtaPhiM(ojet.pt, ojet.eta, ojet.phi, 0.);
+    OUTPUT(ojet.pt);
+    double jec = jetCorrector_->correction(ijet);
+    OUTPUT(jec);
   }
 
   // Fill PF Jet specific variables

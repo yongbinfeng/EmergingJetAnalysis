@@ -80,9 +80,12 @@ event_vars = [
 jet_vars = [
     Var("index"               , "int"   , 1 , ) ,
     Var("source"              , "int"   , 1 , ) ,
-    Var("pt"                  , "float" , 1 , ) ,
+    Var("ptRaw"               , "float" , 1 , ) ,
     Var("eta"                 , "float" , 1 , ) ,
     Var("phi"                 , "float" , 1 , ) ,
+    Var("pt"                  , "float" , 1 , ) ,
+    Var("ptUp"                , "float" , 1 , ) ,
+    Var("ptDown"              , "float" , 1 , ) ,
     Var("cef"                 , "float" , 1 , ) ,
     Var("nef"                 , "float" , 1 , ) ,
     Var("chf"                 , "float" , 1 , ) ,

@@ -46,6 +46,8 @@
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "DataFormats/METReco/interface/PFMET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
@@ -112,6 +114,9 @@
 
 // JEC corrections
 #include "JetMETCorrections/JetCorrector/interface/JetCorrector.h"
+#include "JetMETCorrections/Objects/interface/JetCorrectionsRecord.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
 
 // Testing
 #include "RecoVertex/PrimaryVertexProducer/interface/TrackFilterForPVFinding.h"
@@ -153,8 +158,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     virtual bool filter(edm::Event&, const edm::EventSetup&) override;
     virtual void endJob() override;
 
-    //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-    //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
+    virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+    virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
     //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
@@ -218,6 +223,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
     edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
+    edm::EDGetTokenT<LHERunInfoProduct> lheRunToken_;
 
 
     edm::ParameterSet         m_trackParameterSet;
@@ -256,6 +262,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     const reco::Vertex* primary_vertex_;
     edm::Handle<reco::PFJetCollection> selectedJets_;
     edm::Handle<reco::JetCorrector> jetCorrector_;
+    edm::ESHandle<JetCorrectorParametersCollection> JetCorParColl_;
+    JetCorrectionUncertainty *jecUnc_;
     edm::ESHandle<TransientTrackBuilder> transienttrackbuilderH_;
     std::vector<reco::TransientTrack> generalTracks_;
     edm::Handle<reco::GenParticleCollection> genParticlesH_;
@@ -344,7 +352,13 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     m_trackAssociator.useDefaultPropagator();
 
     jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
-    jetCorrectorToken_  = consumes<reco::JetCorrector>(edm::InputTag("ak4PFCHSL1FastL2L3Corrector"));
+    if (isData_) {
+      jetCorrectorToken_  = consumes<reco::JetCorrector>(edm::InputTag("ak4PFCHSL1FastL2L3ResidualCorrector"));
+    }
+    else {
+      jetCorrectorToken_  = consumes<reco::JetCorrector>(edm::InputTag("ak4PFCHSL1FastL2L3Corrector"));
+    }
+
     hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
 
     // Register hard-coded inputs
@@ -365,6 +379,11 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     if (!isData_) { // :MCONLY:
       consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
       consumes<GenEventInfoProduct> (edm::InputTag("generator"));
+      // lheRunToken_ = consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
+      // consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
+      consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
+      consumes<LHERunInfoProduct, edm::InRun>({"externalLHEProducer"});
+      consumes<LHEEventProduct> (edm::InputTag("externalLHEProducer"));
       consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
       consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
       consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
@@ -560,6 +579,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.pdf_pdf2     = generatorH_->pdf()->xPDF.second;
       event_.pdf_scalePDF = generatorH_->pdf()->scalePDF;
     }
+    edm::Handle<LHEEventProduct> lheEventH;
+    iEvent.getByLabel("externalLHEProducer", lheEventH);
   }
 
   // Retrieve event level GEN quantities
@@ -585,6 +606,10 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   selectedJets_ = pfjetH;
   // Retrieve jet correctors
   iEvent.getByToken(jetCorrectorToken_, jetCorrector_);
+  // Retrieve JEC uncertainty
+  iSetup.get<JetCorrectionsRecord>().get("AK4PFchs",JetCorParColl_);
+  JetCorrectorParameters const & JetCorPar = (*JetCorParColl_)["Uncertainty"];
+  jecUnc_ = new JetCorrectionUncertainty(JetCorPar);
   // Retrieve TransientTrackBuilder
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilderH_);
   // Retrieve generalTracks and build TransientTrackCollection
@@ -908,20 +933,30 @@ EmJetAnalyzer::endJob() {
 }
 
 // ------------ method called when starting to processes a run  ------------
-/*
 void
-EmJetAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+EmJetAnalyzer::beginRun(edm::Run const& iRun, edm::EventSetup const&)
 {
+  std::cout << "Start EmJetAnalyzer::beginRun()\n";
+  edm::Handle<LHERunInfoProduct> run;
+  typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
+  // iRun.getByToken( lheRunToken_, run );
+  iRun.getByLabel( "externalLHEProducer", run );
+  LHERunInfoProduct myLHERunInfoProduct = *(run.product());
+  for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
+    std::cout << iter->tag() << std::endl;
+    std::vector<std::string> lines = iter->lines();
+    for (unsigned int iLine = 0; iLine<lines.size(); iLine++) {
+      std::cout << lines.at(iLine);
+    }
+  }
+  std::cout << "End EmJetAnalyzer::beginRun()\n";
 }
-*/
 
 // ------------ method called when ending the processing of a run  ------------
-/*
 void
 EmJetAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
 {
 }
-*/
 
 // ------------ method called when starting to processes a luminosity block  ------------
 /*
@@ -964,13 +999,24 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
 
   // Fill basic kinematic variables
   {
-    ojet.pt  = ijet.pt()  ;
+    ojet.ptRaw  = ijet.pt();
     ojet.eta = ijet.eta() ;
     ojet.phi = ijet.phi() ;
-    ojet.p4.SetPtEtaPhiM(ojet.pt, ojet.eta, ojet.phi, 0.);
-    OUTPUT(ojet.pt);
     double jec = jetCorrector_->correction(ijet);
-    OUTPUT(jec);
+    ojet.pt  = ijet.pt() * jec;
+    ojet.p4.SetPtEtaPhiM(ojet.pt, ojet.eta, ojet.phi, 0.);
+    // Calculate uncertainty
+    double ptCor = ojet.pt;
+    jecUnc_->setJetEta(ojet.eta);
+    jecUnc_->setJetPt(ojet.pt); // here you must use the CORRECTED jet pt
+    double unc = jecUnc_->getUncertainty(true);
+    // double ptCor_shifted = ptCor(1+shift*unc) ; // shift = +1(up), or -1(down)
+    ojet.ptUp = ptCor*(1+unc);
+    ojet.ptDown = ptCor*(1-unc);
+    // OUTPUT(ojet.pt);
+    // OUTPUT(ojet.ptRaw);
+    // OUTPUT(ojet.ptUp);
+    // OUTPUT(ojet.ptDown);
   }
 
   // Fill PF Jet specific variables

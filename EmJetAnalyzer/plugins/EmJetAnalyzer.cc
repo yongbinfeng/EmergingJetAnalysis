@@ -378,12 +378,15 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 
     if (!isData_) { // :MCONLY:
       consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
+      consumes<std::vector<double> > (edm::InputTag("pdfWeights:CT14nlo"));
+      consumes<std::vector<double> > (edm::InputTag("pdfWeights:NNPDF30"));
+      consumes<std::vector<double> > (edm::InputTag("pdfWeights:NNPDF23"));
       consumes<GenEventInfoProduct> (edm::InputTag("generator"));
-      // lheRunToken_ = consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
+      // // lheRunToken_ = consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
+      // // consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
       // consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
-      consumes<LHERunInfoProduct> (edm::InputTag("externalLHEProducer"));
-      consumes<LHERunInfoProduct, edm::InRun>({"externalLHEProducer"});
-      consumes<LHEEventProduct> (edm::InputTag("externalLHEProducer"));
+      // consumes<LHERunInfoProduct, edm::InRun>({"externalLHEProducer"});
+      // consumes<LHEEventProduct> (edm::InputTag("externalLHEProducer"));
       consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
       consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
       consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
@@ -579,8 +582,49 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.pdf_pdf2     = generatorH_->pdf()->xPDF.second;
       event_.pdf_scalePDF = generatorH_->pdf()->scalePDF;
     }
-    edm::Handle<LHEEventProduct> lheEventH;
-    iEvent.getByLabel("externalLHEProducer", lheEventH);
+    // edm::Handle<LHEEventProduct> lheEventH;
+    // iEvent.getByLabel("externalLHEProducer", lheEventH);
+  }
+
+  // Testing PDF weight retrieval
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:CT14nlo"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
+
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF CT14nlo:" << weights[0] << std::endl;
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers; j+=2) {
+      // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+    }
+  }
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:NNPDF30"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
+
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF NNPDF30_nlo_as_0118:" << weights[0] << std::endl;
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers; j+=2) {
+      // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+    }
+  }
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:NNPDF23"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
+
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF NNPDF23:" << weights[0] << std::endl;
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers; j+=2) {
+      // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+    }
   }
 
   // Retrieve event level GEN quantities
@@ -936,20 +980,20 @@ EmJetAnalyzer::endJob() {
 void
 EmJetAnalyzer::beginRun(edm::Run const& iRun, edm::EventSetup const&)
 {
-  std::cout << "Start EmJetAnalyzer::beginRun()\n";
-  edm::Handle<LHERunInfoProduct> run;
-  typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
-  // iRun.getByToken( lheRunToken_, run );
-  iRun.getByLabel( "externalLHEProducer", run );
-  LHERunInfoProduct myLHERunInfoProduct = *(run.product());
-  for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
-    std::cout << iter->tag() << std::endl;
-    std::vector<std::string> lines = iter->lines();
-    for (unsigned int iLine = 0; iLine<lines.size(); iLine++) {
-      std::cout << lines.at(iLine);
-    }
-  }
-  std::cout << "End EmJetAnalyzer::beginRun()\n";
+  // std::cout << "Start EmJetAnalyzer::beginRun()\n";
+  // edm::Handle<LHERunInfoProduct> run;
+  // typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
+  // // iRun.getByToken( lheRunToken_, run );
+  // iRun.getByLabel( "externalLHEProducer", run );
+  // LHERunInfoProduct myLHERunInfoProduct = *(run.product());
+  // for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
+  //   std::cout << iter->tag() << std::endl;
+  //   std::vector<std::string> lines = iter->lines();
+  //   for (unsigned int iLine = 0; iLine<lines.size(); iLine++) {
+  //     std::cout << lines.at(iLine);
+  //   }
+  // }
+  // std::cout << "End EmJetAnalyzer::beginRun()\n";
 }
 
 // ------------ method called when ending the processing of a run  ------------

@@ -586,54 +586,54 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // iEvent.getByLabel("externalLHEProducer", lheEventH);
   }
 
-  // // Testing PDF weight retrieval
-  // double pdfWeight_defaultCentral = 0.;
-  // {
-  //   edm::InputTag pdfWeightTag("pdfWeights:NNPDF30"); // or any other PDF set
-  //   edm::Handle<std::vector<double> > weightHandle;
-  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
+  // Testing PDF weight retrieval
+  double pdfWeight_defaultCentral = 0.;
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:NNPDF30"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-  //   std::vector<double> weights = (*weightHandle);
-  //   std::cout << "Event weight for central PDF NNPDF30_nlo_as_0118:" << weights[0] << std::endl;
-  //   pdfWeight_defaultCentral = weights[0];
-  //   unsigned int nmembers = weights.size();
-  //   for (unsigned int j=1; j<nmembers; j+=2) {
-  //     // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-  //     // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-  //     std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-  //     std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-  //   }
-  // }
-  // {
-  //   edm::InputTag pdfWeightTag("pdfWeights:CT14nlo"); // or any other PDF set
-  //   edm::Handle<std::vector<double> > weightHandle;
-  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF NNPDF30_nlo_as_0118:" << weights[0] << std::endl;
+    pdfWeight_defaultCentral = weights[0];
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+    }
+  }
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:CT14nlo"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-  //   std::vector<double> weights = (*weightHandle);
-  //   std::cout << "Event weight for central PDF CT14nlo:" << weights[0] << std::endl;
-  //   unsigned int nmembers = weights.size();
-  //   for (unsigned int j=1; j<nmembers; j+=2) {
-  //     // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-  //     // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-  //     std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-  //     std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-  //   }
-  // }
-  // {
-  //   edm::InputTag pdfWeightTag("pdfWeights:NNPDF23"); // or any other PDF set
-  //   edm::Handle<std::vector<double> > weightHandle;
-  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF CT14nlo:" << weights[0] << std::endl;
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+    }
+  }
+  {
+    edm::InputTag pdfWeightTag("pdfWeights:NNPDF23"); // or any other PDF set
+    edm::Handle<std::vector<double> > weightHandle;
+    iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-  //   std::vector<double> weights = (*weightHandle);
-  //   std::cout << "Event weight for central PDF NNPDF23:" << weights[0] << std::endl;
-  //   unsigned int nmembers = weights.size();
-  //   for (unsigned int j=1; j<nmembers; j+=2) {
-  //     std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-  //     std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-  //     // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-  //     // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-  //   }
-  // }
+    std::vector<double> weights = (*weightHandle);
+    std::cout << "Event weight for central PDF NNPDF23:" << weights[0] << std::endl;
+    unsigned int nmembers = weights.size();
+    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+    }
+  }
 
   // Retrieve event level GEN quantities
   if (!isData_) { // :MCONLY:
@@ -1196,6 +1196,9 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
     otrack.pt  = itrack.track().pt()  ;
     otrack.eta = itrack.track().eta() ;
     otrack.phi = itrack.track().phi() ;
+    otrack.ref_x = itrack.track().vx() ;
+    otrack.ref_y = itrack.track().vy() ;
+    otrack.ref_z = itrack.track().vz() ;
     otrack.p4.SetPtEtaPhiM(otrack.pt, otrack.eta, otrack.phi, 0.);
   }
 

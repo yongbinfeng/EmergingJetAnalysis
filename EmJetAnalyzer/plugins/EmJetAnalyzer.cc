@@ -582,15 +582,15 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.pdf_pdf2     = generatorH_->pdf()->xPDF.second;
       event_.pdf_scalePDF = generatorH_->pdf()->scalePDF;
     }
-    std::cout << "EmJetAnalyzer: Q, id1, id2, x1, x2, pdf1, pdf2: \n" <<
-      event_.pdf_scalePDF << " " <<
-      event_.pdf_id1 << " " <<
-      event_.pdf_id2 << " " <<
-      event_.pdf_x1 << " " <<
-      event_.pdf_x2 << " " <<
-      event_.pdf_pdf1 << " " <<
-      event_.pdf_pdf2 << " " <<
-      std::endl;
+    // std::cout << "EmJetAnalyzer: Q, id1, id2, x1, x2, pdf1, pdf2: \n" <<
+    //   event_.pdf_scalePDF << " " <<
+    //   event_.pdf_id1 << " " <<
+    //   event_.pdf_id2 << " " <<
+    //   event_.pdf_x1 << " " <<
+    //   event_.pdf_x2 << " " <<
+    //   event_.pdf_pdf1 << " " <<
+    //   event_.pdf_pdf2 << " " <<
+    //   std::endl;
     // edm::Handle<LHEEventProduct> lheEventH;
     // iEvent.getByLabel("externalLHEProducer", lheEventH);
   }

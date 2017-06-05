@@ -949,6 +949,28 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     std::cout << "\n";
   }
 
+  // Vertex reconstruction testing
+  {
+    KalmanTrimmedVertexFinder finder;
+    vector<TransientVertex> vertices = finder.vertices (generalTracks_);
+    std::cout << "--------------------------------\n";
+    std::cout << "New event:\n";
+    OUTPUT( primary_vertex_->position().x() );
+    OUTPUT( primary_vertex_->position().y() );
+    OUTPUT( primary_vertex_->position().z() );
+    for (auto tv : vertices) {
+      std::cout << "\n";
+      OUTPUT( tv.position().x() );
+      OUTPUT( tv.position().y() );
+      OUTPUT( tv.position().z() );
+    }
+    // OUTPUT(vertices.size());
+    // OUTPUT(event_.nVtx);
+    // OUTPUT(event_.nGoodVtx);
+    std::cout << "\n";
+    std::cout << "--------------------------------\n";
+  }
+
   // Write current Event to OutputTree
   WriteEventToOutput(event_, &otree_);
   // Write OutputTree to TTree

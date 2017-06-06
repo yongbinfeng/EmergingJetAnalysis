@@ -13,16 +13,18 @@ options.parseArguments()
 process = cms.Process("PickEvent")
 process.source = cms.Source ("PoolSource",
           fileNames = cms.untracked.vstring (
-              '/store/mc/RunIIFall15DR76/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/50000/FE2D58B8-7D9F-E511-97D7-001E67396DEC.root'
+              #file name, can be either local or remote. If local, add file: in the front.
+              'file:5E77AE43-D6B0-E611-BC6B-FA163ED28262.root'
           ),
           eventsToProcess = cms.untracked.VEventRange (
-          #   options.eventsToProcess
-              '1:631:1152673',
+              # options.eventsToProcess
+              #event coordinate: run:lumi:event
+              '1:39938:115533454',
           )                               
 )
 
 process.Out = cms.OutputModule("PoolOutputModule",
-        fileName = cms.untracked.string ('top.root')
+        fileName = cms.untracked.string ('alphamax_newworse.root')#output file name
 )
 
 process.end = cms.EndPath(process.Out)

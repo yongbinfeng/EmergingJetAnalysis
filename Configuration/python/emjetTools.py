@@ -225,6 +225,8 @@ def addAnalyze(process, isData=False, sample=''):
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
     if sample=='gjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("gJetFilter")
 
+    # Load jet correctors
+    process.load('JetMETCorrections.Configuration.JetCorrectors_cff')
     process.emJetAnalyzer = cms.EDFilter('EmJetAnalyzer',
         TrackAssociatorParameterBlock,
         srcJets = cms.InputTag("jetFilter", "selectedJets"),

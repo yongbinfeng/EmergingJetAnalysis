@@ -152,9 +152,12 @@ namespace emjet
       //]]]
       index                = DEFAULTVALUE;
       source               = DEFAULTVALUE;
-      pt                   = DEFAULTVALUE;
+      ptRaw                = DEFAULTVALUE;
       eta                  = DEFAULTVALUE;
       phi                  = DEFAULTVALUE;
+      pt                   = DEFAULTVALUE;
+      ptUp                 = DEFAULTVALUE;
+      ptDown               = DEFAULTVALUE;
       cef                  = DEFAULTVALUE;
       nef                  = DEFAULTVALUE;
       chf                  = DEFAULTVALUE;
@@ -227,9 +230,12 @@ namespace emjet
     //]]]
     int    index               ;
     int    source              ;
-    float  pt                  ;
+    float  ptRaw               ;
     float  eta                 ;
     float  phi                 ;
+    float  pt                  ;
+    float  ptUp                ;
+    float  ptDown              ;
     float  cef                 ;
     float  nef                 ;
     float  chf                 ;
@@ -321,6 +327,9 @@ namespace emjet
       pt                   = DEFAULTVALUE;
       eta                  = DEFAULTVALUE;
       phi                  = DEFAULTVALUE;
+      ref_x                = DEFAULTVALUE;
+      ref_y                = DEFAULTVALUE;
+      ref_z                = DEFAULTVALUE;
       pca_r                = DEFAULTVALUE;
       pca_eta              = DEFAULTVALUE;
       pca_phi              = DEFAULTVALUE;
@@ -361,6 +370,9 @@ namespace emjet
     float  pt                  ;
     float  eta                 ;
     float  phi                 ;
+    float  ref_x               ;
+    float  ref_y               ;
+    float  ref_z               ;
     float  pca_r               ;
     float  pca_eta             ;
     float  pca_phi             ;
@@ -611,9 +623,12 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     //]]]
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.index               ;}, otree->jet_index               );
     vectorize<Jet, int   >(event.jet_vector, [](const emjet::Jet& obj ){return obj.source              ;}, otree->jet_source              );
-    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.pt                  ;}, otree->jet_pt                  );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.ptRaw               ;}, otree->jet_ptRaw               );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.eta                 ;}, otree->jet_eta                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.phi                 ;}, otree->jet_phi                 );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.pt                  ;}, otree->jet_pt                  );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.ptUp                ;}, otree->jet_ptUp                );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.ptDown              ;}, otree->jet_ptDown              );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.cef                 ;}, otree->jet_cef                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nef                 ;}, otree->jet_nef                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.chf                 ;}, otree->jet_chf                 );
@@ -693,6 +708,9 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto pt                   = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pt                  ;}); otree->track_pt                  .push_back(pt                  );
       auto eta                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.eta                 ;}); otree->track_eta                 .push_back(eta                 );
       auto phi                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.phi                 ;}); otree->track_phi                 .push_back(phi                 );
+      auto ref_x                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_x               ;}); otree->track_ref_x               .push_back(ref_x               );
+      auto ref_y                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_y               ;}); otree->track_ref_y               .push_back(ref_y               );
+      auto ref_z                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_z               ;}); otree->track_ref_z               .push_back(ref_z               );
       auto pca_r                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_r               ;}); otree->track_pca_r               .push_back(pca_r               );
       auto pca_eta              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_eta             ;}); otree->track_pca_eta             .push_back(pca_eta             );
       auto pca_phi              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_phi             ;}); otree->track_pca_phi             .push_back(pca_phi             );

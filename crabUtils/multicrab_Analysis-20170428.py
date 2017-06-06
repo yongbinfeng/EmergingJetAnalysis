@@ -5,7 +5,7 @@ DATA=1
 # this is for another set of Gamma +Jet MC samples. For trackref check.
 #   fake rate check
 
-jobname = 'Analysis-20170426'        # Jobname
+jobname = 'Analysis-20170428'        # Jobname
 psetname = 'Configuration/test/test_cfg.py'      # Path to pset
 postfix = 'v1'                # Postfix to job, increment for each major version
 dryrun = 0
@@ -13,13 +13,13 @@ dryrun = 0
 from datasets import dataset
 from wrappers import submit, submit_newthread
 datasets = [
-    #dataset( "WJetsToLNuInclusive" , "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/AODSIM" , MC, 1, 2000, splitting='FileBased', priority=30, label='wjet' ),
+    dataset( "WJetsToLNuInclusive_RunIISummer16DR80Premix" , "/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 2500, splitting='FileBased', priority=30, label='wjet' ),
     # dataset( "WJetSkimMuon"          , "/SingleMuon/yoshin-WJetSkim-ede3f21fae18a825b193df32c86b780e/USER"                                                             , DATA , 10000 , 10000000 , splitting='EventAwareLumiBased' , priority=30 , label='wjet'     , inputDBS='phys03' ) ,
-    dataset( "GJets_HT-40To100_RunIISummer16DR80Premix" , "/GJets_HT-40To100_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
-    dataset( "GJets_HT-100To200_RunIISummer16DR80Premix" , "/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
-    dataset( "GJets_HT-200To400_RunIISummer16DR80Premix" , "/GJets_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
-    dataset( "GJets_HT-400To600_RunIISummer16DR80Premix" , "/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
-    dataset( "GJets_HT-600ToInf_RunIISummer16DR80Premix" , "/GJets_HT-600ToInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
+    #dataset( "GJets_HT-40To100_RunIISummer16DR80Premix" , "/GJets_HT-40To100_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
+    #dataset( "GJets_HT-100To200_RunIISummer16DR80Premix" , "/GJets_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
+    #dataset( "GJets_HT-200To400_RunIISummer16DR80Premix" , "/GJets_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
+    #dataset( "GJets_HT-400To600_RunIISummer16DR80Premix" , "/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
+    #dataset( "GJets_HT-600ToInf_RunIISummer16DR80Premix" , "/GJets_HT-600ToInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16DR80Premix-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/AODSIM" , MC, 1, 1000, splitting='FileBased', priority=30, label='gjet' ),
 ]
 
 if __name__ == '__main__':
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     config.section_("Site")
     config.Site.storageSite = "T3_US_UMD"
-    # config.Site.blacklist = ['T3_US_Baylor']
+    config.Site.blacklist = ['T2_US_Purdue']
     # config.Site.whitelist = ['T2_CH_CERN']
     # config.Site.ignoreGlobalBlacklist = True
 

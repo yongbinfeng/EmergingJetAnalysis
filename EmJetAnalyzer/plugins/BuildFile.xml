@@ -12,5 +12,8 @@
 <use name="RecoVertex/TrimmedKalmanVertexFinder"/>
 <use name="TrackingTools/TrackAssociator"/>
 <use name="RecoVertex/PrimaryVertexProducer"/>
+<use name="JetMETCorrections/JetCorrector"/>
+<use name="JetMETCorrections/Objects"/>
+<use name="CondFormats/JetMETObjects"/>
 
 <flags EDM_PLUGIN="1"/>

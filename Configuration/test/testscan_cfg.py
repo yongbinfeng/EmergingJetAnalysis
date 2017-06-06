@@ -158,9 +158,11 @@ print 'Adding EDM output'
 print '####################'
 print ''
 addEdmOutput(process, options.data, options.sample)
-if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
-elif options.sample=='gjet': process.out.outputCommands.extend(cms.untracked.vstring('keep *_gJetFilter_*_*',))
-else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+process.out.outputCommands.extend(cms.untracked.vstring('keep *_emJetAnalyzer_*_*',))
+process.out.fileName = cms.untracked.string('outputscan.root')
+#if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+#elif options.sample=='gjet': process.out.outputCommands.extend(cms.untracked.vstring('keep *_gJetFilter_*_*',))
+#else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
 
 ########################################
 # Generic configuration
@@ -238,7 +240,7 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISpring16DR80/QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/00000/005A737D-5919-E611-910A-02163E0148F1.root',
         # 'file:/home/yhshin/data/testfiles/80X/005A737D-5919-E611-910A-02163E0148F1.root',
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
-        'file:/data/users/fengyb/CMSSW_8_0_26_patch1/src/EmergingJetAnalysis/Configuration/test/filterevent/F26F4D20-48B9-E611-B2C1-1C6A7A21A933.root'
+        'file:/data/users/fengyb/CMSSW_8_0_26_patch1/src/EmergingJetAnalysis/Configuration/test/filterevent/testQCD/QCDHT500To700.root'
         # 'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
         # Jet HT Data
         # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',

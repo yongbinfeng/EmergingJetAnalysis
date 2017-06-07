@@ -158,6 +158,7 @@ namespace emjet
       pt                   = DEFAULTVALUE;
       ptUp                 = DEFAULTVALUE;
       ptDown               = DEFAULTVALUE;
+      csv                  = DEFAULTVALUE;
       cef                  = DEFAULTVALUE;
       nef                  = DEFAULTVALUE;
       chf                  = DEFAULTVALUE;
@@ -236,6 +237,7 @@ namespace emjet
     float  pt                  ;
     float  ptUp                ;
     float  ptDown              ;
+    float  csv                 ;
     float  cef                 ;
     float  nef                 ;
     float  chf                 ;
@@ -629,6 +631,7 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.pt                  ;}, otree->jet_pt                  );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.ptUp                ;}, otree->jet_ptUp                );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.ptDown              ;}, otree->jet_ptDown              );
+    vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.csv                 ;}, otree->jet_csv                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.cef                 ;}, otree->jet_cef                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.nef                 ;}, otree->jet_nef                 );
     vectorize<Jet, float >(event.jet_vector, [](const emjet::Jet& obj ){return obj.chf                 ;}, otree->jet_chf                 );

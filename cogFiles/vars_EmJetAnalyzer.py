@@ -86,6 +86,7 @@ jet_vars = [
     Var("pt"                  , "float" , 1 , ) ,
     Var("ptUp"                , "float" , 1 , ) ,
     Var("ptDown"              , "float" , 1 , ) ,
+    Var("csv"                 , "float" , 1 , ) ,
     Var("cef"                 , "float" , 1 , ) ,
     Var("nef"                 , "float" , 1 , ) ,
     Var("chf"                 , "float" , 1 , ) ,

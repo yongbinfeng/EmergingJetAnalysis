@@ -68,6 +68,7 @@ namespace emjet
     vector<float>           jet_pt                  ;
     vector<float>           jet_ptUp                ;
     vector<float>           jet_ptDown              ;
+    vector<float>           jet_csv                 ;
     vector<float>           jet_cef                 ;
     vector<float>           jet_nef                 ;
     vector<float>           jet_chf                 ;
@@ -264,6 +265,7 @@ emjet::OutputTree::Init() {
   jet_pt                  .clear();
   jet_ptUp                .clear();
   jet_ptDown              .clear();
+  jet_csv                 .clear();
   jet_cef                 .clear();
   jet_nef                 .clear();
   jet_chf                 .clear();
@@ -460,6 +462,7 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, jet_pt                  );
   BRANCH(tree, jet_ptUp                );
   BRANCH(tree, jet_ptDown              );
+  BRANCH(tree, jet_csv                 );
   BRANCH(tree, jet_cef                 );
   BRANCH(tree, jet_nef                 );
   BRANCH(tree, jet_chf                 );

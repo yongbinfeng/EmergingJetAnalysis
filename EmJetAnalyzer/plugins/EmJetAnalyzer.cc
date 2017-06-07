@@ -61,6 +61,7 @@
 #include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/BTauReco/interface/JetTag.h"
 
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
@@ -198,6 +199,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     double compute_pt2Sum (const TransientVertex& ivertex) const;
     double compute_alpha_global () const;
     double compute_track_minVertexDz (const reco::TransientTrack& itrack) const;
+    double compute_btag(const reco::PFJet& ijet) const;
 
     // Utility functions
     reco::TrackRefVector MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2);
@@ -273,6 +275,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::Handle<reco::GenJetCollection> genJets_;
     std::vector<GlobalPoint> dt_points_;
     std::vector<GlobalPoint> csc_points_;
+    edm::Handle<reco::JetTagCollection> bTagH_;
+
 
     // Testing counters
     int pfjet;
@@ -375,6 +379,9 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     consumes<RPCRecHitCollection> (edm::InputTag("rpcRecHits"));
 
     consumes<reco::PFCandidateCollection> (edm::InputTag("particleFlow"));
+    // B-tag
+    consumes<reco::JetTagCollection> (edm::InputTag("pfCombinedInclusiveSecondaryVertexV2BJetTags"));
+    consumes<reco::PFJetCollection> (edm::InputTag("ak4PFJetsCHS"));
 
     if (!isData_) { // :MCONLY:
       consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
@@ -671,6 +678,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iSetup.get<JetCorrectionsRecord>().get("AK4PFchs",JetCorParColl_);
   JetCorrectorParameters const & JetCorPar = (*JetCorParColl_)["Uncertainty"];
   jecUnc_ = new JetCorrectionUncertainty(JetCorPar);
+  // Retrieve b-tag associations
+  iEvent.getByLabel("pfCombinedInclusiveSecondaryVertexV2BJetTags", bTagH_);
+
   // Retrieve TransientTrackBuilder
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilderH_);
   // Retrieve generalTracks and build TransientTrackCollection
@@ -766,6 +776,34 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       ip++;
     }
 	}
+
+  // Test b-tagging
+  if(0)
+  {
+    // Get b tag information
+    edm::Handle<reco::JetTagCollection> bTagHandle;
+    iEvent.getByLabel("pfCombinedInclusiveSecondaryVertexV2BJetTags", bTagHandle);
+    edm::Handle<reco::PFJetCollection> jetH;
+    iEvent.getByLabel("ak4PFJetsCHS", jetH);
+    const reco::JetTagCollection & bTags = *(bTagHandle.product());
+    for (unsigned i = 0; i != bTags.size(); ++i) {
+      edm::RefToBase<reco::Jet> obj1 = bTags[i].first;
+      TLorentzVector vector1; vector1.SetPxPyPzE(obj1->px(), obj1->py(), obj1->pz(), obj1->energy());
+      // cout<<" Jet "<< i
+      //     <<" has b tag discriminator = "<<bTags[i].second
+      //     << " and obj2 Pt = "<<bTags[i].first->pt()<<endl;
+      int nMatched = 0;
+      for ( reco::PFJetCollection::const_iterator obj2 = jetH->begin(); obj2 != jetH->end(); obj2++ ) {
+        TLorentzVector vector2; vector2.SetPxPyPzE(obj2->px(), obj2->py(), obj2->pz(), obj2->energy());
+        double dr = vector1.DeltaR(vector2);
+        if (dr < 0.01) {
+          nMatched++;
+        }
+      }
+      // if (nMatched!=1) OUTPUT(nMatched);
+      // else OUTPUT(bTags[i].second);
+    }
+  }
 
   // Reconstruct AVR vertices using all generalTracks passing basic selection
   avrVertices_.clear();
@@ -1100,6 +1138,10 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
     // OUTPUT(ojet.ptRaw);
     // OUTPUT(ojet.ptUp);
     // OUTPUT(ojet.ptDown);
+  }
+  // Fill b-tag information
+  {
+    ojet.csv = compute_btag(ijet);
   }
 
   // Fill PF Jet specific variables
@@ -1986,6 +2028,32 @@ EmJetAnalyzer::compute_track_minVertexDz (const reco::TransientTrack& itrack) co
     if (fabs(dz) < minVertexDz) minVertexDz = fabs(dz);
   }
   return minVertexDz;
+}
+
+
+double
+EmJetAnalyzer::compute_btag(const reco::PFJet& ijet) const
+{
+  const reco::JetTagCollection & bTags = *(bTagH_.product());
+  auto obj1 = &ijet;
+  TLorentzVector vector1; vector1.SetPxPyPzE(obj1->px(), obj1->py(), obj1->pz(), obj1->energy());
+  double btagValue = -999;
+  int nMatched = 0;
+  for (unsigned i = 0; i != bTags.size(); ++i) {
+    edm::RefToBase<reco::Jet> obj2 = bTags[i].first;
+    TLorentzVector vector2; vector2.SetPxPyPzE(obj2->px(), obj2->py(), obj2->pz(), obj2->energy());
+    double dr = vector1.DeltaR(vector2);
+    // OUTPUT(dr);
+    if (dr < 0.01) {
+      btagValue = bTags[i].second;
+      nMatched++;
+    }
+    // if (nMatched!=1) OUTPUT(nMatched);
+    // else OUTPUT(bTags[i].second);
+  }
+  // OUTPUT(nMatched);
+  if (nMatched==1) return btagValue;
+  else             return -999;
 }
 
 template <class T>

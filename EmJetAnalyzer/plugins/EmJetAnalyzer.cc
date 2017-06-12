@@ -1601,6 +1601,7 @@ EmJetAnalyzer::fillGenParticles () {
 void
 EmJetAnalyzer::fillPrimaryVertices() {
   VertexHigherPtSquared vertexPt2Calculator;
+  pv_.index = 0;
   for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
     double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
     double nTracks = ipv->tracksSize();

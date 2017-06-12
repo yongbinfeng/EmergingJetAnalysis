@@ -286,13 +286,13 @@ process.source = cms.Source("PoolSource",
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_29.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_30.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_4.root',
-        'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_8.root',
+        # 'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_8.root',
         # 80X WJet MC
         # '/store/mc/RunIISummer16DR80Premix/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/023963AD-CBBE-E611-AC12-D4AE526A048B.root',
         # 80X Data
         # '/store/data/Run2016B/JetHT/AOD/23Sep2016-v1/90000/0024BC8F-AC82-E611-9019-001E675817A4.root'
         # 80X QCD
-        # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
+        '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
     ),
 )
 

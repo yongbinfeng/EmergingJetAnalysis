@@ -24,6 +24,7 @@ namespace emjet
   class Vertex;
   class Jet;
   class GenParticle;
+  class PrimaryVertex;
   class Event {
   public:
     Event() {}
@@ -50,17 +51,6 @@ namespace emjet
       met_phi              = DEFAULTVALUE;
       nTracks              = DEFAULTVALUE;
       alpha_event          = DEFAULTVALUE;
-      pv_x                 = DEFAULTVALUE;
-      pv_y                 = DEFAULTVALUE;
-      pv_z                 = DEFAULTVALUE;
-      pv_xError            = DEFAULTVALUE;
-      pv_yError            = DEFAULTVALUE;
-      pv_zError            = DEFAULTVALUE;
-      pv_chi2              = DEFAULTVALUE;
-      pv_ndof              = DEFAULTVALUE;
-      pv_pt2sum            = DEFAULTVALUE;
-      pv_nTracks           = DEFAULTVALUE;
-      pv_indexInColl       = DEFAULTVALUE;
       pdf_id1              = DEFAULTVALUE;
       pdf_id2              = DEFAULTVALUE;
       pdf_x1               = DEFAULTVALUE;
@@ -81,6 +71,7 @@ namespace emjet
 
       jet_vector.clear();
       genparticle_vector.clear();
+      pv_vector.clear();
     };
     //[[[cog
     //template_string = "$cpptype $name;"
@@ -98,17 +89,6 @@ namespace emjet
     float  met_phi             ;
     int    nTracks             ;
     float  alpha_event         ;
-    float  pv_x                ;
-    float  pv_y                ;
-    float  pv_z                ;
-    float  pv_xError           ;
-    float  pv_yError           ;
-    float  pv_zError           ;
-    float  pv_chi2             ;
-    float  pv_ndof             ;
-    float  pv_pt2sum           ;
-    int    pv_nTracks          ;
-    int    pv_indexInColl      ;
     int    pdf_id1             ;
     int    pdf_id2             ;
     float  pdf_x1              ;
@@ -129,6 +109,7 @@ namespace emjet
 
     vector<Jet> jet_vector;
     vector<GenParticle> genparticle_vector;
+    vector<PrimaryVertex> pv_vector;
   };
   class Jet {
   public:
@@ -534,6 +515,47 @@ namespace emjet
     int    isTrackable         ;
     //[[[end]]]
   };
+  class PrimaryVertex {
+  public:
+    PrimaryVertex() {}
+    ~PrimaryVertex() {}
+    void Init(){
+      //[[[cog
+      //template_string = "$name = DEFAULTVALUE;"
+      //import vars_EmJetAnalyzer as m
+      //for vardict in m.pv_vardicts: m.replaceSingleLine(template_string, vardict)
+      //]]]
+      index                = DEFAULTVALUE;
+      x                    = DEFAULTVALUE;
+      y                    = DEFAULTVALUE;
+      z                    = DEFAULTVALUE;
+      xError               = DEFAULTVALUE;
+      yError               = DEFAULTVALUE;
+      zError               = DEFAULTVALUE;
+      chi2                 = DEFAULTVALUE;
+      ndof                 = DEFAULTVALUE;
+      pt2sum               = DEFAULTVALUE;
+      nTracks              = DEFAULTVALUE;
+      //[[[end]]]
+    }
+    //[[[cog
+    //template_string = "$cpptype $name;"
+    //import vars_EmJetAnalyzer as m
+    //for vardict in m.pv_vardicts: m.replaceSingleLine(template_string, vardict)
+    //]]]
+    int    index               ;
+    float  x                   ;
+    float  y                   ;
+    float  z                   ;
+    float  xError              ;
+    float  yError              ;
+    float  zError              ;
+    float  chi2                ;
+    float  ndof                ;
+    float  pt2sum              ;
+    int    nTracks             ;
+    //[[[end]]]
+  };
 }
 
 // Turn vector of objects, into vector of member variable by calling func(object)
@@ -559,6 +581,7 @@ vectorize_new(const vector<Object>& input, std::function<T (const Object &)> fun
   return output;
 }
 
+using emjet::PrimaryVertex;
 using emjet::GenParticle;
 using emjet::Track;
 using emjet::Vertex;
@@ -587,17 +610,6 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->met_phi              = event.met_phi             ;
     otree->nTracks              = event.nTracks             ;
     otree->alpha_event          = event.alpha_event         ;
-    otree->pv_x                 = event.pv_x                ;
-    otree->pv_y                 = event.pv_y                ;
-    otree->pv_z                 = event.pv_z                ;
-    otree->pv_xError            = event.pv_xError           ;
-    otree->pv_yError            = event.pv_yError           ;
-    otree->pv_zError            = event.pv_zError           ;
-    otree->pv_chi2              = event.pv_chi2             ;
-    otree->pv_ndof              = event.pv_ndof             ;
-    otree->pv_pt2sum            = event.pv_pt2sum           ;
-    otree->pv_nTracks           = event.pv_nTracks          ;
-    otree->pv_indexInColl       = event.pv_indexInColl      ;
     otree->pdf_id1              = event.pdf_id1             ;
     otree->pdf_id2              = event.pdf_id2             ;
     otree->pdf_x1               = event.pdf_x1              ;
@@ -801,6 +813,26 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasDarkMother       ;}, otree->gp_hasDarkMother       );
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.hasDarkPionMother   ;}, otree->gp_hasDarkPionMother   );
     vectorize<GenParticle, int   >(event.genparticle_vector, [](const emjet::GenParticle& obj ){return obj.isTrackable         ;}, otree->gp_isTrackable         );
+    //[[[end]]]
+  }
+  // PrimaryVertex-level variables, e.g. vector<int>, vector<float>, etc.
+  {
+    //[[[cog
+    //template_string = "vectorize<PrimaryVertex, $cpptype>(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.$name;}, otree->pv_$name);"
+    //import vars_EmJetAnalyzer as m
+    //for vardict in m.pv_vardicts: m.replaceSingleLine(template_string, vardict)
+    //]]]
+    vectorize<PrimaryVertex, int   >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.index               ;}, otree->pv_index               );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.x                   ;}, otree->pv_x                   );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.y                   ;}, otree->pv_y                   );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.z                   ;}, otree->pv_z                   );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.xError              ;}, otree->pv_xError              );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.yError              ;}, otree->pv_yError              );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.zError              ;}, otree->pv_zError              );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.chi2                ;}, otree->pv_chi2                );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.ndof                ;}, otree->pv_ndof                );
+    vectorize<PrimaryVertex, float >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.pt2sum              ;}, otree->pv_pt2sum              );
+    vectorize<PrimaryVertex, int   >(event.pv_vector, [](const emjet::PrimaryVertex& obj ){return obj.nTracks             ;}, otree->pv_nTracks             );
     //[[[end]]]
   }
 }

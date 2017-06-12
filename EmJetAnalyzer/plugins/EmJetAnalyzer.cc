@@ -178,6 +178,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
     bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex) const;
     void fillGenParticles () ;
+    void fillPrimaryVertices () ;
     vector<reco::TransientTrack> getJetTrackVectorDeltaR() const;
 
 
@@ -252,6 +253,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     emjet:: Track  track_            ; // Current track
     emjet:: Vertex vertex_           ; // Current vertex
     emjet:: GenParticle genparticle_ ; // Current genparticle
+    emjet:: PrimaryVertex pv_        ; // Current genparticle
     int jet_index_         ; // Current jet index
     int track_index_       ; // Current track index
     int vertex_index_      ; // Current vertex index
@@ -314,7 +316,8 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   jet_         (),
   track_       (),
   vertex_      (),
-  genparticle_ ()
+  genparticle_ (),
+  pv_ ()
 {
   // Config-independent initialization
   {
@@ -462,6 +465,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   jet_.Init();
   event_.Init();
   genparticle_.Init();
+  pv_.Init();
   // Reset object counters
   jet_index_=0;
   track_index_=0;
@@ -536,6 +540,13 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.nGoodVtx++;
     }
 
+    // // Find leading primary vertex
+    // Doesn't work since sortedPVs gets destructed
+    // reco::VertexCollection sortedPVs = *primary_verticesH_.product();
+    // std::sort(sortedPVs.begin(), sortedPVs.end(), VertexHigherPtSquared());
+    // primary_vertex_ = &sortedPVs[0];
+
+
     // Find leading primary vertex
     // OUTPUT(event_.event);
     // std::cout << "offlinePrimaryVertices\n";
@@ -559,20 +570,20 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       //   OUTPUT(pt2sum);
       // }
 
-      // Fill primary vertex information
-      double pt2sum = vertexPt2Calculator.sumPtSquared(*primary_vertex_);
-      double nTracks = primary_vertex_->tracksSize();
-      event_.pv_x           = primary_vertex_->x();
-      event_.pv_y           = primary_vertex_->y();
-      event_.pv_z           = primary_vertex_->z();
-      event_.pv_xError      = primary_vertex_->xError();
-      event_.pv_yError      = primary_vertex_->yError();
-      event_.pv_zError      = primary_vertex_->zError();
-      event_.pv_chi2        = primary_vertex_->chi2();
-      event_.pv_ndof        = primary_vertex_->ndof();
-      event_.pv_pt2sum      = pt2sum;
-      event_.pv_nTracks     = nTracks;
-      event_.pv_indexInColl = pv_indexInColl;
+      // // Fill primary vertex information
+      // double pt2sum = vertexPt2Calculator.sumPtSquared(*primary_vertex_);
+      // double nTracks = primary_vertex_->tracksSize();
+      // event_.pv_x           = primary_vertex_->x();
+      // event_.pv_y           = primary_vertex_->y();
+      // event_.pv_z           = primary_vertex_->z();
+      // event_.pv_xError      = primary_vertex_->xError();
+      // event_.pv_yError      = primary_vertex_->yError();
+      // event_.pv_zError      = primary_vertex_->zError();
+      // event_.pv_chi2        = primary_vertex_->chi2();
+      // event_.pv_ndof        = primary_vertex_->ndof();
+      // event_.pv_pt2sum      = pt2sum;
+      // event_.pv_nTracks     = nTracks;
+      // event_.pv_indexInColl = pv_indexInColl;
     }
   }
 
@@ -967,6 +978,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     fillGenParticles();
   }
 
+  fillPrimaryVertices();
+
   if (jetdump_ && pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
     std::cout << "Event summary:";
     OUTPUT(event_.run);
@@ -1302,9 +1315,10 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
     otrack.pca_phi = closestPoint.phi();
     otrack.distanceToJet = pcaToJet.mag();
 
-    auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
-    otrack.ipXY    = fabs(dxy_ipv.second.value());
-    otrack.ipXYSig = fabs(dxy_ipv.second.significance());
+    // Calculate signed transverse IP, along jet direction
+    auto dxy_ipv = IPTools::signedTransverseImpactParameter(*itk, jetVector, primary_vertex);
+    otrack.ipXY    = (dxy_ipv.second.value());
+    otrack.ipXYSig = (dxy_ipv.second.significance());
   }
 
   otrack.quality             = itk->track().qualityMask();
@@ -1582,6 +1596,30 @@ EmJetAnalyzer::fillGenParticles () {
     event_.genparticle_vector.push_back(genparticle_);
     genparticle_.index++;
   }
+}
+
+void
+EmJetAnalyzer::fillPrimaryVertices() {
+  VertexHigherPtSquared vertexPt2Calculator;
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
+    double nTracks = ipv->tracksSize();
+    pv_.x           = ipv->x();
+    pv_.y           = ipv->y();
+    pv_.z           = ipv->z();
+    pv_.xError      = ipv->xError();
+    pv_.yError      = ipv->yError();
+    pv_.zError      = ipv->zError();
+    pv_.chi2        = ipv->chi2();
+    pv_.ndof        = ipv->ndof();
+    pv_.pt2sum      = pt2sum;
+    pv_.nTracks     = nTracks;
+    // Fill primary vertex into event
+    event_.pv_vector.push_back(pv_);
+    pv_.index++;
+  }
+  // Sort primary vertices in descending order of pt2Sum
+  std::sort(event_.pv_vector.begin(), event_.pv_vector.end(), [](const emjet::PrimaryVertex a, const emjet::PrimaryVertex b){ return a.pt2sum > b.pt2sum; });
 }
 
 void

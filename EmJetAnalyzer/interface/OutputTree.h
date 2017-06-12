@@ -33,17 +33,6 @@ namespace emjet
     float                   met_phi             ;
     int                     nTracks             ;
     float                   alpha_event         ;
-    float                   pv_x                ;
-    float                   pv_y                ;
-    float                   pv_z                ;
-    float                   pv_xError           ;
-    float                   pv_yError           ;
-    float                   pv_zError           ;
-    float                   pv_chi2             ;
-    float                   pv_ndof             ;
-    float                   pv_pt2sum           ;
-    int                     pv_nTracks          ;
-    int                     pv_indexInColl      ;
     int                     pdf_id1             ;
     int                     pdf_id2             ;
     float                   pdf_x1              ;
@@ -207,6 +196,17 @@ namespace emjet
     vector<int>             gp_hasDarkMother       ;
     vector<int>             gp_hasDarkPionMother   ;
     vector<int>             gp_isTrackable         ;
+    vector<int>             pv_index               ;
+    vector<float>           pv_x                   ;
+    vector<float>           pv_y                   ;
+    vector<float>           pv_z                   ;
+    vector<float>           pv_xError              ;
+    vector<float>           pv_yError              ;
+    vector<float>           pv_zError              ;
+    vector<float>           pv_chi2                ;
+    vector<float>           pv_ndof                ;
+    vector<float>           pv_pt2sum              ;
+    vector<int>             pv_nTracks             ;
     //[[[end]]]
   };
 }
@@ -230,17 +230,6 @@ emjet::OutputTree::Init() {
   met_phi             = -1;
   nTracks             = -1;
   alpha_event         = -1;
-  pv_x                = -1;
-  pv_y                = -1;
-  pv_z                = -1;
-  pv_xError           = -1;
-  pv_yError           = -1;
-  pv_zError           = -1;
-  pv_chi2             = -1;
-  pv_ndof             = -1;
-  pv_pt2sum           = -1;
-  pv_nTracks          = -1;
-  pv_indexInColl      = -1;
   pdf_id1             = -1;
   pdf_id2             = -1;
   pdf_x1              = -1;
@@ -404,6 +393,17 @@ emjet::OutputTree::Init() {
   gp_hasDarkMother       .clear();
   gp_hasDarkPionMother   .clear();
   gp_isTrackable         .clear();
+  pv_index               .clear();
+  pv_x                   .clear();
+  pv_y                   .clear();
+  pv_z                   .clear();
+  pv_xError              .clear();
+  pv_yError              .clear();
+  pv_zError              .clear();
+  pv_chi2                .clear();
+  pv_ndof                .clear();
+  pv_pt2sum              .clear();
+  pv_nTracks             .clear();
   //[[[end]]]
 }
 
@@ -427,17 +427,6 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, met_phi             );
   BRANCH(tree, nTracks             );
   BRANCH(tree, alpha_event         );
-  BRANCH(tree, pv_x                );
-  BRANCH(tree, pv_y                );
-  BRANCH(tree, pv_z                );
-  BRANCH(tree, pv_xError           );
-  BRANCH(tree, pv_yError           );
-  BRANCH(tree, pv_zError           );
-  BRANCH(tree, pv_chi2             );
-  BRANCH(tree, pv_ndof             );
-  BRANCH(tree, pv_pt2sum           );
-  BRANCH(tree, pv_nTracks          );
-  BRANCH(tree, pv_indexInColl      );
   BRANCH(tree, pdf_id1             );
   BRANCH(tree, pdf_id2             );
   BRANCH(tree, pdf_x1              );
@@ -601,6 +590,17 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, gp_hasDarkMother       );
   BRANCH(tree, gp_hasDarkPionMother   );
   BRANCH(tree, gp_isTrackable         );
+  BRANCH(tree, pv_index               );
+  BRANCH(tree, pv_x                   );
+  BRANCH(tree, pv_y                   );
+  BRANCH(tree, pv_z                   );
+  BRANCH(tree, pv_xError              );
+  BRANCH(tree, pv_yError              );
+  BRANCH(tree, pv_zError              );
+  BRANCH(tree, pv_chi2                );
+  BRANCH(tree, pv_ndof                );
+  BRANCH(tree, pv_pt2sum              );
+  BRANCH(tree, pv_nTracks             );
   //[[[end]]]
 }
 

@@ -264,9 +264,6 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       nGoodPhoton3++;
       if ( !photon.photonID(photonID_) ) continue;
       nGoodPhoton4++;
-      //if( photon.hadTowOverEm()>0.05 || photon.full5x5_sigmaIetaIeta()>0.0102 || photon.hasPixelSeed() ) continue;
-      //if( photon.hadTowOverEm()>0.05 || photon.full5x5_sigmaIetaIeta()>0.0102 ) continue;
-      //if( photon.hadTowOverEm()>0.05 ) continue;
       double relIso = (photon.trackIso() + photon.caloIso()) / photon.pt();
       output.photon_relIso = relIso;
       goodPhotons.push_back(photon);

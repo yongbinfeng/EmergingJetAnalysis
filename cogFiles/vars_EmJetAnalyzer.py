@@ -45,18 +45,6 @@ event_vars = [
     Var("met_phi"             , "float" , 0 , ) ,
     Var("nTracks"             , "int"   , 0 , ) ,
     Var("alpha_event"         , "float" , 0 , ) ,
-    # Primary vertex information
-    Var("pv_x"                , "float" , 0 , ) ,
-    Var("pv_y"                , "float" , 0 , ) ,
-    Var("pv_z"                , "float" , 0 , ) ,
-    Var("pv_xError"           , "float" , 0 , ) ,
-    Var("pv_yError"           , "float" , 0 , ) ,
-    Var("pv_zError"           , "float" , 0 , ) ,
-    Var("pv_chi2"             , "float" , 0 , ) ,
-    Var("pv_ndof"             , "float" , 0 , ) ,
-    Var("pv_pt2sum"           , "float" , 0 , ) ,
-    Var("pv_nTracks"          , "int"   , 0 , ) ,
-    Var("pv_indexInColl"      , "int"   , 0 , ) ,
     # PDF information
     Var("pdf_id1"             , "int"   , 0 , ) ,
     Var("pdf_id2"             , "int"   , 0 , ) ,
@@ -86,6 +74,7 @@ jet_vars = [
     Var("pt"                  , "float" , 1 , ) ,
     Var("ptUp"                , "float" , 1 , ) ,
     Var("ptDown"              , "float" , 1 , ) ,
+    Var("csv"                 , "float" , 1 , ) ,
     Var("cef"                 , "float" , 1 , ) ,
     Var("nef"                 , "float" , 1 , ) ,
     Var("chf"                 , "float" , 1 , ) ,
@@ -218,26 +207,40 @@ genparticle_vars = [
     Var("vy"                  , "float" , 1 , ) ,
     Var("vz"                  , "float" , 1 , ) ,
     # Testing vars
-    Var("min2Ddist"         , "float" , 1 , ) ,
-    Var("min2Dsig"          , "float" , 1 , ) ,
-    Var("min3Ddist"         , "float" , 1 , ) ,
-    Var("min3Dsig"          , "float" , 1 , ) ,
-    Var("minDeltaR"         , "float" , 1 , ) ,
-    Var("matched2Ddist"     , "float" , 1 , ) ,
-    Var("matched2Dsig"      , "float" , 1 , ) ,
-    Var("matched3Ddist"     , "float" , 1 , ) ,
-    Var("matched3Dsig"      , "float" , 1 , ) ,
-    Var("matchedDeltaR"     , "float" , 1 , ) ,
-    Var("Lxy"               , "float" , 1 , ) ,
-    Var("isDark"            , "int"   , 1 , ) ,
-    Var("nDaughters"        , "int"   , 1 , ) ,
-    # Var("isDarkPion"      , "int"   , 1 , ) ,
-    Var("hasSMDaughter"     , "int"   , 1 , ) ,
-    Var("hasDarkMother"     , "int"   , 1 , ) ,
-    Var("hasDarkPionMother" , "int"   , 1 , ) ,
-    Var("isTrackable"       , "int"   , 1 , ) ,
+    Var("min2Ddist"           , "float" , 1 , ) ,
+    Var("min2Dsig"            , "float" , 1 , ) ,
+    Var("min3Ddist"           , "float" , 1 , ) ,
+    Var("min3Dsig"            , "float" , 1 , ) ,
+    Var("minDeltaR"           , "float" , 1 , ) ,
+    Var("matched2Ddist"       , "float" , 1 , ) ,
+    Var("matched2Dsig"        , "float" , 1 , ) ,
+    Var("matched3Ddist"       , "float" , 1 , ) ,
+    Var("matched3Dsig"        , "float" , 1 , ) ,
+    Var("matchedDeltaR"       , "float" , 1 , ) ,
+    Var("Lxy"                 , "float" , 1 , ) ,
+    Var("isDark"              , "int"   , 1 , ) ,
+    Var("nDaughters"          , "int"   , 1 , ) ,
+    # Var("isDarkPion"        , "int"   , 1 , ) ,
+    Var("hasSMDaughter"       , "int"   , 1 , ) ,
+    Var("hasDarkMother"       , "int"   , 1 , ) ,
+    Var("hasDarkPionMother"   , "int"   , 1 , ) ,
+    Var("isTrackable"         , "int"   , 1 , ) ,
 ]
-all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars + genparticle_vars
+# Primary vertex information
+pv_vars = [
+    Var("index"               , "int"   , 1 , ) ,
+    Var("x"                   , "float" , 1 , ) ,
+    Var("y"                   , "float" , 1 , ) ,
+    Var("z"                   , "float" , 1 , ) ,
+    Var("xError"              , "float" , 1 , ) ,
+    Var("yError"              , "float" , 1 , ) ,
+    Var("zError"              , "float" , 1 , ) ,
+    Var("chi2"                , "float" , 1 , ) ,
+    Var("ndof"                , "float" , 1 , ) ,
+    Var("pt2sum"              , "float" , 1 , ) ,
+    Var("nTracks"             , "int"   , 1 , ) ,
+]
+all_vars = event_vars + jet_vars + jet_track_vars + jet_vertex_vars + genparticle_vars + pv_vars
 # Pad Var fields with appropriate number of spaces
 namelength_list = [len(var.name) for var in all_vars]
 maxnamelength = max(namelength_list)
@@ -264,17 +267,19 @@ jet_vardicts         = map( var_to_dict, jet_vars         )
 jet_track_vardicts   = map( var_to_dict, jet_track_vars   )
 jet_vertex_vardicts  = map( var_to_dict, jet_vertex_vars  )
 genparticle_vardicts = map( var_to_dict, genparticle_vars )
+pv_vardicts          = map( var_to_dict, pv_vars          )
 # Add appropriate prefix for variable names
 event_vardicts       = map( make_fullname_builder(""             ) , event_vardicts       )
 jet_vardicts         = map( make_fullname_builder("jet_"         ) , jet_vardicts         )
 jet_track_vardicts   = map( make_fullname_builder("track_"       ) , jet_track_vardicts   )
 jet_vertex_vardicts  = map( make_fullname_builder("vertex_"      ) , jet_vertex_vardicts  )
 genparticle_vardicts = map( make_fullname_builder("gp_"          ) , genparticle_vardicts )
+pv_vardicts          = map( make_fullname_builder("pv_"          ) , pv_vardicts )
 # for vardict in event_vardicts      : vardict['prefix'] = ""
 # for vardict in jet_vardicts        : vardict['prefix'] = "jet_"
 # for vardict in jet_track_vardicts  : vardict['prefix'] = "track_"
 # for vardict in jet_vertex_vardicts : vardict['prefix'] = "vertex_"
-all_vardicts = event_vardicts + jet_vardicts + jet_track_vardicts + jet_vertex_vardicts + genparticle_vardicts
+all_vardicts = event_vardicts + jet_vardicts + jet_track_vardicts + jet_vertex_vardicts + genparticle_vardicts + pv_vardicts
 
 from string import Template
 def replaceSingleLine(template_string, vardict):

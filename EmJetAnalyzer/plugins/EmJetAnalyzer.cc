@@ -61,6 +61,7 @@
 #include "DataFormats/RPCRecHit/interface/RPCRecHitCollection.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/BTauReco/interface/JetTag.h"
 
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
@@ -177,6 +178,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
     bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex) const;
     void fillGenParticles () ;
+    void fillPrimaryVertices () ;
     vector<reco::TransientTrack> getJetTrackVectorDeltaR() const;
 
 
@@ -198,6 +200,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     double compute_pt2Sum (const TransientVertex& ivertex) const;
     double compute_alpha_global () const;
     double compute_track_minVertexDz (const reco::TransientTrack& itrack) const;
+    double compute_btag(const reco::PFJet& ijet) const;
 
     // Utility functions
     reco::TrackRefVector MergeTracks(reco::TrackRefVector trks1,  reco::TrackRefVector trks2);
@@ -250,6 +253,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     emjet:: Track  track_            ; // Current track
     emjet:: Vertex vertex_           ; // Current vertex
     emjet:: GenParticle genparticle_ ; // Current genparticle
+    emjet:: PrimaryVertex pv_        ; // Current genparticle
     int jet_index_         ; // Current jet index
     int track_index_       ; // Current track index
     int vertex_index_      ; // Current vertex index
@@ -273,6 +277,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::Handle<reco::GenJetCollection> genJets_;
     std::vector<GlobalPoint> dt_points_;
     std::vector<GlobalPoint> csc_points_;
+    edm::Handle<reco::JetTagCollection> bTagH_;
+
 
     // Testing counters
     int pfjet;
@@ -310,7 +316,8 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
   jet_         (),
   track_       (),
   vertex_      (),
-  genparticle_ ()
+  genparticle_ (),
+  pv_ ()
 {
   // Config-independent initialization
   {
@@ -375,6 +382,9 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     consumes<RPCRecHitCollection> (edm::InputTag("rpcRecHits"));
 
     consumes<reco::PFCandidateCollection> (edm::InputTag("particleFlow"));
+    // B-tag
+    consumes<reco::JetTagCollection> (edm::InputTag("pfCombinedInclusiveSecondaryVertexV2BJetTags"));
+    consumes<reco::PFJetCollection> (edm::InputTag("ak4PFJetsCHS"));
 
     if (!isData_) { // :MCONLY:
       consumes<std::vector<PileupSummaryInfo> > (edm::InputTag("addPileupInfo"));
@@ -455,6 +465,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   jet_.Init();
   event_.Init();
   genparticle_.Init();
+  pv_.Init();
   // Reset object counters
   jet_index_=0;
   track_index_=0;
@@ -529,6 +540,13 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.nGoodVtx++;
     }
 
+    // // Find leading primary vertex
+    // Doesn't work since sortedPVs gets destructed
+    // reco::VertexCollection sortedPVs = *primary_verticesH_.product();
+    // std::sort(sortedPVs.begin(), sortedPVs.end(), VertexHigherPtSquared());
+    // primary_vertex_ = &sortedPVs[0];
+
+
     // Find leading primary vertex
     // OUTPUT(event_.event);
     // std::cout << "offlinePrimaryVertices\n";
@@ -552,20 +570,20 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       //   OUTPUT(pt2sum);
       // }
 
-      // Fill primary vertex information
-      double pt2sum = vertexPt2Calculator.sumPtSquared(*primary_vertex_);
-      double nTracks = primary_vertex_->tracksSize();
-      event_.pv_x           = primary_vertex_->x();
-      event_.pv_y           = primary_vertex_->y();
-      event_.pv_z           = primary_vertex_->z();
-      event_.pv_xError      = primary_vertex_->xError();
-      event_.pv_yError      = primary_vertex_->yError();
-      event_.pv_zError      = primary_vertex_->zError();
-      event_.pv_chi2        = primary_vertex_->chi2();
-      event_.pv_ndof        = primary_vertex_->ndof();
-      event_.pv_pt2sum      = pt2sum;
-      event_.pv_nTracks     = nTracks;
-      event_.pv_indexInColl = pv_indexInColl;
+      // // Fill primary vertex information
+      // double pt2sum = vertexPt2Calculator.sumPtSquared(*primary_vertex_);
+      // double nTracks = primary_vertex_->tracksSize();
+      // event_.pv_x           = primary_vertex_->x();
+      // event_.pv_y           = primary_vertex_->y();
+      // event_.pv_z           = primary_vertex_->z();
+      // event_.pv_xError      = primary_vertex_->xError();
+      // event_.pv_yError      = primary_vertex_->yError();
+      // event_.pv_zError      = primary_vertex_->zError();
+      // event_.pv_chi2        = primary_vertex_->chi2();
+      // event_.pv_ndof        = primary_vertex_->ndof();
+      // event_.pv_pt2sum      = pt2sum;
+      // event_.pv_nTracks     = nTracks;
+      // event_.pv_indexInColl = pv_indexInColl;
     }
   }
 
@@ -582,58 +600,67 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       event_.pdf_pdf2     = generatorH_->pdf()->xPDF.second;
       event_.pdf_scalePDF = generatorH_->pdf()->scalePDF;
     }
+    // std::cout << "EmJetAnalyzer: Q, id1, id2, x1, x2, pdf1, pdf2: \n" <<
+    //   event_.pdf_scalePDF << " " <<
+    //   event_.pdf_id1 << " " <<
+    //   event_.pdf_id2 << " " <<
+    //   event_.pdf_x1 << " " <<
+    //   event_.pdf_x2 << " " <<
+    //   event_.pdf_pdf1 << " " <<
+    //   event_.pdf_pdf2 << " " <<
+    //   std::endl;
     // edm::Handle<LHEEventProduct> lheEventH;
     // iEvent.getByLabel("externalLHEProducer", lheEventH);
   }
 
-  // Testing PDF weight retrieval
-  double pdfWeight_defaultCentral = 0.;
-  {
-    edm::InputTag pdfWeightTag("pdfWeights:NNPDF30"); // or any other PDF set
-    edm::Handle<std::vector<double> > weightHandle;
-    iEvent.getByLabel(pdfWeightTag, weightHandle);
+  // // Testing PDF weight retrieval
+  // double pdfWeight_defaultCentral = 0.;
+  // {
+  //   edm::InputTag pdfWeightTag("pdfWeights:NNPDF30"); // or any other PDF set
+  //   edm::Handle<std::vector<double> > weightHandle;
+  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-    std::vector<double> weights = (*weightHandle);
-    std::cout << "Event weight for central PDF NNPDF30_nlo_as_0118:" << weights[0] << std::endl;
-    pdfWeight_defaultCentral = weights[0];
-    unsigned int nmembers = weights.size();
-    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
-      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-    }
-  }
-  {
-    edm::InputTag pdfWeightTag("pdfWeights:CT14nlo"); // or any other PDF set
-    edm::Handle<std::vector<double> > weightHandle;
-    iEvent.getByLabel(pdfWeightTag, weightHandle);
+  //   std::vector<double> weights = (*weightHandle);
+  //   std::cout << "Event weight for central PDF NNPDF30_nlo_as_0118:" << weights[0] << std::endl;
+  //   pdfWeight_defaultCentral = weights[0];
+  //   unsigned int nmembers = weights.size();
+  //   for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+  //     // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+  //     // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+  //     // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+  //     // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+  //   }
+  // }
+  // {
+  //   edm::InputTag pdfWeightTag("pdfWeights:CT14nlo"); // or any other PDF set
+  //   edm::Handle<std::vector<double> > weightHandle;
+  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-    std::vector<double> weights = (*weightHandle);
-    std::cout << "Event weight for central PDF CT14nlo:" << weights[0] << std::endl;
-    unsigned int nmembers = weights.size();
-    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
-      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-    }
-  }
-  {
-    edm::InputTag pdfWeightTag("pdfWeights:NNPDF23"); // or any other PDF set
-    edm::Handle<std::vector<double> > weightHandle;
-    iEvent.getByLabel(pdfWeightTag, weightHandle);
+  //   std::vector<double> weights = (*weightHandle);
+  //   std::cout << "Event weight for central PDF CT14nlo:" << weights[0] << std::endl;
+  //   unsigned int nmembers = weights.size();
+  //   for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+  //     // std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+  //     // std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+  //     // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+  //     // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+  //   }
+  // }
+  // {
+  //   edm::InputTag pdfWeightTag("pdfWeights:NNPDF23"); // or any other PDF set
+  //   edm::Handle<std::vector<double> > weightHandle;
+  //   iEvent.getByLabel(pdfWeightTag, weightHandle);
 
-    std::vector<double> weights = (*weightHandle);
-    std::cout << "Event weight for central PDF NNPDF23:" << weights[0] << std::endl;
-    unsigned int nmembers = weights.size();
-    for (unsigned int j=1; j<nmembers && j<11; j+=2) {
-      std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
-      std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
-      // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
-      // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
-    }
-  }
+  //   std::vector<double> weights = (*weightHandle);
+  //   std::cout << "Event weight for central PDF NNPDF23:" << weights[0] << std::endl;
+  //   unsigned int nmembers = weights.size();
+  //   for (unsigned int j=1; j<nmembers && j<11; j+=2) {
+  //     std::cout << "Event weight for PDF variation +" << (j+1)/2 << ": " << weights[j] << std::endl;
+  //     std::cout << "Event weight for PDF variation -" << (j+1)/2 << ": " << weights[j+1] << std::endl;
+  //     // std::cout << "Event weight for PDF variation + (relative to central PDF)" << (j+1)/2 << ": " << weights[j]  / weights[0] << std::endl;
+  //     // std::cout << "Event weight for PDF variation - (relative to central PDF)" << (j+1)/2 << ": " << weights[j+1]  / weights[0] << std::endl;
+  //   }
+  // }
 
   // Retrieve event level GEN quantities
   if (!isData_) { // :MCONLY:
@@ -662,6 +689,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iSetup.get<JetCorrectionsRecord>().get("AK4PFchs",JetCorParColl_);
   JetCorrectorParameters const & JetCorPar = (*JetCorParColl_)["Uncertainty"];
   jecUnc_ = new JetCorrectionUncertainty(JetCorPar);
+  // Retrieve b-tag associations
+  iEvent.getByLabel("pfCombinedInclusiveSecondaryVertexV2BJetTags", bTagH_);
+
   // Retrieve TransientTrackBuilder
   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",transienttrackbuilderH_);
   // Retrieve generalTracks and build TransientTrackCollection
@@ -757,6 +787,34 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       ip++;
     }
 	}
+
+  // Test b-tagging
+  if(0)
+  {
+    // Get b tag information
+    edm::Handle<reco::JetTagCollection> bTagHandle;
+    iEvent.getByLabel("pfCombinedInclusiveSecondaryVertexV2BJetTags", bTagHandle);
+    edm::Handle<reco::PFJetCollection> jetH;
+    iEvent.getByLabel("ak4PFJetsCHS", jetH);
+    const reco::JetTagCollection & bTags = *(bTagHandle.product());
+    for (unsigned i = 0; i != bTags.size(); ++i) {
+      edm::RefToBase<reco::Jet> obj1 = bTags[i].first;
+      TLorentzVector vector1; vector1.SetPxPyPzE(obj1->px(), obj1->py(), obj1->pz(), obj1->energy());
+      // cout<<" Jet "<< i
+      //     <<" has b tag discriminator = "<<bTags[i].second
+      //     << " and obj2 Pt = "<<bTags[i].first->pt()<<endl;
+      int nMatched = 0;
+      for ( reco::PFJetCollection::const_iterator obj2 = jetH->begin(); obj2 != jetH->end(); obj2++ ) {
+        TLorentzVector vector2; vector2.SetPxPyPzE(obj2->px(), obj2->py(), obj2->pz(), obj2->energy());
+        double dr = vector1.DeltaR(vector2);
+        if (dr < 0.01) {
+          nMatched++;
+        }
+      }
+      // if (nMatched!=1) OUTPUT(nMatched);
+      // else OUTPUT(bTags[i].second);
+    }
+  }
 
   // Reconstruct AVR vertices using all generalTracks passing basic selection
   avrVertices_.clear();
@@ -920,6 +978,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     fillGenParticles();
   }
 
+  fillPrimaryVertices();
+
   if (jetdump_ && pfjet_alphazero!=0 || pfjet_alphaneg!=0 || calojet_alphazero!=0 || calojet_alphaneg!=0) {
     std::cout << "Event summary:";
     OUTPUT(event_.run);
@@ -939,6 +999,28 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     calojet_alphazero_total += calojet_alphazero;
     std::cout << "\n";
   }
+
+  // // Vertex reconstruction testing
+  // {
+  //   KalmanTrimmedVertexFinder finder;
+  //   vector<TransientVertex> vertices = finder.vertices (generalTracks_);
+  //   std::cout << "--------------------------------\n";
+  //   std::cout << "New event:\n";
+  //   OUTPUT( primary_vertex_->position().x() );
+  //   OUTPUT( primary_vertex_->position().y() );
+  //   OUTPUT( primary_vertex_->position().z() );
+  //   for (auto tv : vertices) {
+  //     std::cout << "\n";
+  //     OUTPUT( tv.position().x() );
+  //     OUTPUT( tv.position().y() );
+  //     OUTPUT( tv.position().z() );
+  //   }
+  //   // OUTPUT(vertices.size());
+  //   // OUTPUT(event_.nVtx);
+  //   // OUTPUT(event_.nGoodVtx);
+  //   std::cout << "\n";
+  //   std::cout << "--------------------------------\n";
+  // }
 
   // Write current Event to OutputTree
   WriteEventToOutput(event_, &otree_);
@@ -1069,6 +1151,10 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
     // OUTPUT(ojet.ptRaw);
     // OUTPUT(ojet.ptUp);
     // OUTPUT(ojet.ptDown);
+  }
+  // Fill b-tag information
+  {
+    ojet.csv = compute_btag(ijet);
   }
 
   // Fill PF Jet specific variables
@@ -1229,9 +1315,10 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
     otrack.pca_phi = closestPoint.phi();
     otrack.distanceToJet = pcaToJet.mag();
 
-    auto dxy_ipv = IPTools::absoluteTransverseImpactParameter(*itk, primary_vertex);
-    otrack.ipXY    = fabs(dxy_ipv.second.value());
-    otrack.ipXYSig = fabs(dxy_ipv.second.significance());
+    // Calculate signed transverse IP, along jet direction
+    auto dxy_ipv = IPTools::signedTransverseImpactParameter(*itk, jetVector, primary_vertex);
+    otrack.ipXY    = (dxy_ipv.second.value());
+    otrack.ipXYSig = (dxy_ipv.second.significance());
   }
 
   otrack.quality             = itk->track().qualityMask();
@@ -1509,6 +1596,30 @@ EmJetAnalyzer::fillGenParticles () {
     event_.genparticle_vector.push_back(genparticle_);
     genparticle_.index++;
   }
+}
+
+void
+EmJetAnalyzer::fillPrimaryVertices() {
+  VertexHigherPtSquared vertexPt2Calculator;
+  for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
+    double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
+    double nTracks = ipv->tracksSize();
+    pv_.x           = ipv->x();
+    pv_.y           = ipv->y();
+    pv_.z           = ipv->z();
+    pv_.xError      = ipv->xError();
+    pv_.yError      = ipv->yError();
+    pv_.zError      = ipv->zError();
+    pv_.chi2        = ipv->chi2();
+    pv_.ndof        = ipv->ndof();
+    pv_.pt2sum      = pt2sum;
+    pv_.nTracks     = nTracks;
+    // Fill primary vertex into event
+    event_.pv_vector.push_back(pv_);
+    pv_.index++;
+  }
+  // Sort primary vertices in descending order of pt2Sum
+  std::sort(event_.pv_vector.begin(), event_.pv_vector.end(), [](const emjet::PrimaryVertex a, const emjet::PrimaryVertex b){ return a.pt2sum > b.pt2sum; });
 }
 
 void
@@ -1955,6 +2066,32 @@ EmJetAnalyzer::compute_track_minVertexDz (const reco::TransientTrack& itrack) co
     if (fabs(dz) < minVertexDz) minVertexDz = fabs(dz);
   }
   return minVertexDz;
+}
+
+
+double
+EmJetAnalyzer::compute_btag(const reco::PFJet& ijet) const
+{
+  const reco::JetTagCollection & bTags = *(bTagH_.product());
+  auto obj1 = &ijet;
+  TLorentzVector vector1; vector1.SetPxPyPzE(obj1->px(), obj1->py(), obj1->pz(), obj1->energy());
+  double btagValue = -999;
+  int nMatched = 0;
+  for (unsigned i = 0; i != bTags.size(); ++i) {
+    edm::RefToBase<reco::Jet> obj2 = bTags[i].first;
+    TLorentzVector vector2; vector2.SetPxPyPzE(obj2->px(), obj2->py(), obj2->pz(), obj2->energy());
+    double dr = vector1.DeltaR(vector2);
+    // OUTPUT(dr);
+    if (dr < 0.01) {
+      btagValue = bTags[i].second;
+      nMatched++;
+    }
+    // if (nMatched!=1) OUTPUT(nMatched);
+    // else OUTPUT(bTags[i].second);
+  }
+  // OUTPUT(nMatched);
+  if (nMatched==1) return btagValue;
+  else             return -999;
 }
 
 template <class T>

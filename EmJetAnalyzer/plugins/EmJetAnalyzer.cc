@@ -25,6 +25,7 @@
 // :JETSOURCE: Code that assigns "source" variable for a jet
 // :TRACKSOURCE: Code that assigns "source" variable for a track
 // :VERTEXSOURCE:
+// :VERTEXTESTING: Testing for vertex reconstruction
 
 
 // system include files
@@ -32,6 +33,7 @@
 #include <cassert> // For assert()
 #include <stdlib.h> // For rand()
 #include <math.h> // For asin()
+#include <tuple>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -111,6 +113,7 @@
 
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/OutputTree.h"
 #include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetEvent.h"
+#include "EmergingJetAnalysis/EmJetAnalyzer/interface/EmJetAlgos.h"
 #include "EmergingJetAnalysis/GenParticleAnalyzer/plugins/GenParticleAnalyzer.cc"
 
 // JEC corrections
@@ -133,6 +136,7 @@
 //
 // constants, enums and typedefs
 //
+typedef std::tuple< std::vector<double>, std::vector<double>, std::vector<double>, std::vector<double>  > DistanceResults;
 // bool scanMode_ = true;
 // bool scanRandomJet_ = true;
 bool jetdump_ = false;
@@ -175,6 +179,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool selectTrack(const reco::TransientTrack& itrack) const;
     bool selectJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
     bool selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Jet& ojet) const;
+    bool selectJetTrackInnerHit(const reco::TransientTrack& itrack, const Jet& ojet, const edm::EventSetup& iSetup) const;
     bool selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const;
     bool selectJetVertex(const TransientVertex& ivertex, const Jet& ojet, const Vertex& overtex) const;
     void fillGenParticles () ;
@@ -207,6 +212,9 @@ class EmJetAnalyzer : public edm::EDFilter {
     template <class T>
     T get_median(const vector<T>& input) const;
 
+    // :VERTEXTESTING:
+    void vertexdump(DistanceResults) const;
+
     // Scanning functions (Called for specific events/objects)
     void jetdump(reco::TrackRefVector& trackRefs) const;
     void jetscan(const reco::PFJet& ijet);
@@ -238,6 +246,13 @@ class EmJetAnalyzer : public edm::EDFilter {
 
     emjet::OutputTree otree_ ; // OutputTree object
     TTree* tree_;
+    // Histogram objects
+  TH1F* hist_LogVertexDistance_GenToReco_;
+  TH1F* hist_LogVertexDistance_RecoToGen_;
+  TH1F* hist_LogVertexDistance2D_GenToReco_;
+  TH1F* hist_LogVertexDistance2D_RecoToGen_;
+  // TH1F* hist_VertexEfficiency_;
+  // TH1F* hist_VertexPurity_;
 
     std::auto_ptr< reco::PFJetCollection > scanJet_;
     std::auto_ptr< reco::TrackCollection > scanJetTracks_;
@@ -247,6 +262,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     std::auto_ptr< reco::TrackCollection > avrVerticesRFTracksGlobalOutput_;
     std::auto_ptr< reco::TrackCollection > avrVerticesRFTracksLocalOutput_;
     std::auto_ptr< reco::VertexCollection > darkPionVertices_;
+    std::auto_ptr< reco::VertexCollection > tkvfGlobalOutput_;
+    std::auto_ptr< reco::VertexCollection > tkvfLocalOutput_;
 
     emjet:: Event  event_            ; // Current event
     emjet:: Jet    jet_              ; // Current jet
@@ -325,6 +342,16 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     std::string modulename = iConfig.getParameter<std::string>("@module_label");
     tree_           = fs->make<TTree>("emJetTree","emJetTree");
     otree_.Branch(tree_);
+
+    // Secondary vertex reco performance testing :VERTEXTESTING:
+    {
+      hist_LogVertexDistance_GenToReco_ = fs->make<TH1F>("GenToRecoVertexDistance", "GenToRecoVertexDistance", 100, -4., 4.);
+      hist_LogVertexDistance_RecoToGen_ = fs->make<TH1F>("RecoToGenVertexDistance", "RecoToGenVertexDistance", 100, -4., 4.);
+      hist_LogVertexDistance2D_GenToReco_ = fs->make<TH1F>("GenToRecoVertexDistance2D", "GenToRecoVertexDistance2D", 100, -4., 4.);
+      hist_LogVertexDistance2D_RecoToGen_ = fs->make<TH1F>("RecoToGenVertexDistance2D", "RecoToGenVertexDistance2D", 100, -4., 4.);
+      // hist_VertexEfficiency_            = fs->make<TH1F>("VertexEfficiency", "VertexEfficiency", 100, 0., 1.);
+      // hist_VertexPurity_                = fs->make<TH1F>("VertexPurity", "VertexPurity", 100, -3., 2.);
+    }
   }
 
   // Config-dependent initialization
@@ -413,6 +440,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       produces< reco::TrackCollection > ("avrVerticesRFTracksGlobalOutput"). setBranchAlias( "avrVerticesRFTracksGlobalOutput" ); // avrVerticesRFTracksGlobalOutput_
       produces< reco::TrackCollection > ("avrVerticesRFTracksLocalOutput"). setBranchAlias( "avrVerticesRFTracksLocalOutput" ); // avrVerticesRFTracksLocalOutput_
       produces< reco::VertexCollection > ("darkPionVertices"). setBranchAlias( "darkPionVertices" ); // darkPionVertices_
+      produces< reco::VertexCollection > ("tkvfGlobalOutput"). setBranchAlias( "tkvfGlobalOutput" ); // tkvfGlobalOutput_
     }
 
   }
@@ -460,6 +488,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   avrVerticesRFTracksGlobalOutput_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   avrVerticesRFTracksLocalOutput_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   darkPionVertices_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
+  tkvfGlobalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
+  tkvfLocalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
   // Reset Event variables
   vertex_.Init();
   jet_.Init();
@@ -833,6 +863,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       }
     }
   }
+  auto result = computeMinVertexDistance(&(*darkPionVertices_), &avrVertices_);
+  vertexdump(result);
 
   // Calculate Jet-level quantities and fill into jet_ :JETLEVEL:
   for ( reco::PFJetCollection::const_iterator jet = selectedJets_->begin(); jet != selectedJets_->end(); jet++ ) {
@@ -850,6 +882,12 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
       // Fill Jet-Track level quantities
       prepareJetTrack(*itk, jet_, track_, 1); // source = 1 for generalTracks :TRACKSOURCE:
+      fillJetTrack(*itk, jet_, track_);
+    }
+    for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
+      if ( !selectJetTrackInnerHit(*itk, jet_, iSetup) ) continue; // :CUT: Apply Track selection
+      // Fill Jet-Track level quantities
+      prepareJetTrack(*itk, jet_, track_, 5); // source = 5 for generalTracks with inner most hit deltaR :TRACKSOURCE:
       fillJetTrack(*itk, jet_, track_);
     }
 
@@ -875,6 +913,28 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       std::vector<TransientVertex> vertices_for_current_jet;
       {
         vertices_for_current_jet = vtxmaker_.vertices(primary_tracks, tracks_for_vertexing, *theBeamSpot_);
+        // :VERTEXTESTING:
+        vector<TransientVertex> vertices_disp;
+        for (auto vtx: vertices_for_current_jet) {
+          double x = vtx.position().x() - primary_vertex_->position().x();
+          double y = vtx.position().y() - primary_vertex_->position().y();
+          double z = vtx.position().z() - primary_vertex_->position().z();
+          TVector3 vector_to_pv(x, y, z);
+          double distance2D_to_pv = vector_to_pv.Perp();
+          if (distance2D_to_pv > 1.0) vertices_disp.push_back(vtx);
+        }
+        reco::VertexCollection darkPionVertices_disp;
+        for (auto vtx: *darkPionVertices_) {
+          double x = vtx.position().x() - primary_vertex_->position().x();
+          double y = vtx.position().y() - primary_vertex_->position().y();
+          double z = vtx.position().z() - primary_vertex_->position().z();
+          TVector3 vector_to_pv(x, y, z);
+          double distance2D_to_pv = vector_to_pv.Perp();
+          if (distance2D_to_pv > 1.0) darkPionVertices_disp.push_back(vtx);
+        }
+        // auto result = computeMinVertexDistance(&(*darkPionVertices_), &vertices);
+        auto result = computeMinVertexDistance(&darkPionVertices_disp, &vertices_disp);
+        // vertexdump(result);
       }
       for (auto tv : vertices_for_current_jet) {
         avrVerticesLocalOutput_->push_back(reco::Vertex(tv));
@@ -1000,27 +1060,51 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     std::cout << "\n";
   }
 
-  // // Vertex reconstruction testing
-  // {
-  //   KalmanTrimmedVertexFinder finder;
-  //   vector<TransientVertex> vertices = finder.vertices (generalTracks_);
-  //   std::cout << "--------------------------------\n";
-  //   std::cout << "New event:\n";
-  //   OUTPUT( primary_vertex_->position().x() );
-  //   OUTPUT( primary_vertex_->position().y() );
-  //   OUTPUT( primary_vertex_->position().z() );
-  //   for (auto tv : vertices) {
-  //     std::cout << "\n";
-  //     OUTPUT( tv.position().x() );
-  //     OUTPUT( tv.position().y() );
-  //     OUTPUT( tv.position().z() );
-  //   }
-  //   // OUTPUT(vertices.size());
-  //   // OUTPUT(event_.nVtx);
-  //   // OUTPUT(event_.nGoodVtx);
-  //   std::cout << "\n";
-  //   std::cout << "--------------------------------\n";
-  // }
+  // Vertex reconstruction testing :VERTEXTESTING:
+  {
+    KalmanTrimmedVertexFinder finder;
+    vector<TransientVertex> vertices = finder.vertices (generalTracks_);
+    vector<TransientVertex> vertices_disp;
+    for (auto vtx: vertices) {
+      double x = vtx.position().x() - primary_vertex_->position().x();
+      double y = vtx.position().y() - primary_vertex_->position().y();
+      double z = vtx.position().z() - primary_vertex_->position().z();
+      TVector3 vector_to_pv(x, y, z);
+      double distance2D_to_pv = vector_to_pv.Perp();
+      if (distance2D_to_pv > 1.0) vertices_disp.push_back(vtx);
+    }
+    reco::VertexCollection darkPionVertices_disp;
+    for (auto vtx: *darkPionVertices_) {
+      double x = vtx.position().x() - primary_vertex_->position().x();
+      double y = vtx.position().y() - primary_vertex_->position().y();
+      double z = vtx.position().z() - primary_vertex_->position().z();
+      TVector3 vector_to_pv(x, y, z);
+      double distance2D_to_pv = vector_to_pv.Perp();
+      if (distance2D_to_pv > 1.0) darkPionVertices_disp.push_back(vtx);
+    }
+    // auto result = computeMinVertexDistance(&(*darkPionVertices_), &vertices);
+    auto result = computeMinVertexDistance(&darkPionVertices_disp, &vertices_disp);
+    // vertexdump(result);
+    // std::cout << "--------------------------------\n";
+    // std::cout << "New event:\n";
+    // OUTPUT( primary_vertex_->position().x() );
+    // OUTPUT( primary_vertex_->position().y() );
+    // OUTPUT( primary_vertex_->position().z() );
+    // for (auto tv : vertices) {
+    //   std::cout << "\n";
+    //   OUTPUT( tv.position().x() );
+    //   OUTPUT( tv.position().y() );
+    //   OUTPUT( tv.position().z() );
+    // }
+    // // OUTPUT(vertices.size());
+    // // OUTPUT(event_.nVtx);
+    // // OUTPUT(event_.nGoodVtx);
+    // std::cout << "\n";
+    // std::cout << "--------------------------------\n";
+    for (auto tv: vertices) {
+      tkvfGlobalOutput_->push_back(reco::Vertex(tv));
+    }
+  }
 
   // Write current Event to OutputTree
   WriteEventToOutput(event_, &otree_);
@@ -1045,6 +1129,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.put(avrVerticesRFTracksGlobalOutput_, "avrVerticesRFTracksGlobalOutput"); // avrVerticesRFTracksGlobalOutput_
   iEvent.put(avrVerticesRFTracksLocalOutput_, "avrVerticesRFTracksLocalOutput"); // avrVerticesRFTracksLocalOutput_
   iEvent.put(darkPionVertices_, "darkPionVertices"); // darkPionVertices_
+  iEvent.put(tkvfGlobalOutput_, "tkvfGlobalOutput"); // tkvfGlobalOutput_
 
   if (scanRandomJet_) return true;
   if (scanMode_) return (pfjet_alphazero>0);
@@ -1421,6 +1506,10 @@ EmJetAnalyzer::selectTrack(const reco::TransientTrack& itrack) const
   auto itk = &itrack;
   // Skip tracks with pt<1 :CUT:
   if (itk->track().pt() < 1.) return false;
+  // Skip tracks failing "high purity" selection
+  int quality = itrack.track().qualityMask();
+  bool isHighPurity = (quality & 4) > 0;
+  if (!isHighPurity) return false;
   return true;
 }
 
@@ -1475,9 +1564,48 @@ EmJetAnalyzer::selectJetTrackDeltaR(const reco::TransientTrack& itrack, const Je
 }
 
 bool
+EmJetAnalyzer::selectJetTrackInnerHit(const reco::TransientTrack& itrack, const Jet& ojet, const edm::EventSetup& iSetup) const
+{
+  // Gets jet 4 vector from ojet.p4
+
+  if (!selectTrack(itrack)) return false; // :CUT: Require track to pass basic selection
+  // Retrieve track position and momentum direction at inner most hit
+  // std::cout << "Getting inner most trajectory state\n";
+  // TrajectoryStateOnSurface innermost_state = itrack.innermostMeasurementState();
+  TrajectoryStateOnSurface innermost_state;
+  {
+    // trajectory information for acessing hits
+    static GetTrackTrajInfo getTrackTrajInfo;
+    std::vector<GetTrackTrajInfo::Result> trajInfo = getTrackTrajInfo.analyze(iSetup, itrack.track());
+    assert(trajInfo.size()>0);
+    innermost_state = trajInfo[0].detTSOS;
+    OUTPUT(innermost_state.isValid());
+    if (!innermost_state.isValid()) return false;
+  }
+  // std::cout << "Sucessfully got inner most trajectory state\n";
+  GlobalPoint innerPosGP = innermost_state.globalPosition();
+  GlobalVector innerPosMomGV = innermost_state.globalMomentum();
+  TLorentzVector innerPos(innerPosGP.x(), innerPosGP.y(), innerPosGP.z(), 0);
+  // Retrieve primary vertex position
+  const reco::Vertex& primary_vertex = *primary_vertex_;
+  TLorentzVector pvVector(primary_vertex.x(), primary_vertex.y(), primary_vertex.z(), 0);
+  TLorentzVector trackVector = (pvVector - innerPos);
+  // Skip tracks with deltaR > 0.4 w.r.t. current jet :CUT:
+  float deltaR = trackVector.DeltaR(ojet.p4);
+  // if (itrack==1) std::cout << "deltaR: " << deltaR << std::endl;
+  if (deltaR > 0.4) return false;
+  return true;
+}
+
+bool
 EmJetAnalyzer::selectJetTrackForVertexing(const reco::TransientTrack& itrack, const Jet& ojet, const Track& otrack) const
 {
-  return selectJetTrackDeltaR(itrack, ojet);
+  int quality = itrack.track().qualityMask();
+  bool isHighPurity = (quality & 4) > 0;
+  if (isHighPurity)
+    return selectJetTrackDeltaR(itrack, ojet);
+  else
+    return false;
 }
 
 bool
@@ -2124,6 +2252,34 @@ EmJetAnalyzer::getJetTrackVectorDeltaR() const
   }
   return tracks;
 }
+
+// :VERTEXTESTING:
+void
+EmJetAnalyzer::vertexdump(DistanceResults result) const
+{
+  // std::cout << "--------------------------------\n";
+  // std::cout << "GenToReco\n";
+  for (auto distance: std::get<0>(result)) {
+    hist_LogVertexDistance_GenToReco_->Fill(TMath::Log10(distance));
+    // OUTPUT(distance);
+  }
+  // std::cout << "RecoToGen\n";
+  for (auto distance: std::get<2>(result)) {
+    hist_LogVertexDistance_RecoToGen_->Fill(TMath::Log10(distance));
+    // OUTPUT(distance);
+  }
+  // std::cout << "GenToReco\n";
+  for (auto distance: std::get<1>(result)) {
+    hist_LogVertexDistance2D_GenToReco_->Fill(TMath::Log10(distance));
+    // OUTPUT(distance);
+  }
+  // std::cout << "RecoToGen\n";
+  for (auto distance: std::get<3>(result)) {
+    hist_LogVertexDistance2D_RecoToGen_->Fill(TMath::Log10(distance));
+    // OUTPUT(distance);
+  }
+}
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(EmJetAnalyzer);

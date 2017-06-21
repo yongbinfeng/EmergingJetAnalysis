@@ -33,6 +33,7 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/InputTag.h"
 
 #include <TVector3.h>
 #include <TMath.h>
@@ -48,6 +49,11 @@
 // Data formats
 #include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/EgammaCandidates/interface/Photon.h"
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "DataFormats/JetReco/interface/PFJetCollection.h"
+
+#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
@@ -81,16 +87,20 @@ class GJetFilter : public edm::EDFilter {
     string alias_; // Alias suffix for all products
     bool isData_;
     // Retrieve once per event
-    edm::EDGetTokenT< pat::PhotonCollection > photonCollectionToken_;    
-    edm::EDGetTokenT< pat::JetCollection > jetCollectionToken_;
+    //edm::EDGetTokenT< reco::PhotonCollection > photonCollectionToken_;
+    edm::EDGetToken photonsToken_;
+    edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
+    edm::EDGetTokenT<edm::ValueMap<bool> > phoMediumIdMapToken_;
+
     double minPtPhoton_;
     double minDeltaR_;
     double maxDeltaPhi_;
     double minPtSelectedJet_;
     double maxPtAdditionalJets_;
-    string photonID_;
 
     // Outputs
+    std::auto_ptr< reco::PFJetCollection > selectedJets_;
+
     std::unordered_map<string, TH1*> histoMap1D_;
     std::unordered_map<string, TH2*> histoMap2D_;
 
@@ -104,7 +114,6 @@ class GJetFilter : public edm::EDFilter {
         double photon_pt;
         double photon_eta;
         double photon_phi;
-        double photon_relIso;
         vector<double> jets_pt;
         vector<double> jets_eta;
         vector<double> jets_phi;
@@ -136,26 +145,19 @@ GJetFilter::GJetFilter(const edm::ParameterSet& iConfig) :
     maxDeltaPhi_         ( iConfig.getParameter<double> ( "maxDeltaPhi"         )  ) ,
     minPtSelectedJet_    ( iConfig.getParameter<double> ( "minPtSelectedJet"    )  ) ,
     maxPtAdditionalJets_ ( iConfig.getParameter<double> ( "maxPtAdditionalJets" )  ) ,
-    photonID_            ( iConfig.getParameter<string> ( "photonID"            )  ) ,
-    output( { -1, -1, -1, 0.0, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
+    output( { -1, -1, -1, 0.0, 0.0, 0.0, 0.0, std::vector<double>(), std::vector<double>(), std::vector<double>() } )
 {
    //now do what ever initialization is needed
   LogTrace("GJetFilter") << "Constructing GJetFilter";
 
   alias_ = iConfig.getParameter<string>("@module_label");
 
-  photonCollectionToken_ = consumes< pat::PhotonCollection > (iConfig.getParameter<edm::InputTag>("srcPhotons"));
-  jetCollectionToken_ = consumes< pat::JetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));
+  //photonCollectionToken_ = consumes< reco::PhotonCollection > (iConfig.getParameter<edm::InputTag>("srcPhotons"));
+  photonsToken_ = mayConsume<edm::View<reco::Photon> >(iConfig.getParameter<edm::InputTag>("srcPhotons"));
+  jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));  
+  phoMediumIdMapToken_ = consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("phoMediumIdMap"));
 
-  //Register products
-  // produces< bool > ("zValidity")  . setBranchAlias( string("zValidity_").append(alias_) );
-  // produces< PolarLorentzVector > ("zP4")  . setBranchAlias( string("zP4_").append(alias_) );
-  //
-  // produces< reco::PFJetCollection > (alias_)  . setBranchAlias( alias_ );
   produces< reco::PFJetCollection > ();
-  // produces< vector<double> > ("deltaR")  . setBranchAlias( string("deltaR_").append(alias_) );
-  // produces< vector<double> > ("deltaPhi")  . setBranchAlias( string("deltaPhi_").append(alias_) );
-  // produces< bool > ("eventPassed")  . setBranchAlias( string("eventPassed_").append(alias_) );
 
   edm::Service<TFileService> fs;
   string name;
@@ -190,10 +192,11 @@ GJetFilter::GJetFilter(const edm::ParameterSet& iConfig) :
   outputTree->Branch("photon_pt"      , &output.photon_pt      ) ;
   outputTree->Branch("photon_eta"     , &output.photon_eta     ) ;
   outputTree->Branch("photon_phi"     , &output.photon_phi     ) ;
-  outputTree->Branch("photon_relIso"  , &output.photon_relIso  ) ;
   outputTree->Branch("jets_pt"        , &output.jets_pt        ) ;
   outputTree->Branch("jets_eta"       , &output.jets_eta       ) ;
   outputTree->Branch("jets_phi"       , &output.jets_phi       ) ;
+
+  produces< reco::PFJetCollection > ("selectedJets"). setBranchAlias( "selectedJets" );
 }
 
 
@@ -227,22 +230,33 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   output.photon_pt     = -10;
   output.photon_eta    = -10;
   output.photon_phi    = -10;
-  output.photon_relIso = -10;
   output.jets_pt.clear();
   output.jets_eta.clear();
   output.jets_phi.clear();
 
   histoMap1D_["eventCountPreFilter"]->Fill(1.);
 
-  edm::Handle< pat::JetCollection > jetCollection;
+  //edm::Handle< pat::JetCollection > jetCollection;
+  //iEvent.getByToken(jetCollectionToken_, jetCollection);
+  //edm::Handle< pat::PhotonCollection > photonCollection;  
+  //iEvent.getByToken(photonCollectionToken_, photonCollection);
+  edm::Handle< reco::PFJetCollection > jetCollection;
   iEvent.getByToken(jetCollectionToken_, jetCollection);
-  edm::Handle< pat::PhotonCollection > photonCollection;  
-  iEvent.getByToken(photonCollectionToken_, photonCollection);
+  //edm::Handle< reco::PhotonCollection > photonCollection;
+  //iEvent.getByToken(photonCollectionToken_, photonCollection);  
+  edm::Handle<edm::View<reco::Photon> > photons;
+  iEvent.getByToken(photonsToken_, photons);
+
+  edm::Handle<edm::ValueMap<bool> > medium_id_decisions;
+  iEvent.getByToken(phoMediumIdMapToken_,medium_id_decisions);
+
+  std::auto_ptr< reco::PFJetCollection > selectedJets_( new reco::PFJetCollection() );
+  selectedJets_->reserve(jetCollection->size());
 
   //
   //Photon Selection
   //
-  pat::PhotonCollection goodPhotons;
+  reco::PhotonCollection goodPhotons;
   int nPhoton = 0;
   int nGoodPhoton1 = 0;
   int nGoodPhoton2 = 0;
@@ -250,29 +264,29 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   int nGoodPhoton4 = 0;
   {
     // Select good photons
-    auto photons = photonCollection.product();
-    // Photon-specific criteria
-    for ( auto it = photons->begin(); it != photons->end(); it++ ) {
-      auto photon = *it;
+    //for ( auto it = photonCollection->begin(); it != photonCollection->end(); it++ ) {
+    for (size_t it = 0; it < photons->size(); ++it){
+      //auto photon = it;
+      const auto photon = photons->ptrAt(it);
       nPhoton++;
-      if ( photon.pt() < minPtPhoton_ ) continue;//photon pT selection
+      if ( photon->pt() < minPtPhoton_ ) continue;//photon pT selection
       //if( photon.pt() < 35.0 || photon.pt() > 90.0 ) continue;
       nGoodPhoton1++;
-      if ( fabs(photon.eta()) > 1.4442 ) continue;
+      if ( fabs(photon->superCluster()->eta()) > 1.4442 ) continue;
       nGoodPhoton2++;
-      if ( photon.hasPixelSeed() ) continue;
+      if ( photon->hasPixelSeed() ) continue;
       nGoodPhoton3++;
-      if ( !photon.photonID(photonID_) ) continue;
+      bool isPassMedium = (*medium_id_decisions)[photon];
+      //bool isPassMedium = (*medium_id_decisions)[pho];
+      if ( !isPassMedium ) continue;
       nGoodPhoton4++;
-      double relIso = (photon.trackIso() + photon.caloIso()) / photon.pt();
-      output.photon_relIso = relIso;
-      goodPhotons.push_back(photon);
+      goodPhotons.push_back(*photon);
     }
 
     if ( goodPhotons.size() == 1 ) {
       output.photon_pt  = goodPhotons[0].pt();
-      output.photon_eta = goodPhotons[0].eta();
-      output.photon_phi = goodPhotons[0].phi();
+      output.photon_eta = goodPhotons[0].superCluster()->eta();
+      output.photon_phi = goodPhotons[0].superCluster()->phi();
     }
   }
 
@@ -293,69 +307,44 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   // Select jets that are more than minDeltaR_ away from the photon,
   // and with pt > minPtSelectedJet_
-  auto jets = jetCollection.product();
-  reco::PFJetCollection selectedJet;
   // LogTrace("GJetFilter") << "Number of jets in event: " << jets->size();
   int nJetSelected = 0;
   int jetIndex = 0;
-  for ( auto jet = jets->begin(); jet!= jets->end(); jet++ ) {
+  for ( auto jet = jetCollection->begin(); jet!= jetCollection->end(); jet++ ) {
 
     if ( ROOT::Math::VectorUtil::DeltaR( goodPhotonP4, jet->p4() ) < minDeltaR_ ) continue;
     if (jet->pt() < minPtSelectedJet_) continue;
-    const reco::Candidate* recoJet = jet->originalObject();
-    if ( recoJet && jet->isPFJet() ) {
-      if ( const reco::PFJet* pfJet = dynamic_cast<const reco::PFJet*>(recoJet) ) {
-        selectedJet.push_back( *pfJet );
-        nJetSelected++;
-        histoMap1D_["pt_selectedJet"]->Fill( pfJet->pt() );
-        histoMap2D_["pt_jetIndex"]->Fill( pfJet->pt(), jetIndex );
-        // Store jet info in Tree for first four selected jets
-        if ( nJetSelected <= 4 ) {
-          LogTrace("GJetFilter") << "jet_pt: " << jet->pt();
-          output.jets_pt.push_back(jet->pt());
-          output.jets_eta.push_back(jet->eta());
-          output.jets_phi.push_back(jet->phi());
-        }
-      }
+    selectedJets_->push_back( *jet );
+    nJetSelected++;
+    histoMap1D_["pt_selectedJet"]->Fill( jet->pt() );
+    histoMap2D_["pt_jetIndex"]->Fill( jet->pt(), jetIndex );
+    // Store jet info in Tree for first four selected jets
+    if ( nJetSelected <= 4 ) {
+       LogTrace("GJetFilter") << "jet_pt: " << jet->pt();
+       output.jets_pt.push_back(jet->pt());
+       output.jets_eta.push_back(jet->eta());
+       output.jets_phi.push_back(jet->phi());
     }
 
     jetIndex++;
   }
   
   LogTrace("GJetFilter") << "nJetSelected " << nJetSelected;
-  histoMap1D_["nSelectedJet"]->Fill(selectedJet.size());
+  histoMap1D_["nSelectedJet"]->Fill(selectedJets_->size());
 
   outputTree->Fill();
 
-  if ( selectedJet.size() == 0 ) return false;
-  // if ( selectedJet.size() != 1 ) return false;
-  auto jet = selectedJet[0];
+  if ( selectedJets_->size() == 0 ) return false;
+  auto jet = selectedJets_->at(0);
   float dPhi_jet_photon = ROOT::Math::VectorUtil::DeltaPhi( goodPhotonP4, jet.p4() );
   histoMap1D_["dPhi_jet_photon"]->Fill(dPhi_jet_photon);
 
   histoMap1D_["eventCountPostFilter"]->Fill(1.);
 
 
-  // LogTrace("GJetFilter") << "Printing photon pts.";
-  // for ( auto it = photons->begin(); it != photons->end(); it++ ) {
-  //   auto photon = *it;
-  //   LogTrace("GJetFilter") << photon.pt();
-  // }
-
-
-  // std::auto_ptr< bool > _zValidity( new bool (zValidity) );
-  // iEvent.put(_zValidity, "zValidity");
-  // std::auto_ptr< PolarLorentzVector > _zP4( new PolarLorentzVector (zP4) );
-  // iEvent.put(_zP4, "zP4");
-
   // LogTrace("GJetFilter") << "eventPassed: " << eventPassed;
 
-  std::auto_ptr< reco::PFJetCollection > _selectedJet( new reco::PFJetCollection (selectedJet) );
-  iEvent.put(_selectedJet);
-  // std::auto_ptr< vector<double> > _deltaRs( new vector<double> (deltaRs) );
-  // iEvent.put(_deltaRs, "deltaR");
-  // std::auto_ptr< vector<double> > _deltaPhis( new vector<double> (deltaPhis) );
-  // iEvent.put(_deltaPhis, "deltaPhi");
+  iEvent.put(selectedJets_, "selectedJets");
   // std::auto_ptr< bool > _eventPassed( new bool (eventPassed) );
   // iEvent.put(_eventPassed, "eventPassed");
 

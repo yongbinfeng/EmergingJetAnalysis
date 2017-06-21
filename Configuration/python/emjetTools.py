@@ -147,17 +147,19 @@ def addWJetSkim(process, isData=False):
 
 ################################
 def addGJetSkim(process, isData=False):
+    
     print "Adding GJet Skim step."
     print "triggerSelection should be verified for new datasets."
     print "photonID should be modified for each global tag."
+
     process.triggerSelection = cms.EDFilter( "TriggerResultsFilter",
         triggerConditions = cms.vstring(
-            # Data: Run2015*
+            # Data: Run2016*
             'HLT_Photon165_HE10_v*',
-            # MC: RunIISpring15DR74
+            # MC: RunIISummer16DR80
         ),
         hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
-        l1tResults = cms.InputTag( "gtDigis" ),
+        l1tResults = cms.InputTag( "" ),
         l1tIgnoreMask = cms.bool( False ),
         l1techIgnorePrescales = cms.bool( False ),
         daqPartitions = cms.uint32( 1 ),
@@ -165,45 +167,49 @@ def addGJetSkim(process, isData=False):
     )
     process.gJetFilter = cms.EDFilter("GJetFilter",
         isData = cms.bool( False ),
-        srcPhotons = cms.InputTag("slimmedPhotons"),
-        srcJets = cms.InputTag("slimmedJets"),
+        srcPhotons = cms.InputTag("gedPhotons"),
+        srcJets = cms.InputTag("ak4PFJetsCHS"),
         minPtPhoton = cms.double(175.0),
         minDeltaR = cms.double(0.4),
         maxDeltaPhi = cms.double(0.4), # Doesn't do anything
         minPtSelectedJet = cms.double(20.0),
         maxPtAdditionalJets = cms.double(20.0), # Doesn't do anything
-        photonID = cms.string('cutBasedPhotonID-Spring15-25ns-V1-standalone-medium'),
+        #photonID = cms.string('cutBasedPhotonID-Spring15-25ns-V1-standalone-medium'),
         #photonID = cms.string('cutBasedPhotonID-Spring16-V2p2-medium')
-        #photonID = cms.string('cutBasedPhotonID-Spring15-50ns-V1-standalone-medium'),
+        phoMediumIdMap = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring16-V2p2-medium"),  
     )
     if isData: process.gJetFilter.isData = cms.bool(True)
     process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
     process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
     process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
+
+    from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
+    dataFormat = DataFormat.AOD
+    switchOnVIDPhotonIdProducer(process, dataFormat)
+
+    my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring16_V2p2_cff']
+
+    #add them to the VID producer
+    for idmod in my_id_modules:
+       setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+
     ############################################################
     # Recreate miniAOD
     ############################################################
-    if isData:
+    #if isData:
         # customisation of the process.
-        process.load('Configuration.StandardSequences.PAT_cff')
+    #    process.load('Configuration.StandardSequences.PAT_cff')
         # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData
+    #    from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData
         #call to customisation function miniAOD_customizeAllData imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        process = miniAOD_customizeAllData(process)
-    else:
+    #    process = miniAOD_customizeAllData(process)
+    #else:
         # customisation of the process.
-        process.load('Configuration.StandardSequences.PATMC_cff')
+    #    process.load('Configuration.StandardSequences.PATMC_cff')
         # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
+    #    from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
         #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
-        process = miniAOD_customizeAllMC(process)
-
-    #from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
-    #my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_Spring16_V2p2_cff']
-
-    #add them to the VID producer
-    #for idmod in my_id_modules:
-    #   setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+    #    process = miniAOD_customizeAllMC(process)
 
     ############################################################
     # Ignore trigger selection if MC
@@ -223,7 +229,7 @@ def addAnalyze(process, isData=False, sample=''):
     )
     if isData: process.emergingJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
-    if sample=='gjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("gJetFilter")
+    if sample=='gjet': process.emergingJetAnalyzer.srcJets = cms.InputTag("gJetFilter", "selectedJets")
 
     # Load jet correctors
     process.load('JetMETCorrections.Configuration.JetCorrectors_cff')
@@ -249,7 +255,7 @@ def addAnalyze(process, isData=False, sample=''):
     )
     if isData: process.emJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")
-    if sample=='gjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("gJetFilter")
+    if sample=='gjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("gJetFilter", "selectedJets")
     if sample=='recotest' : process.emJetAnalyzer.srcJets = cms.InputTag("ak4PFJetsCHS")
 
     # return cms.Sequence(process.emergingJetAnalyzer+process.emJetAnalyzer)

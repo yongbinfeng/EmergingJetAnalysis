@@ -84,7 +84,7 @@ process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(False),
 )
 
 # Unscheduled execution
-# process.options.allowUnscheduled = cms.untracked.bool(False)
+#process.options.allowUnscheduled = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
 
 ########################################
@@ -178,7 +178,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(300) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2000) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
@@ -199,7 +199,10 @@ process.source = cms.Source("PoolSource",
         # Model B
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_106.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_107.root',
-        'file:/store/user/yoshin/EmJetMC/AODSIM/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-2017-04-30-test/170430_233938/0000/aodsim_8.root',
+        #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/063A7093-DFB2-E611-AC88-0025905A6066.root'
+        'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/data.root'
+        #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/72119918-9516-E611-BA33-02163E0141FB.root'
+        #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/0054292E-3186-E611-9748-002590D0B0BE.root'
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_109.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_11.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_110.root',

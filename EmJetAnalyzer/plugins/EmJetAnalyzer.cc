@@ -227,6 +227,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool scanRandomJet_;
     bool debug_;
 
+    const edm::EventSetup* eventSetup_; // Pointer to current EventSetup object
+
     edm::Service<TFileService> fs;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
     edm::EDGetTokenT<reco::JetCorrector> jetCorrectorToken_;
@@ -476,6 +478,9 @@ bool EmJetAnalyzer::triggerfired(const edm::Event& ev, edm::Handle<edm::TriggerR
 bool
 EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  // Copy EventSetup pointer to member variable
+  eventSetup_ = &iSetup;
+  assert(eventSetup_ == &iSetup);
   // Reset output tree to default values
   otree_.Init();
   // Reset output collections
@@ -1355,7 +1360,7 @@ EmJetAnalyzer::fillJet(const reco::PFJet& ijet, Jet& ojet)
 }
 
 void
-EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source)
+EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack, int source )
 {
   otrack.Init();
   otrack.index = track_index_;
@@ -1404,6 +1409,28 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
     auto dxy_ipv = IPTools::signedTransverseImpactParameter(*itk, jetVector, primary_vertex);
     otrack.ipXY    = (dxy_ipv.second.value());
     otrack.ipXYSig = (dxy_ipv.second.significance());
+
+    // Calculate hit positions
+    TrajectoryStateOnSurface innermost_state;
+    {
+      const edm::EventSetup& iSetup = *eventSetup_;
+      // OUTPUT(eventSetup_);
+      // OUTPUT(source);
+      // trajectory information for acessing hits
+      static GetTrackTrajInfo getTrackTrajInfo;
+      std::vector<GetTrackTrajInfo::Result> trajInfo = getTrackTrajInfo.analyze(iSetup, itrack.track());
+      // assert(trajInfo.size()>0);
+      if(trajInfo.size()>0) {
+        innermost_state = trajInfo[0].detTSOS;
+        if (innermost_state.isValid()) {
+          GlobalPoint innerPos = innermost_state.globalPosition();
+          GlobalVector innerPosMom = innermost_state.globalMomentum();
+          otrack.innerHit_r = innerPos.perp();
+          otrack.innerHit_eta = innerPos.eta();
+          otrack.innerHit_phi = innerPos.phi();
+        }
+      }
+    }
   }
 
   otrack.quality             = itk->track().qualityMask();
@@ -1579,8 +1606,9 @@ EmJetAnalyzer::selectJetTrackInnerHit(const reco::TransientTrack& itrack, const 
     std::vector<GetTrackTrajInfo::Result> trajInfo = getTrackTrajInfo.analyze(iSetup, itrack.track());
     assert(trajInfo.size()>0);
     innermost_state = trajInfo[0].detTSOS;
-    OUTPUT(innermost_state.isValid());
-    if (!innermost_state.isValid()) return false;
+    if (!innermost_state.isValid()) {
+      return false;
+    }
   }
   // std::cout << "Sucessfully got inner most trajectory state\n";
   GlobalPoint innerPosGP = innermost_state.globalPosition();

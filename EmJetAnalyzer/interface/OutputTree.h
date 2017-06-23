@@ -133,6 +133,9 @@ namespace emjet
     vector<vector<float> >  track_pca_r               ;
     vector<vector<float> >  track_pca_eta             ;
     vector<vector<float> >  track_pca_phi             ;
+    vector<vector<float> >  track_innerHit_r          ;
+    vector<vector<float> >  track_innerHit_eta        ;
+    vector<vector<float> >  track_innerHit_phi        ;
     vector<vector<int> >    track_quality             ;
     vector<vector<int> >    track_algo                ;
     vector<vector<int> >    track_originalAlgo        ;
@@ -330,6 +333,9 @@ emjet::OutputTree::Init() {
   track_pca_r               .clear();
   track_pca_eta             .clear();
   track_pca_phi             .clear();
+  track_innerHit_r          .clear();
+  track_innerHit_eta        .clear();
+  track_innerHit_phi        .clear();
   track_quality             .clear();
   track_algo                .clear();
   track_originalAlgo        .clear();
@@ -527,6 +533,9 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, track_pca_r               );
   BRANCH(tree, track_pca_eta             );
   BRANCH(tree, track_pca_phi             );
+  BRANCH(tree, track_innerHit_r          );
+  BRANCH(tree, track_innerHit_eta        );
+  BRANCH(tree, track_innerHit_phi        );
   BRANCH(tree, track_quality             );
   BRANCH(tree, track_algo                );
   BRANCH(tree, track_originalAlgo        );

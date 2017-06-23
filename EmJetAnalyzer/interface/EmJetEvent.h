@@ -316,6 +316,9 @@ namespace emjet
       pca_r                = DEFAULTVALUE;
       pca_eta              = DEFAULTVALUE;
       pca_phi              = DEFAULTVALUE;
+      innerHit_r           = DEFAULTVALUE;
+      innerHit_eta         = DEFAULTVALUE;
+      innerHit_phi         = DEFAULTVALUE;
       quality              = DEFAULTVALUE;
       algo                 = DEFAULTVALUE;
       originalAlgo         = DEFAULTVALUE;
@@ -359,6 +362,9 @@ namespace emjet
     float  pca_r               ;
     float  pca_eta             ;
     float  pca_phi             ;
+    float  innerHit_r          ;
+    float  innerHit_eta        ;
+    float  innerHit_phi        ;
     int    quality             ;
     int    algo                ;
     int    originalAlgo        ;
@@ -729,6 +735,9 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto pca_r                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_r               ;}); otree->track_pca_r               .push_back(pca_r               );
       auto pca_eta              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_eta             ;}); otree->track_pca_eta             .push_back(pca_eta             );
       auto pca_phi              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_phi             ;}); otree->track_pca_phi             .push_back(pca_phi             );
+      auto innerHit_r           = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.innerHit_r          ;}); otree->track_innerHit_r          .push_back(innerHit_r          );
+      auto innerHit_eta         = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.innerHit_eta        ;}); otree->track_innerHit_eta        .push_back(innerHit_eta        );
+      auto innerHit_phi         = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.innerHit_phi        ;}); otree->track_innerHit_phi        .push_back(innerHit_phi        );
       auto quality              = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.quality             ;}); otree->track_quality             .push_back(quality             );
       auto algo                 = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.algo                ;}); otree->track_algo                .push_back(algo                );
       auto originalAlgo         = vectorize_new<Track, int   >(jet.track_vector, [](const Track& obj ){return obj.originalAlgo        ;}); otree->track_originalAlgo        .push_back(originalAlgo        );

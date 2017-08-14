@@ -335,10 +335,13 @@ namespace emjet
       ipXY                 = DEFAULTVALUE;
       ipZ                  = DEFAULTVALUE;
       ipXYSig              = DEFAULTVALUE;
+      ip3D                 = DEFAULTVALUE;
+      ip3DSig              = DEFAULTVALUE;
       dRToJetAxis          = DEFAULTVALUE;
       distanceToJet        = DEFAULTVALUE;
       minVertexDz          = DEFAULTVALUE;
       pvWeight             = DEFAULTVALUE;
+      minGenDistance       = DEFAULTVALUE;
       //[[[end]]]
     }
     //[[[cog
@@ -381,10 +384,13 @@ namespace emjet
     float  ipXY                ;
     float  ipZ                 ;
     float  ipXYSig             ;
+    float  ip3D                ;
+    float  ip3DSig             ;
     float  dRToJetAxis         ;
     float  distanceToJet       ;
     float  minVertexDz         ;
     float  pvWeight            ;
+    float  minGenDistance      ;
     //[[[end]]]
     // Variables used for calculation only
     // These are not written to output
@@ -754,10 +760,13 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto ipXY                 = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ipXY                ;}); otree->track_ipXY                .push_back(ipXY                );
       auto ipZ                  = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ipZ                 ;}); otree->track_ipZ                 .push_back(ipZ                 );
       auto ipXYSig              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ipXYSig             ;}); otree->track_ipXYSig             .push_back(ipXYSig             );
+      auto ip3D                 = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ip3D                ;}); otree->track_ip3D                .push_back(ip3D                );
+      auto ip3DSig              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ip3DSig             ;}); otree->track_ip3DSig             .push_back(ip3DSig             );
       auto dRToJetAxis          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.dRToJetAxis         ;}); otree->track_dRToJetAxis         .push_back(dRToJetAxis         );
       auto distanceToJet        = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.distanceToJet       ;}); otree->track_distanceToJet       .push_back(distanceToJet       );
       auto minVertexDz          = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.minVertexDz         ;}); otree->track_minVertexDz         .push_back(minVertexDz         );
       auto pvWeight             = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pvWeight            ;}); otree->track_pvWeight            .push_back(pvWeight            );
+      auto minGenDistance       = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.minGenDistance      ;}); otree->track_minGenDistance      .push_back(minGenDistance      );
       //[[[end]]]
     }
   }

@@ -65,8 +65,10 @@ private:
   static bool hasDarkDescendent(const reco::Candidate*); // Function to determine whether or not to given particle has Dark QCD descendants
   static bool hasDarkMother(const reco::Candidate*); // Function to determine whether or not to given particle has Dark QCD mothers
   static bool hasDarkPionMother(const reco::Candidate*); // Function to determine whether or not to given particle has Dark pion mothers
+  static int  countFinalDescendents(const reco::Candidate*); // Function to count final (has no daughters) descendents of given particle
   static void printParticle(const reco::Candidate*);
   static void printParticleMothers(const reco::Candidate*);
+  static std::vector<reco::Candidate*> findStableDaughters(const reco::Candidate*);
   struct ParticleToSort;
   typedef std::vector<ParticleToSort>::iterator PTSPtr; // typedef vector of pointers to ParticleToSort, for findParticleToSort(cand)
   bool isDark(const ParticleToSort p); //Overloaded function using sortedparticles
@@ -88,12 +90,32 @@ private:
   edm::EDGetTokenT<reco::GenParticleCollection> genParticleCollectionToken_;
   edm::Handle<reco::GenParticleCollection> genParticles;
   // outputs
+  edm::Service<TFileService> fs;
   TFile* ofile_;
   TTree* tree_;
+  // Dark pion histograms
+  TH1F* hist_nDarkPion_;
+  TH1F* hist_pt_DarkPion_;
+  TH1F* hist_nDaughter_DarkPion_;
+  TH1F* hist_pt_Daughter_DarkPion_;
+  TH1F* hist_pdgId_Daughter_DarkPion_;
+  TH1F* hist_nStableDaughter_DarkPion_;
+  TH1F* hist_pt_StableDaughter_DarkPion_;
+  TH1F* hist_pdgId_StableDaughter_DarkPion_;
+  // Dark rho histograms
+  TH1F* hist_nDarkRho_;
+  TH1F* hist_pt_DarkRho_;
+  TH1F* hist_nDaughter_DarkRho_;
+  TH1F* hist_pt_Daughter_DarkRho_;
+  TH1F* hist_pdgId_Daughter_DarkRho_;
+  TH1F* hist_nStableDaughter_DarkRho_;
+  TH1F* hist_pt_StableDaughter_DarkRho_;
+  TH1F* hist_pdgId_StableDaughter_DarkRho_;
   std::vector<float> genParticlesPt_;
   std::vector<float> genParticlesEta_;
   std::vector<float> genParticlesPhi_;
   std::vector<float> genParticlesMass_;
+  std::vector<int> genParticlesStatus_;
   std::vector<int> genParticlesDecayLevel_;
   std::vector<int> genParticlesIndex_;
   std::vector<double> genParticlesVx_;
@@ -121,6 +143,7 @@ private:
 // constants, enums and typedefs
 //
 const int verbosity = 10;
+const bool doHistograms = true;
 
 //
 // static data member definitions
@@ -132,12 +155,13 @@ const int verbosity = 10;
 GenParticleAnalyzer::GenParticleAnalyzer(const edm::ParameterSet& iConfig)
 {
   //now do what ever initialization is needed
-  ofile_ = new TFile("file.root","RECREATE","GenParticleAnalyzer output file");
-  tree_ = new TTree("tree", "GenParticleAnalyzer output tree");
+  // ofile_ = new TFile("file.root","RECREATE","GenParticleAnalyzer output file");
+  tree_ = fs->make<TTree>("gpTree","gpTree");
   tree_->Branch("pt"                 , &genParticlesPt_                ) ;
   tree_->Branch("eta"                , &genParticlesEta_               ) ;
   tree_->Branch("phi"                , &genParticlesPhi_               ) ;
   tree_->Branch("mass"               , &genParticlesMass_              ) ;
+  tree_->Branch("status"             , &genParticlesStatus_              ) ;
   tree_->Branch("decay_level"        , &genParticlesDecayLevel_        ) ;
   tree_->Branch("index"              , &genParticlesIndex_             ) ;
   tree_->Branch("vertex_x"           , &genParticlesVx_                ) ;
@@ -149,6 +173,24 @@ GenParticleAnalyzer::GenParticleAnalyzer(const edm::ParameterSet& iConfig)
   tree_->Branch("Lxy"                , &genParticleLxy_                ) ;
   tree_->Branch("decayTime"          , &genParticleDecayTime_          ) ;
   tree_->Branch("pdgId"		     , &genParticlePdgId_	       ) ;
+  hist_nDarkPion_                     = fs->make<TH1F>("nDarkPion_"                     , "nDarkPion_"                     , 25  , 0    , 25 );
+  hist_pt_DarkPion_                   = fs->make<TH1F>("pt_DarkPion_"                   , "pt_DarkPion_"                   , 100 , 0.   , 10. );
+  hist_nDaughter_DarkPion_            = fs->make<TH1F>("nDaughter_DarkPion_"            , "nDaughter_DarkPion_"            , 25  , 0    , 25 );
+  hist_pt_Daughter_DarkPion_          = fs->make<TH1F>("pt_Daughter_DarkPion_"          , "pt_Daughter_DarkPion_"          , 100 , 0.   , 10. );
+  hist_pdgId_Daughter_DarkPion_       = fs->make<TH1F>("pdgId_Daughter_DarkPion_"       , "pdgId_Daughter_DarkPion_"       , 400 , -200 , 200 );
+  hist_nStableDaughter_DarkPion_      = fs->make<TH1F>("nStableDaughter_DarkPion_"      , "nStableDaughter_DarkPion_"      , 25  , 0    , 25 );
+  hist_pt_StableDaughter_DarkPion_    = fs->make<TH1F>("pt_StableDaughter_DarkPion_"    , "pt_StableDaughter_DarkPion_"    , 100 , 0.   , 10. );
+  hist_pdgId_StableDaughter_DarkPion_ = fs->make<TH1F>("pdgId_StableDaughter_DarkPion_" , "pdgId_StableDaughter_DarkPion_" , 400 , -200 , 200 );
+  hist_nDarkRho_                      = fs->make<TH1F>("nDarkRho_"                      , "nDarkRho_"                      , 25  , 0    , 25 );
+  hist_pt_DarkRho_                    = fs->make<TH1F>("pt_DarkRho_"                    , "pt_DarkRho_"                    , 100 , 0.   , 10. );
+  hist_nDaughter_DarkRho_             = fs->make<TH1F>("nDaughter_DarkRho_"             , "nDaughter_DarkRho_"             , 25  , 0    , 25 );
+  hist_pt_Daughter_DarkRho_           = fs->make<TH1F>("pt_Daughter_DarkRho_"           , "pt_Daughter_DarkRho_"           , 100 , 0.   , 100. );
+  hist_pdgId_Daughter_DarkRho_        = fs->make<TH1F>("pdgId_Daughter_DarkRho_"        , "pdgId_Daughter_DarkRho_"        , 400 , -200 , 200 );
+  hist_nStableDaughter_DarkRho_       = fs->make<TH1F>("nStableDaughter_DarkRho_"       , "nStableDaughter_DarkRho_"       , 25  , 0    , 25 );
+  hist_pt_StableDaughter_DarkRho_     = fs->make<TH1F>("pt_StableDaughter_DarkRho_"     , "pt_StableDaughter_DarkRho_"     , 100 , 0.   , 10. );
+  hist_pdgId_StableDaughter_DarkRho_  = fs->make<TH1F>("pdgId_StableDaughter_DarkRho_"  , "pdgId_StableDaughter_DarkRho_"  , 400 , -200 , 200 );
+
+  consumes< reco::GenParticleCollection > (edm::InputTag("genParticles"));
 }
 
 
@@ -157,8 +199,8 @@ GenParticleAnalyzer::~GenParticleAnalyzer()
 
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
-  ofile_->Write();
-  delete ofile_;
+  // ofile_->Write();
+  // delete ofile_;
 
 }
 
@@ -179,6 +221,7 @@ GenParticleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
   genParticlesEta_               . clear();
   genParticlesPhi_               . clear();
   genParticlesMass_              . clear();
+  genParticlesStatus_            . clear();
   genParticlesDecayLevel_        . clear();
   genParticlesIndex_             . clear();
   genParticlesVx_                . clear();
@@ -214,9 +257,9 @@ GenParticleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     double Lxy = -1;
     if ( candidate.numberOfDaughters()>0 ) {
       const reco::Candidate* dau = candidate.daughter(0);
-      std::cout << "dau: " << dau << std::endl;
+      // std::cout << "dau: " << dau << std::endl;
       if (dau) {
-        std::cout << "Valid dau " << std::endl;
+        // std::cout << "Valid dau " << std::endl;
         Lxy = TMath::Sqrt( dau->vx()*dau->vx() + dau->vy()*dau->vy() );
       }
     }
@@ -226,6 +269,7 @@ GenParticleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     genParticlesEta_               . push_back( candidate . eta()  );
     genParticlesPhi_               . push_back( candidate . phi()  );
     genParticlesMass_              . push_back( candidate . mass() );
+    genParticlesStatus_            . push_back( candidate . status() );
     genParticlesDecayLevel_        . push_back( decayLevel         ); //write decayLevel to branch
     genParticlesIndex_             . push_back( index              ); //write genParticle index to branch
     genParticlesVx_                . push_back( candidate . vx()   ); //write vertex x coordinate to branch
@@ -238,7 +282,7 @@ GenParticleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     genParticleDecayTime_          . push_back( decayTime );
     genParticlePdgId_		   . push_back( candidate . pdgId());// write pdgId to branch
   }
-  std::cout << "Number of particles: " << genParticles->size() << std::endl;
+  // std::cout << "Number of particles: " << genParticles->size() << std::endl;
 
   //sorting the vector according to decayLevels and priority level
   std::sort( sortedParticles.begin(), sortedParticles.end(),
@@ -258,23 +302,85 @@ GenParticleAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     if (((i->decayLevel) > level)) {
       level = (i->decayLevel);//update level number
-      std::cout << std::endl <<"Decay level: " << level << std::endl;
+      // std::cout << std::endl <<"Decay level: " << level << std::endl;
     }
     if (((i->decayLevel) == level)) {
       // std::cout << ".index=" << i->index << ".";
       if ( verbosity >= i->verbosityToPrint ) {
         // std::cout<< ".v"<<i->verbosityToPrint << "v";
-        std::cout<<"     || (" << i->index <<")"<<getParticleName(i->index) << " -> "<< " ";
+        // std::cout<<"     || (" << i->index <<")"<<getParticleName(i->index) << " -> "<< " ";
         assignMothersDaughters(i);
-        for (int x : std::vector<int> (i->iDaughters)) std::cout <<"("<< x <<")"<< getParticleName(x)<< " ";
+        // for (int x : std::vector<int> (i->iDaughters)) std::cout <<"("<< x <<")"<< getParticleName(x)<< " ";
       }
     }
     else {
-      std::cout<<"particle at decay level " << (i->decayLevel) <<" is not correctly sorted.\n";
+      // std::cout<<"particle at decay level " << (i->decayLevel) <<" is not correctly sorted.\n";
     }
   }
-  std::cout << std::endl;
+  // std::cout << std::endl;
   tree_->Fill();
+
+  if (doHistograms) {
+    // TH1F* hist_nDarkPion_;
+    // TH1F* hist_nStableDaughter_DarkPion_;
+    // TH1F* hist_pt_DarkPion_;
+    // TH1F* hist_pt_StableDaughter_DarkPion_;
+    int nDarkPion = 0;
+    for (auto it = genParticles->begin(); it != genParticles->end(); it++) {
+      //std::cout << "Running over particle " << index << std::endl;
+      auto& candidate = *it;
+      if ( isDarkPion(&candidate) ) {
+        // std::cout << "Dark pion at pointer: " << it << std::endl;
+        // std::cout << "Dark pion final descendents: " << countFinalDescendents(&candidate) << std::endl;
+        nDarkPion++;
+        hist_pt_DarkPion_->Fill(candidate.pt());
+        int nDaughter = 0;
+        int nStableDaughter = 0;
+        for (unsigned i = 0; i < candidate.numberOfDaughters(); i++) {
+          auto dau = candidate.daughter(i);
+          nDaughter++;
+          hist_pt_Daughter_DarkPion_->Fill( dau->pt() );
+          hist_pdgId_Daughter_DarkPion_->Fill( dau->pdgId() );
+          if ( dau->numberOfDaughters()==0 ) {
+            nStableDaughter++;
+            hist_pt_StableDaughter_DarkPion_->Fill( dau->pt() );
+            hist_pdgId_StableDaughter_DarkPion_->Fill( dau->pdgId() );
+          }
+        }
+        hist_nDaughter_DarkPion_->Fill(nDaughter);
+        hist_nStableDaughter_DarkPion_->Fill(nStableDaughter);
+      }
+    }
+    hist_nDarkPion_->Fill(nDarkPion);
+
+    int nDarkRho = 0;
+    for (auto it = genParticles->begin(); it != genParticles->end(); it++) {
+      //std::cout << "Running over particle " << index << std::endl;
+      auto& candidate = *it;
+      if ( abs(candidate.pdgId())==4900113 ) {
+        // std::cout << "Dark rho at pointer: " << it << std::endl;
+        // std::cout << "Dark rho final descendents: " << countFinalDescendents(&candidate) << std::endl;
+        nDarkRho++;
+        hist_pt_DarkRho_->Fill(candidate.pt());
+        int nDaughter = 0;
+        int nStableDaughter = 0;
+        for (unsigned i = 0; i < candidate.numberOfDaughters(); i++) {
+          auto dau = candidate.daughter(i);
+          nDaughter++;
+          hist_pt_Daughter_DarkRho_->Fill( dau->pt() );
+          hist_pdgId_Daughter_DarkRho_->Fill( dau->pdgId() );
+          if ( dau->numberOfDaughters()==0 ) {
+            nStableDaughter++;
+            hist_pt_StableDaughter_DarkRho_->Fill( dau->pt() );
+            hist_pdgId_StableDaughter_DarkRho_->Fill( dau->pdgId() );
+          }
+        }
+        hist_nDaughter_DarkRho_->Fill(nDaughter);
+        hist_nStableDaughter_DarkRho_->Fill(nStableDaughter);
+      }
+    }
+    hist_nDarkRho_->Fill(nDarkRho);
+  }
 
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
@@ -435,6 +541,19 @@ GenParticleAnalyzer::hasDarkPionMother(const reco::Candidate* cand) {
   return false;
 }
 
+int GenParticleAnalyzer::countFinalDescendents(const reco::Candidate* cand) {
+  int count = 0;
+  for (unsigned i = 0; i < cand->numberOfDaughters(); i++) {
+    if ( cand->daughter(i)->numberOfDaughters()==0 ) {
+      count++;
+    }
+    else {
+      count += countFinalDescendents(cand->daughter(i)); // Count all of daughter's descendents
+    }
+  }
+  return count;
+}
+
 bool
 GenParticleAnalyzer::hasDarkDescendent(const reco::Candidate* cand) {
   // Function to determine whether or not to given particle has Dark QCD descendants
@@ -457,6 +576,12 @@ GenParticleAnalyzer::printParticleMothers(const reco::Candidate* cand) {
   }
   std::cout << std::endl;
 }
+
+std::vector<reco::Candidate*> findStableDaughters(const reco::Candidate* cand) {
+  std::vector<reco::Candidate*> daus;
+  return daus;
+}
+
 ////
 //alternative functions to above using ParticleToSort struct
 ////

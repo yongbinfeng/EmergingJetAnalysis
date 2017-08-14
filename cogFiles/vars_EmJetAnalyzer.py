@@ -153,6 +153,9 @@ jet_track_vars = [
     Var("ref_x"               , "float" , 2 , ) ,
     Var("ref_y"               , "float" , 2 , ) ,
     Var("ref_z"               , "float" , 2 , ) ,
+    # Var("ref_xError"          , "float" , 2 , ) ,
+    # Var("ref_yError"          , "float" , 2 , ) ,
+    # Var("ref_zError"          , "float" , 2 , ) ,
     Var("pca_r"               , "float" , 2 , ) ,
     Var("pca_eta"             , "float" , 2 , ) ,
     Var("pca_phi"             , "float" , 2 , ) ,
@@ -175,10 +178,13 @@ jet_track_vars = [
     Var("ipXY"                , "float" , 2 , ) ,
     Var("ipZ"                 , "float" , 2 , ) , # Empty for now
     Var("ipXYSig"             , "float" , 2 , ) ,
+    Var("ip3D"                , "float" , 2 , ) ,
+    Var("ip3DSig"             , "float" , 2 , ) ,
     Var("dRToJetAxis"         , "float" , 2 , ) ,
     Var("distanceToJet"       , "float" , 2 , ) ,
     Var("minVertexDz"         , "float" , 2 , ) ,
     Var("pvWeight"            , "float" , 2 , ) ,
+    Var("minGenDistance"      , "float" , 2 , ) ,
 ]
 jet_vertex_vars = [
     Var("index"               , "int"   , 2 , ) ,

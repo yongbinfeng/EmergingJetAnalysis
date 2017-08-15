@@ -1423,6 +1423,8 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
     otrack.ref_x = itrack.track().vx() ;
     otrack.ref_y = itrack.track().vy() ;
     otrack.ref_z = itrack.track().vz() ;
+    otrack.d0Error = itrack.track().d0Error();
+    otrack.dzError = itrack.track().dzError();
     otrack.p4.SetPtEtaPhiM(otrack.pt, otrack.eta, otrack.phi, 0.);
   }
 

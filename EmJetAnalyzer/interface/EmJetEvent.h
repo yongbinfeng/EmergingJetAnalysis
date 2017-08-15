@@ -313,6 +313,8 @@ namespace emjet
       ref_x                = DEFAULTVALUE;
       ref_y                = DEFAULTVALUE;
       ref_z                = DEFAULTVALUE;
+      d0Error              = DEFAULTVALUE;
+      dzError              = DEFAULTVALUE;
       pca_r                = DEFAULTVALUE;
       pca_eta              = DEFAULTVALUE;
       pca_phi              = DEFAULTVALUE;
@@ -362,6 +364,8 @@ namespace emjet
     float  ref_x               ;
     float  ref_y               ;
     float  ref_z               ;
+    float  d0Error             ;
+    float  dzError             ;
     float  pca_r               ;
     float  pca_eta             ;
     float  pca_phi             ;
@@ -738,6 +742,8 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
       auto ref_x                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_x               ;}); otree->track_ref_x               .push_back(ref_x               );
       auto ref_y                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_y               ;}); otree->track_ref_y               .push_back(ref_y               );
       auto ref_z                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.ref_z               ;}); otree->track_ref_z               .push_back(ref_z               );
+      auto d0Error              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.d0Error             ;}); otree->track_d0Error             .push_back(d0Error             );
+      auto dzError              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.dzError             ;}); otree->track_dzError             .push_back(dzError             );
       auto pca_r                = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_r               ;}); otree->track_pca_r               .push_back(pca_r               );
       auto pca_eta              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_eta             ;}); otree->track_pca_eta             .push_back(pca_eta             );
       auto pca_phi              = vectorize_new<Track, float >(jet.track_vector, [](const Track& obj ){return obj.pca_phi             ;}); otree->track_pca_phi             .push_back(pca_phi             );

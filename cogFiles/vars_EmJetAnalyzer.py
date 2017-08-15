@@ -153,6 +153,8 @@ jet_track_vars = [
     Var("ref_x"               , "float" , 2 , ) ,
     Var("ref_y"               , "float" , 2 , ) ,
     Var("ref_z"               , "float" , 2 , ) ,
+    Var("d0Error"             , "float" , 2 , ) ,
+    Var("dzError"             , "float" , 2 , ) ,
     # Var("ref_xError"          , "float" , 2 , ) ,
     # Var("ref_yError"          , "float" , 2 , ) ,
     # Var("ref_zError"          , "float" , 2 , ) ,

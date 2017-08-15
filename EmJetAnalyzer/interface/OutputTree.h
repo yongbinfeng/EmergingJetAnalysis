@@ -130,6 +130,8 @@ namespace emjet
     vector<vector<float> >  track_ref_x               ;
     vector<vector<float> >  track_ref_y               ;
     vector<vector<float> >  track_ref_z               ;
+    vector<vector<float> >  track_d0Error             ;
+    vector<vector<float> >  track_dzError             ;
     vector<vector<float> >  track_pca_r               ;
     vector<vector<float> >  track_pca_eta             ;
     vector<vector<float> >  track_pca_phi             ;
@@ -333,6 +335,8 @@ emjet::OutputTree::Init() {
   track_ref_x               .clear();
   track_ref_y               .clear();
   track_ref_z               .clear();
+  track_d0Error             .clear();
+  track_dzError             .clear();
   track_pca_r               .clear();
   track_pca_eta             .clear();
   track_pca_phi             .clear();
@@ -536,6 +540,8 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, track_ref_x               );
   BRANCH(tree, track_ref_y               );
   BRANCH(tree, track_ref_z               );
+  BRANCH(tree, track_d0Error             );
+  BRANCH(tree, track_dzError             );
   BRANCH(tree, track_pca_r               );
   BRANCH(tree, track_pca_eta             );
   BRANCH(tree, track_pca_phi             );

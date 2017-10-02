@@ -36,6 +36,7 @@
 #include <stdlib.h> // For rand()
 #include <math.h> // For asin()
 #include <tuple>
+#include <iomanip> // std::setprecision
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -322,6 +323,19 @@ class EmJetAnalyzer : public edm::EDFilter {
     int calojet_alphazero_total;
 };
 
+// Declare LHAPDF functions
+namespace LHAPDF {
+  void initPDFSet(int nset, const std::string& filename, int member=0);
+  int numberPDF(int nset);
+  void usePDFMember(int nset, int member);
+  double xfx(int nset, double x, double Q, int fl);
+  double getXmin(int nset, int member);
+  double getXmax(int nset, int member);
+  double getQ2min(int nset, int member);
+  double getQ2max(int nset, int member);
+  void extrapolate(bool extrapolate=true);
+}
+
 //
 // static data member definitions
 //
@@ -443,6 +457,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       consumes<std::vector<reco::GenMET> > (edm::InputTag("genMetTrue"));
       consumes<reco::GenParticleCollection> (edm::InputTag("genParticles"));
       consumes<reco::GenJetCollection> (edm::InputTag("ak4GenJets"));
+
     }
 
     // For scanning jets with alphaMax==0
@@ -560,6 +575,12 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     event_.HLT_PFHT600 = triggerfired(iEvent,trigResults,"HLT_PFHT600");
     event_.HLT_PFHT800 = triggerfired(iEvent,trigResults,"HLT_PFHT800");
     event_.HLT_PFHT900 = triggerfired(iEvent,trigResults,"HLT_PFHT900");
+    if ( event_.HLT_HT250 || event_.HLT_HT350 || event_.HLT_HT400 || event_.HLT_HT500 || event_.HLT_PFHT400 || event_.HLT_PFHT475 || event_.HLT_PFHT600 || event_.HLT_PFHT800 || event_.HLT_PFHT900 ) {
+      std::cout << "111111111111111\n";
+      OUTPUT(event_.HLT_PFHT400);
+    }
+    else
+      std::cout << "0\n";
   }
 
   // Retrieve offline beam spot (Used to constrain vertexing)
@@ -660,6 +681,8 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     //   std::endl;
     // edm::Handle<LHEEventProduct> lheEventH;
     // iEvent.getByLabel("externalLHEProducer", lheEventH);
+
+    // Testing PDF weight calculation
   }
 
   // // Testing PDF weight retrieval
@@ -780,6 +803,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   generalTracks_ = transienttrackbuilderH_->build(genTrackH);
 
   // :GENTRACKMATCHTESTING:
+  if (!isData_) //:MCONLY:
   {
     for (auto itk : generalTracks_) {
       auto itrack = itk.track();
@@ -1525,11 +1549,13 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
   }
 
   // :GENTRACKMATCHTESTING:
-  auto rtrack = itk->track();
-  const reco::GenParticle* gp = findMinDistanceGenParticle(genParticlesH_.product(), &rtrack);
-  if (gp!=NULL) {
-    double distance = computeGenTrackDistance(gp, &rtrack);
-    otrack.minGenDistance = distance;
+  if (!isData_) { //:MCONLY:
+    auto rtrack = itk->track();
+    const reco::GenParticle* gp = findMinDistanceGenParticle(genParticlesH_.product(), &rtrack);
+    if (gp!=NULL) {
+      double distance = computeGenTrackDistance(gp, &rtrack);
+      otrack.minGenDistance = distance;
+    }
   }
 
 }

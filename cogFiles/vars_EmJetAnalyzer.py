@@ -53,6 +53,8 @@ event_vars = [
     Var("pdf_pdf1"            , "float" , 0 , ) ,
     Var("pdf_pdf2"            , "float" , 0 , ) ,
     Var("pdf_scalePDF"        , "float" , 0 , ) ,
+    # Var("pdf_w0"              , "float" , 0 , ) , # PDF weight - Central value
+    # Var("pdf_delta"           , "float" , 0 , ) , # PDF weight - RMS of weights / central weight
     Var("HLT_PFHT400"         , "bool"  , 0 , ) ,
     Var("HLT_PFHT475"         , "bool"  , 0 , ) ,
     Var("HLT_PFHT600"         , "bool"  , 0 , ) ,

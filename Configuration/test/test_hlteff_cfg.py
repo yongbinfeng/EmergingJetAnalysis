@@ -239,7 +239,7 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
         # 'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
         # Jet HT Data
-        # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
+        'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root'
         # SingleMuon Data
         # 'file:/data/users/yhshin/testfiles/80X/00F3CB69-2998-E611-9CE8-0CC47A7E68AA.root',
         # 80XDRtest
@@ -303,7 +303,7 @@ process.source = cms.Source("PoolSource",
         # 80X Data
         # '/store/data/Run2016B/JetHT/AOD/23Sep2016-v1/90000/0024BC8F-AC82-E611-9019-001E675817A4.root'
         # 80X QCD
-        '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
+        # '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # ModelA AODSIM-v2017-05-02
@@ -356,6 +356,12 @@ if testVertexReco:
     process.out.outputCommands.extend(cms.untracked.vstring('keep *_emJetAnalyzer_*_*',))
     # Keep genParticles
     process.out.outputCommands.extend(cms.untracked.vstring('keep *_genParticles_*_*',))
+
+doSkimHlt = 1
+if doSkimHlt:
+    process.triggerSelection.triggerConditions = cms.vstring(
+        'HLT_PFHT475_v*',
+    )
 
 if options.outputLabel:
     process.out.fileName = cms.untracked.string('output-%s.root' % options.outputLabel)

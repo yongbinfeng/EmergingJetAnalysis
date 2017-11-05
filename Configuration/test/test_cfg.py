@@ -157,8 +157,8 @@ else:
         fileName = cms.untracked.string('output.root'),
         outputCommands = cms.untracked.vstring('drop *'),
     )
-    if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
-    else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+    # if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
+    # else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
 
 ########################################
 # Generic configuration
@@ -185,7 +185,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
@@ -302,8 +302,9 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISummer16DR80Premix/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/023963AD-CBBE-E611-AC12-D4AE526A048B.root',
         # 80X Data
         # '/store/data/Run2016B/JetHT/AOD/23Sep2016-v1/90000/0024BC8F-AC82-E611-9019-001E675817A4.root'
+        '/store/data/Run2016H/JetHT/AOD/PromptReco-v3/000/284/036/00000/0E2E0EC2-619F-E611-8216-02163E011E7A.root'
         # 80X QCD
-        '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
+        # '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # ModelA AODSIM-v2017-05-02
@@ -374,4 +375,7 @@ process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
 # # process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
 # # process.load('JetMETCorrections.Configuration.CorrectedJetProducers_cff')
 # # # #get the jet energy corrections from the db file
-# # process.load("CondCore.CondDB.CondDB_cfi") 
+# # process.load("CondCore.CondDB.CondDB_cfi")
+
+process.out.outputCommands = cms.untracked.vstring('drop *')
+

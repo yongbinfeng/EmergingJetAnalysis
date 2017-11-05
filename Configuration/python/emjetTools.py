@@ -21,6 +21,7 @@ def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
                 #'HLT_PFHT900_v*',
                 # Signal region
                 'HLT_PFHT800_v*',
+                'HLT_PFHT900_v*',
             ),
             hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
             l1tResults = cms.InputTag( "" ),

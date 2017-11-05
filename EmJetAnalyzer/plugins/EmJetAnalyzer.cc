@@ -570,17 +570,18 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     event_.HLT_HT500 = triggerfired(iEvent,trigResults,"HLT_HT500_DisplacedDijet40_Inclusive");
 
     // Emerging Jets Analysis Triggers
-    event_.HLT_PFHT400 = triggerfired(iEvent,trigResults,"HLT_PFHT400");
-    event_.HLT_PFHT475 = triggerfired(iEvent,trigResults,"HLT_PFHT475");
-    event_.HLT_PFHT600 = triggerfired(iEvent,trigResults,"HLT_PFHT600");
-    event_.HLT_PFHT800 = triggerfired(iEvent,trigResults,"HLT_PFHT800");
-    event_.HLT_PFHT900 = triggerfired(iEvent,trigResults,"HLT_PFHT900");
-    if ( event_.HLT_HT250 || event_.HLT_HT350 || event_.HLT_HT400 || event_.HLT_HT500 || event_.HLT_PFHT400 || event_.HLT_PFHT475 || event_.HLT_PFHT600 || event_.HLT_PFHT800 || event_.HLT_PFHT900 ) {
-      std::cout << "111111111111111\n";
-      OUTPUT(event_.HLT_PFHT400);
-    }
-    else
-      std::cout << "0\n";
+    event_.HLT_PFHT400 = triggerfired(iEvent,trigResults,"HLT_PFHT400_v");
+    event_.HLT_PFHT475 = triggerfired(iEvent,trigResults,"HLT_PFHT475_v");
+    event_.HLT_PFHT600 = triggerfired(iEvent,trigResults,"HLT_PFHT600_v");
+    event_.HLT_PFHT800 = triggerfired(iEvent,trigResults,"HLT_PFHT800_v");
+    event_.HLT_PFHT900 = triggerfired(iEvent,trigResults,"HLT_PFHT900_v");
+    // if ( event_.HLT_HT250 || event_.HLT_HT350 || event_.HLT_HT400 || event_.HLT_HT500 || event_.HLT_PFHT400 || event_.HLT_PFHT475 || event_.HLT_PFHT600 || event_.HLT_PFHT800 || event_.HLT_PFHT900 ) {
+    //   std::cout << "111111111111111\n";
+    //   OUTPUT(event_.HLT_PFHT400);
+    // }
+    // else {
+    //   std::cout << "0\n";
+    // }
   }
 
   // Retrieve offline beam spot (Used to constrain vertexing)

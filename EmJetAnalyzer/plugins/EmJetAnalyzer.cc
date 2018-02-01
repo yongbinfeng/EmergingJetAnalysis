@@ -231,6 +231,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool scanMode_;
     bool scanRandomJet_;
     bool debug_;
+    bool saveTracks_;
 
     const edm::EventSetup* eventSetup_; // Pointer to current EventSetup object
 
@@ -391,6 +392,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     scanMode_ = iConfig.getParameter<bool>("scanMode");
     scanRandomJet_ = iConfig.getParameter<bool>("scanRandomJet");
     debug_ = iConfig.getUntrackedParameter<bool>("debug",false);
+    saveTracks_ = iConfig.getParameter<bool>("saveTracks"); // Flag to enable saving of track info in ntuple
 
     // Save Adaptive Vertex Reco config parameters to tree_->GetUserInfo()
     {
@@ -1564,6 +1566,9 @@ EmJetAnalyzer::prepareJetTrack(const reco::TransientTrack& itrack, const Jet& oj
 void
 EmJetAnalyzer::fillJetTrack(const reco::TransientTrack& itrack, const Jet& ojet, Track& otrack)
 {
+  // Don't save tracks if flag is off
+  if (!saveTracks_) return;
+
   // Write current Track to Jet
   jet_.track_vector.push_back(track_);
 

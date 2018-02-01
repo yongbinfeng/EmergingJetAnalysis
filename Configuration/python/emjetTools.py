@@ -178,6 +178,7 @@ def addAnalyze(process, isData=False, sample=''):
         scanMode = cms.bool(False),
         scanRandomJet = cms.bool(False),
         debug = cms.untracked.bool(False),
+        saveTracks = cms.bool(True),
     )
     if isData: process.emJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")

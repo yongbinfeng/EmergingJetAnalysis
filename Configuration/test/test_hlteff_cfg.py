@@ -239,9 +239,15 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISpring16DR80/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_v3-v1/20000/001CC242-4002-E611-A527-0025905A610A.root',
         # 'file:/home/yhshin/data/testfiles/80X/001CC242-4002-E611-A527-0025905A610A.root',
         # Jet HT Data
-        'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root'
+        # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root'
         # SingleMuon Data
         # 'file:/data/users/yhshin/testfiles/80X/00F3CB69-2998-E611-9CE8-0CC47A7E68AA.root',
+        # 'file:/data/users/yhshin/testfiles/80X/04C2A309-589C-E611-95A4-3417EBE64B9D.root',
+        '/store/data/Run2016G/SingleMuon/AOD/23Sep2016-v1/1110000/04C2A309-589C-E611-95A4-3417EBE64B9D.root',
+        '/store/data/Run2016G/SingleMuon/AOD/23Sep2016-v1/1110000/0A53761A-5B9C-E611-ABC8-7845C4FC3B8A.root',
+        '/store/data/Run2016G/SingleMuon/AOD/23Sep2016-v1/1110000/281277D6-B19C-E611-9033-848F69FD46E8.root',
+        '/store/data/Run2016G/SingleMuon/AOD/23Sep2016-v1/1110000/3EA40A4B-619C-E611-B28C-008CFA0027B4.root',
+        '/store/data/Run2016G/SingleMuon/AOD/23Sep2016-v1/1110000/645DFEE0-B19C-E611-9A70-001E67F12486.root',
         # 80XDRtest
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_modelB_old_80XDRtest.root'
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_QCD_80XDRtest.root'
@@ -359,8 +365,10 @@ if testVertexReco:
 
 doSkimHlt = 1
 if doSkimHlt:
+    process.emJetAnalyzer.saveTracks = cms.bool(False)
     process.triggerSelection.triggerConditions = cms.vstring(
-        'HLT_PFHT475_v*',
+        # 'HLT_PFHT475_v*', # Old
+        'HLT_IsoMu24_v*',
     )
 
 if options.outputLabel:

@@ -38,6 +38,16 @@ options.register ('doJetFilter',
                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
                   VarParsing.VarParsing.varType.int,          # string, int, or float
                   "Set to 1 to turn on JetFilter for skim step.")
+# options.register ('ntupleFile',
+#                   'ntuple.root', # default value
+#                   VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+#                   VarParsing.VarParsing.varType.string,          # string, int, or float
+#                   "Specify plain root output file created by TFileService")
+options.register ('outputLabel',
+                  '', # default value
+                  VarParsing.VarParsing.multiplicity.singleton, # singleton or list
+                  VarParsing.VarParsing.varType.string,          # string, int, or float
+                  "Specify label for both PoolOutputModule and TFileService output files.")
 # Get and parse the command line arguments
 options.parseArguments()
 print ''
@@ -185,6 +195,7 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
         # File with single dark pions
         # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
+        # 'file:/home/yhshin/data/testfiles/temp/step2_dark.root'
         # Model A
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_1.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelA_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160201_201550/0000/aodsim_100.root',
@@ -213,8 +224,8 @@ process.source = cms.Source("PoolSource",
     ),
 )
 
-
-if 0:
+producePdfWeights = 0
+if producePdfWeights:
 # if options.data==0:
     # Produce PDF weights (maximum is 3)
     process.pdfWeights = cms.EDProducer("PdfWeightProducer",
@@ -233,9 +244,21 @@ if 0:
     )
 
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple.root") )
+process.TFileService = cms.Service("TFileService", fileName = cms.string('ntuple.root') )
 # process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-DRtest-20170425.root") )
 # process.TFileService = cms.Service("TFileService", fileName = cms.string("ntuple-74X-QCD-20170425.root") )
+
+testVertexReco = 0
+if testVertexReco:
+    # addEdmOutput(process, options.data, options.sample)
+    # Keep all objects created by emJetAnalyzer
+    process.out.outputCommands.extend(cms.untracked.vstring('keep *_emJetAnalyzer_*_*',))
+    # Keep genParticles
+    process.out.outputCommands.extend(cms.untracked.vstring('keep *_genParticles_*_*',))
+
+if options.outputLabel:
+    process.out.fileName = cms.untracked.string('output-%s.root' % options.outputLabel)
+    process.TFileService.fileName = cms.string('ntuple-%s.root' % options.outputLabel)
 
 # storage
 process.outpath = cms.EndPath(process.out)
@@ -250,4 +273,7 @@ process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
 # # process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
 # # process.load('JetMETCorrections.Configuration.CorrectedJetProducers_cff')
 # # # #get the jet energy corrections from the db file
-# # process.load("CondCore.CondDB.CondDB_cfi") 
+# # process.load("CondCore.CondDB.CondDB_cfi")
+
+process.out.outputCommands = cms.untracked.vstring('drop *')
+

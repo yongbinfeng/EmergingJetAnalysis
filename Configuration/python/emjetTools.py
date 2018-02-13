@@ -21,6 +21,7 @@ def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
                 #'HLT_PFHT900_v*',
                 # Signal region
                 'HLT_PFHT800_v*',
+                'HLT_PFHT900_v*',
             ),
             hltResults = cms.InputTag( "TriggerResults", "", "HLT" ),
             l1tResults = cms.InputTag( "" ),
@@ -252,6 +253,7 @@ def addAnalyze(process, isData=False, sample=''):
         scanMode = cms.bool(False),
         scanRandomJet = cms.bool(False),
         debug = cms.untracked.bool(False),
+        saveTracks = cms.bool(True),
     )
     if isData: process.emJetAnalyzer.isData = cms.bool( True )
     if sample=='wjet'     : process.emJetAnalyzer.srcJets = cms.InputTag("wJetFilter")

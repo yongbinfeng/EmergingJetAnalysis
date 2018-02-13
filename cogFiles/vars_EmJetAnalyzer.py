@@ -53,6 +53,8 @@ event_vars = [
     Var("pdf_pdf1"            , "float" , 0 , ) ,
     Var("pdf_pdf2"            , "float" , 0 , ) ,
     Var("pdf_scalePDF"        , "float" , 0 , ) ,
+    # Var("pdf_w0"              , "float" , 0 , ) , # PDF weight - Central value
+    # Var("pdf_delta"           , "float" , 0 , ) , # PDF weight - RMS of weights / central weight
     Var("HLT_PFHT400"         , "bool"  , 0 , ) ,
     Var("HLT_PFHT475"         , "bool"  , 0 , ) ,
     Var("HLT_PFHT600"         , "bool"  , 0 , ) ,
@@ -153,9 +155,17 @@ jet_track_vars = [
     Var("ref_x"               , "float" , 2 , ) ,
     Var("ref_y"               , "float" , 2 , ) ,
     Var("ref_z"               , "float" , 2 , ) ,
+    Var("d0Error"             , "float" , 2 , ) ,
+    Var("dzError"             , "float" , 2 , ) ,
+    # Var("ref_xError"          , "float" , 2 , ) ,
+    # Var("ref_yError"          , "float" , 2 , ) ,
+    # Var("ref_zError"          , "float" , 2 , ) ,
     Var("pca_r"               , "float" , 2 , ) ,
     Var("pca_eta"             , "float" , 2 , ) ,
     Var("pca_phi"             , "float" , 2 , ) ,
+    Var("innerHit_r"          , "float" , 2 , ) ,
+    Var("innerHit_eta"        , "float" , 2 , ) ,
+    Var("innerHit_phi"        , "float" , 2 , ) ,
     Var("quality"             , "int"   , 2 , ) ,
     Var("algo"                , "int"   , 2 , ) ,
     Var("originalAlgo"        , "int"   , 2 , ) ,
@@ -172,10 +182,13 @@ jet_track_vars = [
     Var("ipXY"                , "float" , 2 , ) ,
     Var("ipZ"                 , "float" , 2 , ) , # Empty for now
     Var("ipXYSig"             , "float" , 2 , ) ,
+    Var("ip3D"                , "float" , 2 , ) ,
+    Var("ip3DSig"             , "float" , 2 , ) ,
     Var("dRToJetAxis"         , "float" , 2 , ) ,
     Var("distanceToJet"       , "float" , 2 , ) ,
     Var("minVertexDz"         , "float" , 2 , ) ,
     Var("pvWeight"            , "float" , 2 , ) ,
+    Var("minGenDistance"      , "float" , 2 , ) ,
 ]
 jet_vertex_vars = [
     Var("index"               , "int"   , 2 , ) ,

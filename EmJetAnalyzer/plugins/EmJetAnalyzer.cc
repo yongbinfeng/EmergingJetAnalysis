@@ -242,6 +242,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     std::auto_ptr< reco::PFJetCollection > scanJet_;
     std::auto_ptr< reco::TrackCollection > scanJetTracks_;
     std::auto_ptr< reco::TrackCollection > scanJetSelectedTracks_;
+    std::auto_ptr< reco::TrackCollection > scanJetSelectedTracksHP_;
     std::auto_ptr< reco::VertexCollection > avrVerticesGlobalOutput_;
     std::auto_ptr< reco::VertexCollection > avrVerticesLocalOutput_;
     std::auto_ptr< reco::TrackCollection > avrVerticesRFTracksGlobalOutput_;
@@ -407,6 +408,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
       produces< reco::PFJetCollection > ("scanJet"). setBranchAlias( "scanJet" ); // scanJet_
       produces< reco::TrackCollection > ("scanJetTracks"). setBranchAlias( "scanJetTracks" ); // scanJetTracks_
       produces< reco::TrackCollection > ("scanJetSelectedTracks"). setBranchAlias( "scanJetSelectedTracks" ); // scanJetSelectedTracks_
+      produces< reco::TrackCollection > ("scanJetSelectedTracksHP"). setBranchAlias( "scanJetSelectedTracksHP" ) ;// scanJetSelectedTracksHP_
       // produces< TransientVertexCollection > ("avrVerticesGlobalOutput"). setBranchAlias( "avrVerticesGlobalOutput" ); // avrVerticesGlobalOutput_
       produces< reco::VertexCollection > ("avrVerticesGlobalOutput"). setBranchAlias( "avrVerticesGlobalOutput" ); // avrVerticesGlobalOutput_
       produces< reco::VertexCollection > ("avrVerticesLocalOutput"). setBranchAlias( "avrVerticesLocalOutput" ); // avrVerticesLocalOutput_
@@ -455,6 +457,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   scanJet_ = std::auto_ptr< reco::PFJetCollection > ( new reco::PFJetCollection() );
   scanJetTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   scanJetSelectedTracks_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
+  scanJetSelectedTracksHP_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
   avrVerticesGlobalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
   avrVerticesLocalOutput_ = std::auto_ptr< reco::VertexCollection > ( new reco::VertexCollection() );
   avrVerticesRFTracksGlobalOutput_ = std::auto_ptr< reco::TrackCollection > ( new reco::TrackCollection() );
@@ -1040,6 +1043,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.put(scanJet_, "scanJet"); // scanJet_
   iEvent.put(scanJetTracks_, "scanJetTracks"); // scanJetTracks_
   iEvent.put(scanJetSelectedTracks_, "scanJetSelectedTracks"); // scanJetSelectedTracks_
+  iEvent.put(scanJetSelectedTracksHP_, "scanJetSelectedTracksHP"); // scanJetSelectedTracksHP_
   iEvent.put(avrVerticesGlobalOutput_, "avrVerticesGlobalOutput"); // avrVerticesGlobalOutput_
   iEvent.put(avrVerticesLocalOutput_, "avrVerticesLocalOutput"); // avrVerticesLocalOutput_
   iEvent.put(avrVerticesRFTracksGlobalOutput_, "avrVerticesRFTracksGlobalOutput"); // avrVerticesRFTracksGlobalOutput_
@@ -1196,8 +1200,8 @@ EmJetAnalyzer::prepareJet(const reco::PFJet& ijet, Jet& ojet, int source, const 
     ojet.alphaMax_dz10cm   = compute_alphaMax_dz(trackRefs, 10.0, 0.1); // dxy to beam spot < 0.1cm
     ojet.alphaMax_dz20cm   = compute_alphaMax_dz(trackRefs, 20.0, 0.1); // dxy to beam spot < 0.1cm
     ojet.alphaMax_dz50cm   = compute_alphaMax_dz(trackRefs, 50.0, 0.1); // dxy to beam spot < 0.1cm
-    if (ojet.alphaMax==0) {
-      // jetscan(ijet);
+    if (fabs(ojet.alphaMax)<1e-4) {
+      jetscan(ijet);
     }
     if (jetdump_ && ojet.alphaMax<=0)
       {
@@ -2005,8 +2009,10 @@ EmJetAnalyzer::jetscan(const reco::PFJet& ijet) {
     scanJetTracks_->push_back(*tref);
   }
   for (std::vector<reco::TransientTrack>::iterator itk = generalTracks_.begin(); itk != generalTracks_.end(); ++itk) {
-    if ( !selectJetTrack(*itk, jet_, track_) ) continue; // :CUT: Apply Track selection
+    if ( !selectJetTrackDeltaR(*itk, jet_) ) continue; // :CUT: Apply Track selection
     scanJetSelectedTracks_->push_back(itk->track());
+    if( !itk->track().quality(reco::TrackBase::highPurity)) continue;
+    scanJetSelectedTracksHP_->push_back(itk->track());
   }
 }
 

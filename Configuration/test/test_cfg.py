@@ -178,7 +178,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
@@ -200,7 +200,9 @@ process.source = cms.Source("PoolSource",
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_106.root',
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_107.root',
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/063A7093-DFB2-E611-AC88-0025905A6066.root'
-        'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/data.root'
+        #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/data.root'
+        #'file:/data/users/fengyb/CMSSW_8_0_26_patch1/src/EmergingJetAnalysis/Configuration/test/filterevent/testQCD/Model_A.root'
+        'file:0C70E16B-0085-E611-B7AD-02163E01418B.root'
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/72119918-9516-E611-BA33-02163E0141FB.root'
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/0054292E-3186-E611-9748-002590D0B0BE.root'
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_109.root',

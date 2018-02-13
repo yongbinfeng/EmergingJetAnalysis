@@ -87,7 +87,6 @@ class GJetFilter : public edm::EDFilter {
     string alias_; // Alias suffix for all products
     bool isData_;
     // Retrieve once per event
-    //edm::EDGetTokenT< reco::PhotonCollection > photonCollectionToken_;
     edm::EDGetToken photonsToken_;
     edm::EDGetTokenT< reco::PFJetCollection > jetCollectionToken_;
     edm::EDGetTokenT<edm::ValueMap<bool> > phoMediumIdMapToken_;
@@ -152,7 +151,6 @@ GJetFilter::GJetFilter(const edm::ParameterSet& iConfig) :
 
   alias_ = iConfig.getParameter<string>("@module_label");
 
-  //photonCollectionToken_ = consumes< reco::PhotonCollection > (iConfig.getParameter<edm::InputTag>("srcPhotons"));
   photonsToken_ = mayConsume<edm::View<reco::Photon> >(iConfig.getParameter<edm::InputTag>("srcPhotons"));
   jetCollectionToken_ = consumes< reco::PFJetCollection > (iConfig.getParameter<edm::InputTag>("srcJets"));  
   phoMediumIdMapToken_ = consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("phoMediumIdMap"));
@@ -236,14 +234,8 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   histoMap1D_["eventCountPreFilter"]->Fill(1.);
 
-  //edm::Handle< pat::JetCollection > jetCollection;
-  //iEvent.getByToken(jetCollectionToken_, jetCollection);
-  //edm::Handle< pat::PhotonCollection > photonCollection;  
-  //iEvent.getByToken(photonCollectionToken_, photonCollection);
   edm::Handle< reco::PFJetCollection > jetCollection;
   iEvent.getByToken(jetCollectionToken_, jetCollection);
-  //edm::Handle< reco::PhotonCollection > photonCollection;
-  //iEvent.getByToken(photonCollectionToken_, photonCollection);  
   edm::Handle<edm::View<reco::Photon> > photons;
   iEvent.getByToken(photonsToken_, photons);
 
@@ -264,9 +256,7 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   int nGoodPhoton4 = 0;
   {
     // Select good photons
-    //for ( auto it = photonCollection->begin(); it != photonCollection->end(); it++ ) {
     for (size_t it = 0; it < photons->size(); ++it){
-      //auto photon = it;
       const auto photon = photons->ptrAt(it);
       nPhoton++;
       if ( photon->pt() < minPtPhoton_ ) continue;//photon pT selection
@@ -276,8 +266,8 @@ GJetFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       nGoodPhoton2++;
       if ( photon->hasPixelSeed() ) continue;
       nGoodPhoton3++;
+       // Pass the medium PhotonID selection
       bool isPassMedium = (*medium_id_decisions)[photon];
-      //bool isPassMedium = (*medium_id_decisions)[pho];
       if ( !isPassMedium ) continue;
       nGoodPhoton4++;
       goodPhotons.push_back(*photon);

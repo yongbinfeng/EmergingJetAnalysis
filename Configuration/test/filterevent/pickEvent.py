@@ -14,17 +14,17 @@ process = cms.Process("PickEvent")
 process.source = cms.Source ("PoolSource",
           fileNames = cms.untracked.vstring (
               #file name, can be either local or remote. If local, add file: in the front.
-              'file:5E77AE43-D6B0-E611-BC6B-FA163ED28262.root'
+              'file:PVFailure/14F69527-D485-E611-9B5D-02163E014789.root',
           ),
           eventsToProcess = cms.untracked.VEventRange (
               # options.eventsToProcess
               #event coordinate: run:lumi:event
-              '1:39938:115533454',
+              '281641:60:99516202',
           )                               
 )
 
 process.Out = cms.OutputModule("PoolOutputModule",
-        fileName = cms.untracked.string ('alphamax_newworse.root')#output file name
+        fileName = cms.untracked.string ('PVFailure_data.root')#output file name
 )
 
 process.end = cms.EndPath(process.Out)

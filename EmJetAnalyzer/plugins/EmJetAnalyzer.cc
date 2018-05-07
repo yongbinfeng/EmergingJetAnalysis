@@ -54,6 +54,7 @@
 #include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "DataFormats/METReco/interface/PFMET.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
 #include "DataFormats/JetReco/interface/PFJet.h"
@@ -432,6 +433,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     consumes<reco::TrackCollection> (edm::InputTag("generalTracks"));
     consumes<reco::TrackCollection> (edm::InputTag("displacedStandAloneMuons"));
     consumes<reco::PFMETCollection> (edm::InputTag("pfMet"));
+    consumes<pat::METCollection> (edm::InputTag("slimmedMETs"));
     consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVerticesWithBS"));
     consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVertices"));
     consumes<reco::VertexCollection> (edm::InputTag("inclusiveSecondaryVertices"));
@@ -549,10 +551,16 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   calojet_alphazero = 0;
   calojet_alphaneg = 0;
 
+  // event_.event = 2147483647 + 100;
+  // OUTPUT(event_.event);
   event_.run   = iEvent.id().run();
   event_.event = iEvent.id().event();
   event_.lumi  = iEvent.id().luminosityBlock();
   event_.bx    = iEvent.bunchCrossing();
+  OUTPUT(event_.run);
+  OUTPUT(event_.lumi);
+  OUTPUT(iEvent.id().event());
+  OUTPUT(event_.event);
 
   // Retrieve HLT info
   {
@@ -628,13 +636,16 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     VertexHigherPtSquared vertexPt2Calculator;
     for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
       double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
-      if (pt2sum > pt2sumMax) {
+      OUTPUT(pt2sum);
+      if (pt2sum >= pt2sumMax) {
         pt2sumMax = pt2sum;
         pv_indexInColl = pv_index;
       }
       // OUTPUT(pt2sum);
       pv_index++;
     }
+    primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
+    OUTPUT(primary_vertex_->x());
     if (pv_indexInColl != -1) {
       primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
       // std::cout << "offlinePrimaryVerticesWithBS\n";
@@ -657,6 +668,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       // event_.pv_pt2sum      = pt2sum;
       // event_.pv_nTracks     = nTracks;
       // event_.pv_indexInColl = pv_indexInColl;
+    }
+    else {
+      OUTPUT(primary_verticesH_->at(-1).x());
     }
   }
 
@@ -752,6 +766,20 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByLabel("pfMet",pfmet);
     event_.met_pt = pfmet->begin()->pt();
     event_.met_phi = pfmet->begin()->phi();
+
+    // Get PAT MET
+    edm::Handle<pat::METCollection> mets;
+    // iEvent.getByToken(metToken_, mets);
+    iEvent.getByLabel("slimmedMETs", mets);
+    const pat::MET &met = mets->front();
+    event_.metT1_pt    = met.pt()    ;
+    event_.metT1_phi   = met.phi()   ;
+    event_.metT1_sumEt = met.sumEt() ;
+    //   printf("Raw, Uncorr: %5.1f, %5.1f\n", pfmet->begin()->pt(), met.uncorPt() );
+    //   printf("MET: pt %5.1f, phi %+4.2f, sumEt (%.1f). genMET %.1f. MET with JES up/down: %.1f/%.1f\n",
+    //          met.pt(), met.phi(), met.sumEt(),
+    //          met.genMET()->pt(), 
+    //          met.shiftedPt(pat::MET::JetEnUp), met.shiftedPt(pat::MET::JetEnDown));
   }
 
   // Retrieve selectedJets
@@ -1882,6 +1910,9 @@ EmJetAnalyzer::fillPrimaryVertices() {
   }
   // Sort primary vertices in descending order of pt2Sum
   std::sort(event_.pv_vector.begin(), event_.pv_vector.end(), [](const emjet::PrimaryVertex a, const emjet::PrimaryVertex b){ return a.pt2sum > b.pt2sum; });
+  OUTPUT(event_.pv_vector[0].x);
+  OUTPUT(event_.pv_vector[0].y);
+  OUTPUT(event_.pv_vector[0].z);
 }
 
 void
@@ -2003,20 +2034,28 @@ double
 EmJetAnalyzer::compute_alpha(reco::TrackRefVector& trackRefs) const
 {
   double alpha = -1.;
-  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
-  double jet_pt_sum = 0.;
-  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-    jet_pt_sum += (*ijt)->pt();
-  } // End of track loop
+  // // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  // double jet_pt_sum = 0.;
+  // for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //   jet_pt_sum += (*ijt)->pt();
+  // } // End of track loop
 
-  const reco::Vertex& primary_vertex = *primary_vertex_;
-  double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-    double trackWeight = primary_vertex.trackWeight(*ijt);
-    if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
-  } // End of track loop
-  // Calculate alpha
-  alpha = vertex_pt_sum / jet_pt_sum;
+  // const reco::Vertex& primary_vertex = *primary_vertex_;
+  // double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //   // if ((*ijt)->trackBaseRef().isNull()) {
+  //   // if ((*ijt)->trackBaseRef().isNull()) {
+  //   //   // trackBaseRef is null
+  //   //   STDOUT("compute_alpha: trackBaseRef is null");
+  //   //   continue;
+  //   // }
+  //   OUTPUT((*ijt)->pt());
+  //   auto ijt_track = *ijt;
+  //   double trackWeight = primary_vertex.trackWeight(ijt_track);
+  //   if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+  // } // End of track loop
+  // // Calculate alpha
+  // alpha = vertex_pt_sum / jet_pt_sum;
   return alpha;
 }
 
@@ -2025,25 +2064,25 @@ double
 EmJetAnalyzer::compute_alpha(vector<reco::TransientTrack> tracks) const
 {
   double alpha = -1.;
-  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
-  double jet_pt_sum = 0.;
-  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-    jet_pt_sum += (ijt)->track().pt();
-  } // End of track loop
+  // // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  // double jet_pt_sum = 0.;
+  // for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+  //   jet_pt_sum += (ijt)->track().pt();
+  // } // End of track loop
 
-  const reco::Vertex& primary_vertex = *primary_vertex_;
-  double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-    if ((ijt)->trackBaseRef().isNull()) {
-      // trackBaseRef is null
-      STDOUT("compute_alpha: trackBaseRef is null");
-      continue;
-    }
-    double trackWeight = primary_vertex.trackWeight((ijt)->trackBaseRef());
-    if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
-  } // End of track loop
-  // Calculate alpha
-  alpha = vertex_pt_sum / jet_pt_sum;
+  // const reco::Vertex& primary_vertex = *primary_vertex_;
+  // double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+  //   if ((ijt)->trackBaseRef().isNull()) {
+  //     // trackBaseRef is null
+  //     STDOUT("compute_alpha: trackBaseRef is null");
+  //     continue;
+  //   }
+  //   double trackWeight = primary_vertex.trackWeight((ijt)->trackBaseRef());
+  //   if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
+  // } // End of track loop
+  // // Calculate alpha
+  // alpha = vertex_pt_sum / jet_pt_sum;
   return alpha;
 }
 

@@ -185,10 +185,13 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:min-281976:2166:max"),
+    eventsToProcess = cms.untracked.VEventRange("281976:2166:3740421624-281976:2166:max"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:3739658361-281976:2166:3739658361"),
     fileNames = cms.untracked.vstring(
         # File with single dark pions
         # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
@@ -242,6 +245,9 @@ process.source = cms.Source("PoolSource",
         # 'file:/home/yhshin/data/testfiles/80X/003EC773-5797-E611-A173-002590E7D7C2.root',
         # SingleMuon Data
         # 'file:/data/users/yhshin/testfiles/80X/00F3CB69-2998-E611-9CE8-0CC47A7E68AA.root',
+        # JetHT Data Run2016H
+        'file:/data/users/yhshin/testfiles/80X/A4FA93EA-5C89-E611-8814-FA163E9501BC.root'
+        # '/store/data/Run2016H/JetHT/AOD/PromptReco-v2/000/281/976/00000/A4FA93EA-5C89-E611-8814-FA163E9501BC.root'
         # 80XDRtest
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_modelB_old_80XDRtest.root'
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_QCD_80XDRtest.root'
@@ -302,7 +308,7 @@ process.source = cms.Source("PoolSource",
         # '/store/mc/RunIISummer16DR80Premix/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/023963AD-CBBE-E611-AC12-D4AE526A048B.root',
         # 80X Data
         # '/store/data/Run2016B/JetHT/AOD/23Sep2016-v1/90000/0024BC8F-AC82-E611-9019-001E675817A4.root'
-        '/store/data/Run2016H/JetHT/AOD/PromptReco-v3/000/284/036/00000/0E2E0EC2-619F-E611-8216-02163E011E7A.root'
+        # '/store/data/Run2016H/JetHT/AOD/PromptReco-v3/000/284/036/00000/0E2E0EC2-619F-E611-8216-02163E011E7A.root'
         # 80X QCD
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'

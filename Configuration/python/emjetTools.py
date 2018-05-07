@@ -63,6 +63,24 @@ def addSkim(process, isData=False, doJetFilter=True, doHLT=False):
     process.eventCountPreTrigger = cms.EDAnalyzer('EventCounter')
     process.eventCountPreFilter = cms.EDAnalyzer('EventCounter')
     process.eventCountPostFilter = cms.EDAnalyzer('EventCounter')
+    ############################################################
+    # Recreate miniAOD
+    ############################################################
+    if isData:
+        # customisation of the process.
+        process.load('Configuration.StandardSequences.PAT_cff')
+        # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllData
+        #call to customisation function miniAOD_customizeAllData imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        process = miniAOD_customizeAllData(process)
+    else:
+        # customisation of the process.
+        process.load('Configuration.StandardSequences.PATMC_cff')
+        # Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
+        #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+        process = miniAOD_customizeAllMC(process)
+    ############################################################
     if doHLT: # Add triggerSelection
         return cms.Sequence(process.eventCountPreTrigger * process.triggerSelection * process.eventCountPreFilter * process.jetFilter * process.eventCountPostFilter)
     else: # Ignore triggerSelection

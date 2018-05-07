@@ -36,6 +36,7 @@ Var = namedtuple('Var', ['name', 'cpptype', 'level', ] )
 event_vars = [
     Var("run"                 , "int"   , 0 , ) ,
     Var("lumi"                , "int"   , 0 , ) ,
+    # Var("event"               , "unsigned long long"   , 0 , ) ,
     Var("event"               , "int"   , 0 , ) ,
     Var("bx"                  , "int"   , 0 , ) ,
     Var("nVtx"                , "int"   , 0 , ) ,
@@ -43,6 +44,9 @@ event_vars = [
     Var("nTrueInt"            , "int"   , 0 , ) ,
     Var("met_pt"              , "float" , 0 , ) ,
     Var("met_phi"             , "float" , 0 , ) ,
+    Var("metT1_pt"            , "float" , 0 , ) ,
+    Var("metT1_phi"           , "float" , 0 , ) ,
+    Var("metT1_sumEt"         , "float" , 0 , ) ,
     Var("nTracks"             , "int"   , 0 , ) ,
     Var("alpha_event"         , "float" , 0 , ) ,
     # PDF information

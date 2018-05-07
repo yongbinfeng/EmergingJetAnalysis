@@ -31,6 +31,9 @@ namespace emjet
     int                     nTrueInt            ;
     float                   met_pt              ;
     float                   met_phi             ;
+    float                   metT1_pt            ;
+    float                   metT1_phi           ;
+    float                   metT1_sumEt         ;
     int                     nTracks             ;
     float                   alpha_event         ;
     int                     pdf_id1             ;
@@ -236,6 +239,9 @@ emjet::OutputTree::Init() {
   nTrueInt            = -1;
   met_pt              = -1;
   met_phi             = -1;
+  metT1_pt            = -1;
+  metT1_phi           = -1;
+  metT1_sumEt         = -1;
   nTracks             = -1;
   alpha_event         = -1;
   pdf_id1             = -1;
@@ -441,6 +447,9 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, nTrueInt            );
   BRANCH(tree, met_pt              );
   BRANCH(tree, met_phi             );
+  BRANCH(tree, metT1_pt            );
+  BRANCH(tree, metT1_phi           );
+  BRANCH(tree, metT1_sumEt         );
   BRANCH(tree, nTracks             );
   BRANCH(tree, alpha_event         );
   BRANCH(tree, pdf_id1             );

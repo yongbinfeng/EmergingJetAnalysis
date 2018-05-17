@@ -264,3 +264,8 @@ def addTesting(process, isData=False, sample=''):
         jets = cms.InputTag("ak4CaloJets")
     )
     return cms.Sequence(process.ak4JTAatVX*process.ak4JTAatCAL)
+
+def addPVTesting(process, isData=False, sample=''):
+    process.emJetTestFilter = cms.EDFilter('EmJetTestFilter',
+                                           )
+    return cms.Sequence(process.emJetTestFilter)

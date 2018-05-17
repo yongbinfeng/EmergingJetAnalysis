@@ -49,9 +49,11 @@ namespace emjet
       nTrueInt             = DEFAULTVALUE;
       met_pt               = DEFAULTVALUE;
       met_phi              = DEFAULTVALUE;
+      met_ptUnc            = DEFAULTVALUE;
       metT1_pt             = DEFAULTVALUE;
       metT1_phi            = DEFAULTVALUE;
       metT1_sumEt          = DEFAULTVALUE;
+      metT1_ptUnc          = DEFAULTVALUE;
       nTracks              = DEFAULTVALUE;
       alpha_event          = DEFAULTVALUE;
       pdf_id1              = DEFAULTVALUE;
@@ -90,9 +92,11 @@ namespace emjet
     int    nTrueInt            ;
     float  met_pt              ;
     float  met_phi             ;
+    float  met_ptUnc           ;
     float  metT1_pt            ;
     float  metT1_phi           ;
     float  metT1_sumEt         ;
+    float  metT1_ptUnc         ;
     int    nTracks             ;
     float  alpha_event         ;
     int    pdf_id1             ;
@@ -630,9 +634,11 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->nTrueInt             = event.nTrueInt            ;
     otree->met_pt               = event.met_pt              ;
     otree->met_phi              = event.met_phi             ;
+    otree->met_ptUnc            = event.met_ptUnc           ;
     otree->metT1_pt             = event.metT1_pt            ;
     otree->metT1_phi            = event.metT1_phi           ;
     otree->metT1_sumEt          = event.metT1_sumEt         ;
+    otree->metT1_ptUnc          = event.metT1_ptUnc         ;
     otree->nTracks              = event.nTracks             ;
     otree->alpha_event          = event.alpha_event         ;
     otree->pdf_id1              = event.pdf_id1             ;

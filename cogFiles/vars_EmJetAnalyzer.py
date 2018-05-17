@@ -44,9 +44,11 @@ event_vars = [
     Var("nTrueInt"            , "int"   , 0 , ) ,
     Var("met_pt"              , "float" , 0 , ) ,
     Var("met_phi"             , "float" , 0 , ) ,
+    Var("met_ptUnc"           , "float" , 0 , ) ,
     Var("metT1_pt"            , "float" , 0 , ) ,
     Var("metT1_phi"           , "float" , 0 , ) ,
     Var("metT1_sumEt"         , "float" , 0 , ) ,
+    Var("metT1_ptUnc"         , "float" , 0 , ) ,
     Var("nTracks"             , "int"   , 0 , ) ,
     Var("alpha_event"         , "float" , 0 , ) ,
     # PDF information

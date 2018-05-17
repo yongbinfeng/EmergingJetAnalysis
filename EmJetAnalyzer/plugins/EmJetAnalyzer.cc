@@ -146,6 +146,7 @@ typedef std::tuple< std::vector<double>, std::vector<double>, std::vector<double
 // bool scanMode_ = true;
 // bool scanRandomJet_ = true;
 bool jetdump_ = false;
+const int nopvtest = 0;
 
 // typedef std::vector<TransientVertex> TransientVertexCollection;
 
@@ -557,10 +558,10 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   event_.event = iEvent.id().event();
   event_.lumi  = iEvent.id().luminosityBlock();
   event_.bx    = iEvent.bunchCrossing();
-  OUTPUT(event_.run);
-  OUTPUT(event_.lumi);
-  OUTPUT(iEvent.id().event());
-  OUTPUT(event_.event);
+  if (nopvtest) OUTPUT(event_.run);
+  if (nopvtest) OUTPUT(event_.lumi);
+  if (nopvtest) OUTPUT(iEvent.id().event());
+  if (nopvtest) OUTPUT(event_.event);
 
   // Retrieve HLT info
   {
@@ -775,6 +776,11 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     event_.metT1_pt    = met.pt()    ;
     event_.metT1_phi   = met.phi()   ;
     event_.metT1_sumEt = met.sumEt() ;
+    OUTPUT("T1 MET uncertainty");
+    event_.metT1_ptUnc = met.shiftedPt(pat::MET::METUncertaintySize) ;
+    // Raw MET uncertainty
+    OUTPUT("Raw MET uncertainty");
+    event_.met_ptUnc   = met.shiftedPt(pat::MET::METUncertaintySize, pat::MET::Raw) ;
     //   printf("Raw, Uncorr: %5.1f, %5.1f\n", pfmet->begin()->pt(), met.uncorPt() );
     //   printf("MET: pt %5.1f, phi %+4.2f, sumEt (%.1f). genMET %.1f. MET with JES up/down: %.1f/%.1f\n",
     //          met.pt(), met.phi(), met.sumEt(),
@@ -1910,9 +1916,9 @@ EmJetAnalyzer::fillPrimaryVertices() {
   }
   // Sort primary vertices in descending order of pt2Sum
   std::sort(event_.pv_vector.begin(), event_.pv_vector.end(), [](const emjet::PrimaryVertex a, const emjet::PrimaryVertex b){ return a.pt2sum > b.pt2sum; });
-  OUTPUT(event_.pv_vector[0].x);
-  OUTPUT(event_.pv_vector[0].y);
-  OUTPUT(event_.pv_vector[0].z);
+  if (nopvtest) OUTPUT(event_.pv_vector[0].x);
+  if (nopvtest) OUTPUT(event_.pv_vector[0].y);
+  if (nopvtest) OUTPUT(event_.pv_vector[0].z);
 }
 
 void

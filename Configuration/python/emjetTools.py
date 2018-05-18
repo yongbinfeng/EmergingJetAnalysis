@@ -190,6 +190,7 @@ def addAnalyze(process, isData=False, sample=''):
             finder = cms.string( "avr" )
         ),
         hlTriggerResults = cms.InputTag("TriggerResults", "", "HLT"),
+        metFilterResults = cms.InputTag("TriggerResults","","RECO"),
         jets = cms.untracked.InputTag("ak4CaloJets"),
         associatorVTX = cms.untracked.InputTag("ak4JTAatVX"),
         associatorCALO = cms.untracked.InputTag("ak4JTAatCAL"),

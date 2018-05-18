@@ -140,6 +140,12 @@ if testing:
 
 process.p = cms.Path( skimStep * testingStep * analyzeStep )
 
+# MET Uncertainties
+# from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
+# runMetCorAndUncFromMiniAOD(process,
+# 		isData=True,
+# )
+
 ########################################
 # Configure EDM Output
 ########################################
@@ -159,6 +165,35 @@ else:
     )
     # if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
     # else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+
+testMETUnc = 0
+if testMETUnc:
+    process.out = cms.OutputModule("PoolOutputModule",
+        compressionLevel = cms.untracked.int32(4),
+        compressionAlgorithm = cms.untracked.string('LZMA'),
+        eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
+        outputCommands = cms.untracked.vstring( "keep *_slimmedMETs_*_*",
+                                                "keep *_slimmedMETsNoHF_*_*",
+                                                "keep *_patPFMet_*_*",
+                                                "keep *_patPFMetT1_*_*",
+                                                "keep *_patPFMetT1JetResDown_*_*",
+                                                "keep *_patPFMetT1JetResUp_*_*",
+                                                "keep *_patPFMetT1Smear_*_*",
+                                                "keep *_patPFMetT1SmearJetResDown_*_*",
+                                                "keep *_patPFMetT1SmearJetResUp_*_*",
+                                                "keep *_patPFMetT1Puppi_*_*",
+                                                "keep *_slimmedMETsPuppi_*_*",
+                                                ),
+        fileName = cms.untracked.string('corMETMiniAOD.root'),
+        dataset = cms.untracked.PSet(
+            filterName = cms.untracked.string(''),
+            dataTier = cms.untracked.string('')
+        ),
+        dropMetaData = cms.untracked.string('ALL'),
+        fastCloning = cms.untracked.bool(False),
+        overrideInputFileSplitLevels = cms.untracked.bool(True)
+    )
+
 
 ########################################
 # Generic configuration
@@ -185,12 +220,12 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
     # eventsToProcess = cms.untracked.VEventRange("281976:2166:min-281976:2166:max"),
-    eventsToProcess = cms.untracked.VEventRange("281976:2166:3740421624-281976:2166:max"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:3740421624-281976:2166:max"),
     # eventsToProcess = cms.untracked.VEventRange("281976:2166:3739658361-281976:2166:3739658361"),
     fileNames = cms.untracked.vstring(
         # File with single dark pions
@@ -246,7 +281,7 @@ process.source = cms.Source("PoolSource",
         # SingleMuon Data
         # 'file:/data/users/yhshin/testfiles/80X/00F3CB69-2998-E611-9CE8-0CC47A7E68AA.root',
         # JetHT Data Run2016H
-        'file:/data/users/yhshin/testfiles/80X/A4FA93EA-5C89-E611-8814-FA163E9501BC.root'
+        # 'file:/data/users/yhshin/testfiles/80X/A4FA93EA-5C89-E611-8814-FA163E9501BC.root'
         # '/store/data/Run2016H/JetHT/AOD/PromptReco-v2/000/281/976/00000/A4FA93EA-5C89-E611-8814-FA163E9501BC.root'
         # 80XDRtest
         # 'file:/home/yhshin/EmJetMCProd/CMSSW_8_0_21/src/EmJetDigiReco/aodsim_modelB_old_80XDRtest.root'
@@ -312,7 +347,7 @@ process.source = cms.Source("PoolSource",
         # 80X QCD
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
-        # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
+        '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # ModelA AODSIM-v2017-05-02
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/v2017-05-02/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-05-02/170503_203019/0000/aodsim_1.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/v2017-05-02/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-05-02/170503_203019/0000/aodsim_10.root',
@@ -383,5 +418,5 @@ process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
 # # # #get the jet energy corrections from the db file
 # # process.load("CondCore.CondDB.CondDB_cfi")
 
-process.out.outputCommands = cms.untracked.vstring('drop *')
+# process.out.outputCommands = cms.untracked.vstring('drop *')
 

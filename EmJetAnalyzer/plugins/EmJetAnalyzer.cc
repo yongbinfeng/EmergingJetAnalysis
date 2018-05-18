@@ -135,6 +135,10 @@
 #define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
 #endif
 
+#ifndef DEBUG_OUTPUT
+#define DEBUG_OUTPUT(x) if (debug_) std::cout<<#x << ": " << x << std::endl
+#endif
+
 #ifndef STDOUT
 #define STDOUT(x) std::cout<< x << std::endl
 #endif
@@ -244,6 +248,7 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
     edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
+    edm::EDGetTokenT<edm::TriggerResults> metFilterResultsToken_;
     edm::EDGetTokenT<LHERunInfoProduct> lheRunToken_;
 
 
@@ -428,6 +433,7 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     }
 
     hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
+    metFilterResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("metFilterResults"));
 
     // Register hard-coded inputs
     consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
@@ -595,6 +601,39 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // }
   }
 
+  // Retrieve MET filter results
+  {
+    edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
+    iEvent.getByToken(metFilterResultsToken_, trigResults);
+    if (!trigResults.isValid()) {
+      if (debug_) std::cout << "HLT TriggerResults not found!";
+      return false;
+    }
+
+    const edm::TriggerNames& trigNames = iEvent.triggerNames(*trigResults);
+
+    // MET Filters from miniAOD
+    event_.metFilter_HBHENoise                    = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    );
+    event_.metFilter_HBHENoiseIso                 = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 );
+    event_.metFilter_EcalDeadCellTriggerPrimitive = triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" );
+    event_.metFilter_goodVertices                 = triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       );
+    event_.metFilter_eeBadSc                      = triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      );
+    event_.metFilter_globalTightHalo2016          = triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    ) );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 ) );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" ) );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       ) );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      ) );
+    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          ) );
+    // if ( event_.HLT_HT250 || event_.HLT_HT350 || event_.HLT_HT400 || event_.HLT_HT500 || event_.HLT_PFHT400 || event_.HLT_PFHT475 || event_.HLT_PFHT600 || event_.HLT_PFHT800 || event_.HLT_PFHT900 ) {
+    //   std::cout << "111111111111111\n";
+    //   OUTPUT(event_.HLT_PFHT400);
+    // }
+    // else {
+    //   std::cout << "0\n";
+    // }
+  }
+
   // Retrieve offline beam spot (Used to constrain vertexing)
   {
     edm::Handle<reco::BeamSpot> theBeamSpotHandle;
@@ -637,7 +676,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     VertexHigherPtSquared vertexPt2Calculator;
     for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
       double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
-      OUTPUT(pt2sum);
+      // OUTPUT(pt2sum);
       if (pt2sum >= pt2sumMax) {
         pt2sumMax = pt2sum;
         pv_indexInColl = pv_index;
@@ -646,7 +685,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       pv_index++;
     }
     primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
-    OUTPUT(primary_vertex_->x());
+    DEBUG_OUTPUT(primary_vertex_->x());
     if (pv_indexInColl != -1) {
       primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
       // std::cout << "offlinePrimaryVerticesWithBS\n";
@@ -776,16 +815,56 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     event_.metT1_pt    = met.pt()    ;
     event_.metT1_phi   = met.phi()   ;
     event_.metT1_sumEt = met.sumEt() ;
-    OUTPUT("T1 MET uncertainty");
-    event_.metT1_ptUnc = met.shiftedPt(pat::MET::METUncertaintySize) ;
     // Raw MET uncertainty
-    OUTPUT("Raw MET uncertainty");
-    event_.met_ptUnc   = met.shiftedPt(pat::MET::METUncertaintySize, pat::MET::Raw) ;
+    event_.met_pt_JetResUp   = (met.shiftedPt(pat::MET::JetResUp, pat::MET::Raw));
+    event_.met_pt_JetResDown = (met.shiftedPt(pat::MET::JetResDown, pat::MET::Raw));
+    event_.met_pt_JetEnUp    = (met.shiftedPt(pat::MET::JetEnUp, pat::MET::Raw));
+    event_.met_pt_JetEnDown  = (met.shiftedPt(pat::MET::JetEnDown, pat::MET::Raw));
+    event_.met_pt_UnclEnUp   = (met.shiftedPt(pat::MET::UnclusteredEnUp, pat::MET::Raw));
+    event_.met_pt_UnclEnDown = (met.shiftedPt(pat::MET::UnclusteredEnDown, pat::MET::Raw));
+    DEBUG_OUTPUT(event_.met_pt);
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResUp, pat::MET::Raw));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResDown, pat::MET::Raw));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnUp, pat::MET::Raw));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnDown, pat::MET::Raw));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnUp, pat::MET::Raw));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnDown, pat::MET::Raw));
+    // T1 MET uncertainty
+		event_.metT1_pt_JetResUp   = (met.shiftedPt(pat::MET::JetResUp));
+		event_.metT1_pt_JetResDown = (met.shiftedPt(pat::MET::JetResDown));
+		event_.metT1_pt_JetEnUp    = (met.shiftedPt(pat::MET::JetEnUp));
+		event_.metT1_pt_JetEnDown  = (met.shiftedPt(pat::MET::JetEnDown));
+		event_.metT1_pt_UnclEnUp   = (met.shiftedPt(pat::MET::UnclusteredEnUp));
+		event_.metT1_pt_UnclEnDown = (met.shiftedPt(pat::MET::UnclusteredEnDown));
+    DEBUG_OUTPUT(event_.metT1_pt);
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResUp));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResDown));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnUp));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnDown));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnUp));
+    DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnDown));
+    // Unused uncertainties
+    // See link for explanation of JetResUpSmear (Essentially redundant with JetResUp for us)
+    // https://hypernews.cern.ch/HyperNews/CMS/get/met/565.html?inline=-1
+    // {
+    //   OUTPUT(met.shiftedPt(pat::MET::MuonEnUp));
+    //   OUTPUT(met.shiftedPt(pat::MET::ElectronEnUp));
+    //   OUTPUT(met.shiftedPt(pat::MET::PhotonEnUp));
+    //   OUTPUT(met.shiftedPt(pat::MET::TauEnUp));
+    //   // These two don't seem to be work
+    //   // OUTPUT(met.shiftedPt(pat::MET::JetResUpSmear));
+    //   // OUTPUT(met.shiftedPt(pat::MET::JetResDownSmear));
+    // }
+    // OUTPUT(met.shiftedPt(pat::MET::METFullUncertaintySize));
+    // OUTPUT(met.shiftedPt(pat::MET::METUncertaintySize));
+    // // Raw MET uncertainty
+    // OUTPUT("Raw MET uncertainty");
+    // event_.met_ptUnc   = met.shiftedPt(pat::MET::METUncertaintySize, pat::MET::Raw) ;
     //   printf("Raw, Uncorr: %5.1f, %5.1f\n", pfmet->begin()->pt(), met.uncorPt() );
-    //   printf("MET: pt %5.1f, phi %+4.2f, sumEt (%.1f). genMET %.1f. MET with JES up/down: %.1f/%.1f\n",
-    //          met.pt(), met.phi(), met.sumEt(),
-    //          met.genMET()->pt(), 
-    //          met.shiftedPt(pat::MET::JetEnUp), met.shiftedPt(pat::MET::JetEnDown));
+      // printf("MET: pt %5.1f, phi %+4.2f, sumEt (%.1f). genMET %.1f. MET with JES up/down: %.1f/%.1f\n",
+      //        met.pt(), met.phi(), met.sumEt(),
+      //        met.genMET()->pt(), 
+      //        met.shiftedPt(pat::MET::JetEnUp), met.shiftedPt(pat::MET::JetEnDown));
   }
 
   // Retrieve selectedJets

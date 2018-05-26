@@ -249,6 +249,9 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
     edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
     edm::EDGetTokenT<edm::TriggerResults> metFilterResultsToken_;
+    edm::EDGetTokenT<bool> BadChCandFilterToken_;
+    edm::EDGetTokenT<bool> BadPFMuonFilterToken_;
+
     edm::EDGetTokenT<LHERunInfoProduct> lheRunToken_;
 
 
@@ -434,6 +437,8 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
 
     hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
     metFilterResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("metFilterResults"));
+    BadChCandFilterToken_ = (consumes<bool>(iConfig.getParameter<edm::InputTag>("BadChargedCandidateFilter")));
+    BadPFMuonFilterToken_ = (consumes<bool>(iConfig.getParameter<edm::InputTag>("BadPFMuonFilter")));
 
     // Register hard-coded inputs
     consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
@@ -605,33 +610,37 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   {
     edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
     iEvent.getByToken(metFilterResultsToken_, trigResults);
-    if (!trigResults.isValid()) {
-      if (debug_) std::cout << "HLT TriggerResults not found!";
-      return false;
+    if (trigResults.isValid()) {
+      const edm::TriggerNames& trigNames = iEvent.triggerNames(*trigResults);
+      // MET Filters retrieved from miniAOD
+      event_.metFilter_HBHENoise                    = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    );
+      event_.metFilter_HBHENoiseIso                 = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 );
+      event_.metFilter_EcalDeadCellTriggerPrimitive = triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" );
+      event_.metFilter_goodVertices                 = triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       );
+      event_.metFilter_eeBadSc                      = triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      );
+      event_.metFilter_globalTightHalo2016          = triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          ) );
+    }
+    else {
+      std::cout << "Met Filter TriggerResults is not valid!" << std::endl;
     }
 
-    const edm::TriggerNames& trigNames = iEvent.triggerNames(*trigResults);
-
-    // MET Filters from miniAOD
-    event_.metFilter_HBHENoise                    = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    );
-    event_.metFilter_HBHENoiseIso                 = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 );
-    event_.metFilter_EcalDeadCellTriggerPrimitive = triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" );
-    event_.metFilter_goodVertices                 = triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       );
-    event_.metFilter_eeBadSc                      = triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      );
-    event_.metFilter_globalTightHalo2016          = triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    ) );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 ) );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" ) );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       ) );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      ) );
-    DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          ) );
-    // if ( event_.HLT_HT250 || event_.HLT_HT350 || event_.HLT_HT400 || event_.HLT_HT500 || event_.HLT_PFHT400 || event_.HLT_PFHT475 || event_.HLT_PFHT600 || event_.HLT_PFHT800 || event_.HLT_PFHT900 ) {
-    //   std::cout << "111111111111111\n";
-    //   OUTPUT(event_.HLT_PFHT400);
-    // }
-    // else {
-    //   std::cout << "0\n";
-    // }
+    // True is good for these filters, means passed filter
+    edm::Handle<bool> ifilterbadChCand;
+    iEvent.getByToken(BadChCandFilterToken_, ifilterbadChCand);
+    bool  filterbadChCandidate = *ifilterbadChCand;
+    edm::Handle<bool> ifilterbadPFMuon;
+    iEvent.getByToken(BadPFMuonFilterToken_, ifilterbadPFMuon);
+    bool filterbadPFMuon = *ifilterbadPFMuon;
+    // OUTPUT(filterbadChCandidate);
+    // OUTPUT(filterbadPFMuon);
+    event_.metFilter_badChargedCandidate = !(   filterbadChCandidate   );
+    event_.metFilter_badPFMuon           = !(   filterbadPFMuon        );
   }
 
   // Retrieve offline beam spot (Used to constrain vertexing)
@@ -799,6 +808,7 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // iEvent.getByLabel("ak4GenJets",   genJets_);
     findDarkPionVertices();
   }
+
 
   // Calculate MET :EVENTLEVEL:
   {

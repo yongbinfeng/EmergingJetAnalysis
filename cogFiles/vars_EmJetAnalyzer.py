@@ -36,8 +36,8 @@ Var = namedtuple('Var', ['name', 'cpptype', 'level', ] )
 event_vars = [
     Var("run"                 , "int"   , 0 , ) ,
     Var("lumi"                , "int"   , 0 , ) ,
-    # Var("event"               , "unsigned long long"   , 0 , ) ,
-    Var("event"               , "int"   , 0 , ) ,
+    Var("event"               , "unsigned long long"   , 0 , ) ,
+    # Var("event"               , "int"   , 0 , ) ,
     Var("bx"                  , "int"   , 0 , ) ,
     Var("nVtx"                , "int"   , 0 , ) ,
     Var("nGoodVtx"            , "int"   , 0 , ) ,
@@ -87,6 +87,8 @@ event_vars = [
     Var("metFilter_goodVertices"                     , "bool"  , 0 , ) ,
     Var("metFilter_eeBadSc"                          , "bool"  , 0 , ) ,
     Var("metFilter_globalTightHalo2016"              , "bool"  , 0 , ) ,
+    Var("metFilter_badChargedCandidate"              , "bool"  , 0 , ) ,
+    Var("metFilter_badPFMuon"                        , "bool"  , 0 , ) ,
 
 ]
 jet_vars = [

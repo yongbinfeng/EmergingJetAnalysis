@@ -138,7 +138,23 @@ testingStep = cms.Sequence()
 if testing:
     testingStep = addTesting(process, options.data, options.sample)
 
+testMetFilters = 1
+if testMetFilters:
+    process.load('RecoMET.METFilters.BadPFMuonFilter_cfi')
+    process.BadPFMuonFilter.muons = cms.InputTag("slimmedMuons")
+    process.BadPFMuonFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+    process.BadPFMuonFilter.taggingMode = cms.bool(True)
+    process.load('RecoMET.METFilters.BadChargedCandidateFilter_cfi')
+    process.BadChargedCandidateFilter.muons = cms.InputTag("slimmedMuons")
+    process.BadChargedCandidateFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+    process.BadChargedCandidateFilter.taggingMode = cms.bool(True)
+    process.emJetAnalyzer.BadChargedCandidateFilter = cms.InputTag("BadChargedCandidateFilter")
+    process.emJetAnalyzer.BadPFMuonFilter = cms.InputTag("BadPFMuonFilter")
+    testMetFilterStep = cms.Sequence(process.BadPFMuonFilter * process.BadChargedCandidateFilter)
+
 process.p = cms.Path( skimStep * testingStep * analyzeStep )
+if testMetFilters: process.p = cms.Path( testMetFilterStep * skimStep * testingStep * analyzeStep )
+
 
 # MET Uncertainties
 # from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
@@ -165,6 +181,8 @@ else:
     )
     # if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
     # else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+    process.out.outputCommands.extend(cms.untracked.vstring('keep *_BadPFMuonFilter_*_*',))
+    process.out.outputCommands.extend(cms.untracked.vstring('keep *_BadChargedCandidateFilter_*_*',))
 
 testMETUnc = 0
 if testMETUnc:
@@ -228,6 +246,12 @@ process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("281976:2166:3740421624-281976:2166:max"),
     # eventsToProcess = cms.untracked.VEventRange("281976:2166:3739658361-281976:2166:3739658361"),
     fileNames = cms.untracked.vstring(
+        # Signal samples
+        # '/store/user/yoshin/EmJetMC/AODSIM/v2017-09-11g/EmergingJets_mass_X_d_400_mass_pi_d_1_tau_pi_d_1000_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-09-11g/180416_154832/0000/aodsim_19.root'
+        # 80X QCD
+        # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
+        # JetHT Data
+        '/store/data/Run2016G/JetHT/AOD/23Sep2016-v1/50000/60F4027F-5A87-E611-9EC9-001E67E6F5D0.root'
         # File with single dark pions
         # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
         # 'file:/home/yhshin/data/testfiles/temp/step2_dark.root'
@@ -347,7 +371,7 @@ process.source = cms.Source("PoolSource",
         # 80X QCD
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/0075291F-AAB4-E611-A618-A0000420FE80.root'
         # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
-        '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
+        # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
         # ModelA AODSIM-v2017-05-02
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/v2017-05-02/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-05-02/170503_203019/0000/aodsim_1.root',
         # 'file:/store/user/yoshin/EmJetMC/AODSIM/v2017-05-02/EmergingJets_mass_X_d_1000_mass_pi_d_2_tau_pi_d_5_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-05-02/170503_203019/0000/aodsim_10.root',

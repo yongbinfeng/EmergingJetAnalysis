@@ -88,6 +88,8 @@ namespace emjet
       metFilter_goodVertices                  = DEFAULTVALUE;
       metFilter_eeBadSc                       = DEFAULTVALUE;
       metFilter_globalTightHalo2016           = DEFAULTVALUE;
+      metFilter_badChargedCandidate           = DEFAULTVALUE;
+      metFilter_badPFMuon                     = DEFAULTVALUE;
       //[[[end]]]
 
       jet_vector.clear();
@@ -101,7 +103,7 @@ namespace emjet
     //]]]
     int    run                                    ;
     int    lumi                                   ;
-    int    event                                  ;
+    unsigned long long event                                  ;
     int    bx                                     ;
     int    nVtx                                   ;
     int    nGoodVtx                               ;
@@ -147,6 +149,8 @@ namespace emjet
     bool   metFilter_goodVertices                 ;
     bool   metFilter_eeBadSc                      ;
     bool   metFilter_globalTightHalo2016          ;
+    bool   metFilter_badChargedCandidate          ;
+    bool   metFilter_badPFMuon                    ;
     //[[[end]]]
 
     vector<Jet> jet_vector;
@@ -705,6 +709,8 @@ WriteEventToOutput(const Event& event, emjet::OutputTree* otree)
     otree->metFilter_goodVertices                  = event.metFilter_goodVertices                 ;
     otree->metFilter_eeBadSc                       = event.metFilter_eeBadSc                      ;
     otree->metFilter_globalTightHalo2016           = event.metFilter_globalTightHalo2016          ;
+    otree->metFilter_badChargedCandidate           = event.metFilter_badChargedCandidate          ;
+    otree->metFilter_badPFMuon                     = event.metFilter_badPFMuon                    ;
     //[[[end]]]
   }
   // Jet-level variables, e.g. vector<int>, vector<float>, etc.

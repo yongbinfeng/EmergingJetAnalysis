@@ -24,7 +24,7 @@ namespace emjet
     //]]]
     int                     run                                    ;
     int                     lumi                                   ;
-    int                     event                                  ;
+    unsigned long long      event                                  ;
     int                     bx                                     ;
     int                     nVtx                                   ;
     int                     nGoodVtx                               ;
@@ -70,6 +70,8 @@ namespace emjet
     bool                    metFilter_goodVertices                 ;
     bool                    metFilter_eeBadSc                      ;
     bool                    metFilter_globalTightHalo2016          ;
+    bool                    metFilter_badChargedCandidate          ;
+    bool                    metFilter_badPFMuon                    ;
     vector<int>             jet_index                                  ;
     vector<int>             jet_source                                 ;
     vector<float>           jet_ptRaw                                  ;
@@ -296,6 +298,8 @@ emjet::OutputTree::Init() {
   metFilter_goodVertices                 = -1;
   metFilter_eeBadSc                      = -1;
   metFilter_globalTightHalo2016          = -1;
+  metFilter_badChargedCandidate          = -1;
+  metFilter_badPFMuon                    = -1;
   jet_index                                  .clear();
   jet_source                                 .clear();
   jet_ptRaw                                  .clear();
@@ -522,6 +526,8 @@ emjet::OutputTree::Branch(TTree* tree) {
   BRANCH(tree, metFilter_goodVertices                 );
   BRANCH(tree, metFilter_eeBadSc                      );
   BRANCH(tree, metFilter_globalTightHalo2016          );
+  BRANCH(tree, metFilter_badChargedCandidate          );
+  BRANCH(tree, metFilter_badPFMuon                    );
   BRANCH(tree, jet_index                                  );
   BRANCH(tree, jet_source                                 );
   BRANCH(tree, jet_ptRaw                                  );

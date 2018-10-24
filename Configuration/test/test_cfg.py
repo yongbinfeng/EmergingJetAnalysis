@@ -140,7 +140,31 @@ testingStep = cms.Sequence()
 if testing:
     testingStep = addTesting(process, options.data, options.sample)
 
+testMetFilters = 0
+process.emJetAnalyzer.doMETFilter = cms.untracked.bool( False )
+if testMetFilters:
+    process.emJetAnalyzer.doMETFilter = cms.untracked.bool( True )
+    process.load('RecoMET.METFilters.BadPFMuonFilter_cfi')
+    process.BadPFMuonFilter.muons = cms.InputTag("slimmedMuons")
+    process.BadPFMuonFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+    process.BadPFMuonFilter.taggingMode = cms.bool(True)
+    process.load('RecoMET.METFilters.BadChargedCandidateFilter_cfi')
+    process.BadChargedCandidateFilter.muons = cms.InputTag("slimmedMuons")
+    process.BadChargedCandidateFilter.PFCandidates = cms.InputTag("packedPFCandidates")
+    process.BadChargedCandidateFilter.taggingMode = cms.bool(True)
+    process.emJetAnalyzer.BadChargedCandidateFilter = cms.InputTag("BadChargedCandidateFilter")
+    process.emJetAnalyzer.BadPFMuonFilter = cms.InputTag("BadPFMuonFilter")
+    testMetFilterStep = cms.Sequence(process.BadPFMuonFilter * process.BadChargedCandidateFilter)
+
 process.p = cms.Path( skimStep * testingStep * analyzeStep )
+if testMetFilters: process.p = cms.Path( testMetFilterStep * skimStep * testingStep * analyzeStep )
+
+
+# MET Uncertainties
+# from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
+# runMetCorAndUncFromMiniAOD(process,
+# 		isData=True,
+# )
 
 ########################################
 # Configure EDM Output
@@ -159,9 +183,44 @@ else:
         fileName = cms.untracked.string('output.root'),
         outputCommands = cms.untracked.vstring('drop *'),
     )
+
+    if testMetFilters:
+       process.out.outputCommands.extend(cms.untracked.vstring('keep *_BadPFMuonFilter_*_*',))
+       process.out.outputCommands.extend(cms.untracked.vstring('keep *_BadChargedCandidateFilter_*_*',))
+
     if options.sample=='wjet' : process.out.outputCommands.extend(cms.untracked.vstring('keep *_wJetFilter_*_*',))
     elif options.sample=='gjet': process.out.outputCommands.extend(cms.untracked.vstring('keep *_gJetFilter_*_*',))
     else                      : process.out.outputCommands.extend(cms.untracked.vstring('keep *_jetFilter_*_*',))
+
+testMETUnc = 0
+process.emJetAnalyzer.doPATMET = cms.untracked.bool( False )
+if testMETUnc:
+    process.emJetAnalyzer.doPATMET = cms.untracked.bool( True )
+    process.out = cms.OutputModule("PoolOutputModule",
+        compressionLevel = cms.untracked.int32(4),
+        compressionAlgorithm = cms.untracked.string('LZMA'),
+        eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
+        outputCommands = cms.untracked.vstring( "keep *_slimmedMETs_*_*",
+                                                "keep *_slimmedMETsNoHF_*_*",
+                                                "keep *_patPFMet_*_*",
+                                                "keep *_patPFMetT1_*_*",
+                                                "keep *_patPFMetT1JetResDown_*_*",
+                                                "keep *_patPFMetT1JetResUp_*_*",
+                                                "keep *_patPFMetT1Smear_*_*",
+                                                "keep *_patPFMetT1SmearJetResDown_*_*",
+                                                "keep *_patPFMetT1SmearJetResUp_*_*",
+                                                "keep *_patPFMetT1Puppi_*_*",
+                                                "keep *_slimmedMETsPuppi_*_*",
+                                                ),
+        fileName = cms.untracked.string('corMETMiniAOD.root'),
+        dataset = cms.untracked.PSet(
+            filterName = cms.untracked.string(''),
+            dataTier = cms.untracked.string('')
+        ),
+        dropMetaData = cms.untracked.string('ALL'),
+        fastCloning = cms.untracked.bool(False),
+        overrideInputFileSplitLevels = cms.untracked.bool(True)
+    )
 
 ########################################
 # Generic configuration
@@ -188,11 +247,20 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32(1)
 process.MessageLogger.cerr.FwkReport.limit = 20
 process.MessageLogger.cerr.default.limit = 100
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 process.source = cms.Source("PoolSource",
     # eventsToProcess = cms.untracked.VEventRange("1:36:3523-1:36:3523"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:min-281976:2166:max"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:3740421624-281976:2166:max"),
+    # eventsToProcess = cms.untracked.VEventRange("281976:2166:3739658361-281976:2166:3739658361"),
     fileNames = cms.untracked.vstring(
+        # Signal samples
+        # '/store/user/yoshin/EmJetMC/AODSIM/v2017-09-11g/EmergingJets_mass_X_d_400_mass_pi_d_1_tau_pi_d_1000_TuneCUETP8M1_13TeV_pythia8Mod/RunIISummer16DR80Premix_private-AODSIM-v2017-09-11g/180416_154832/0000/aodsim_19.root'
+        # 80X QCD
+        # '/store/mc/RunIISummer16DR80Premix/QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/AODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/110000/007BFA96-C3B0-E611-90E0-047D7BD6DD64.root'
+        # JetHT Data
+        #'/store/data/Run2016G/JetHT/AOD/23Sep2016-v1/50000/60F4027F-5A87-E611-9EC9-001E67E6F5D0.root'
         # File with single dark pions
         # 'file:/afs/cern.ch/user/y/yoshin/work/public/temp/step2_dark.root'
         # 'file:/home/yhshin/data/testfiles/temp/step2_dark.root'
@@ -213,7 +281,8 @@ process.source = cms.Source("PoolSource",
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/063A7093-DFB2-E611-AC88-0025905A6066.root'
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/data.root'
         #'file:/data/users/fengyb/CMSSW_8_0_26_patch1/src/EmergingJetAnalysis/Configuration/test/filterevent/testQCD/Model_A.root'
-        'file:0C70E16B-0085-E611-B7AD-02163E01418B.root'
+        #'file:0C70E16B-0085-E611-B7AD-02163E01418B.root'
+        'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/EmergingJetAnalysis/063A7093-DFB2-E611-AC88-0025905A6066.root'
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/72119918-9516-E611-BA33-02163E0141FB.root'
         #'file:/data/users/fengyb/testPhotonID2/CMSSW_8_0_26_patch1/src/0054292E-3186-E611-9748-002590D0B0BE.root'
         # '/store/group/phys_exotica/EmergingJets/EmergingJets_ModelB_TuneCUETP8M1_13TeV_pythia8Mod/AODSIM-v1/160202_073524/0000/aodsim_109.root',
@@ -275,5 +344,5 @@ process.load("TrackingTools/TransientTrack/TransientTrackBuilder_cfi")
 # # # #get the jet energy corrections from the db file
 # # process.load("CondCore.CondDB.CondDB_cfi")
 
-process.out.outputCommands = cms.untracked.vstring('drop *')
+# process.out.outputCommands = cms.untracked.vstring('drop *')
 

@@ -54,6 +54,7 @@
 #include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "DataFormats/METReco/interface/PFMET.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/GenMET.h"
 #include "DataFormats/JetReco/interface/PFJet.h"
@@ -134,6 +135,10 @@
 #define OUTPUT(x) std::cout<<#x << ": " << x << std::endl
 #endif
 
+#ifndef DEBUG_OUTPUT
+#define DEBUG_OUTPUT(x) if (debug_) std::cout<<#x << ": " << x << std::endl
+#endif
+
 #ifndef STDOUT
 #define STDOUT(x) std::cout<< x << std::endl
 #endif
@@ -145,6 +150,7 @@ typedef std::tuple< std::vector<double>, std::vector<double>, std::vector<double
 // bool scanMode_ = true;
 // bool scanRandomJet_ = true;
 bool jetdump_ = false;
+const int nopvtest = 0;
 
 // typedef std::vector<TransientVertex> TransientVertexCollection;
 
@@ -232,6 +238,8 @@ class EmJetAnalyzer : public edm::EDFilter {
     bool scanRandomJet_;
     bool debug_;
     bool saveTracks_;
+    bool doMETFilter_ ;
+    bool doPATMET_;
 
     const edm::EventSetup* eventSetup_; // Pointer to current EventSetup object
 
@@ -242,6 +250,10 @@ class EmJetAnalyzer : public edm::EDFilter {
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocVTXToken_;
     edm::EDGetTokenT<reco::JetTracksAssociationCollection> assocCALOToken_;
     edm::EDGetTokenT<edm::TriggerResults> hlTriggerResultsToken_;
+    edm::EDGetTokenT<edm::TriggerResults> metFilterResultsToken_;
+    edm::EDGetTokenT<bool> BadChCandFilterToken_;
+    edm::EDGetTokenT<bool> BadPFMuonFilterToken_;
+
     edm::EDGetTokenT<LHERunInfoProduct> lheRunToken_;
 
 
@@ -394,6 +406,8 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     scanRandomJet_ = iConfig.getParameter<bool>("scanRandomJet");
     debug_ = iConfig.getUntrackedParameter<bool>("debug",false);
     saveTracks_ = iConfig.getParameter<bool>("saveTracks"); // Flag to enable saving of track info in ntuple
+    doMETFilter_ = iConfig.getUntrackedParameter<bool>("doMETFilter"); // Flag to add the MET filter information or not
+    doPATMET_    = iConfig.getUntrackedParameter<bool>("doPATMET"); // Flag to calculate the Type I MET and MET uncertainties
 
     // Save Adaptive Vertex Reco config parameters to tree_->GetUserInfo()
     {
@@ -427,12 +441,21 @@ EmJetAnalyzer::EmJetAnalyzer(const edm::ParameterSet& iConfig):
     }
 
     hlTriggerResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("hlTriggerResults"));
+    metFilterResultsToken_ = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag> ("metFilterResults"));
+
+    if( doMETFilter_ ){
+       BadChCandFilterToken_ = (consumes<bool>(iConfig.getParameter<edm::InputTag>("BadChargedCandidateFilter")));
+       BadPFMuonFilterToken_ = (consumes<bool>(iConfig.getParameter<edm::InputTag>("BadPFMuonFilter")));
+    }
 
     // Register hard-coded inputs
     consumes<reco::BeamSpot> (edm::InputTag("offlineBeamSpot"));
     consumes<reco::TrackCollection> (edm::InputTag("generalTracks"));
     consumes<reco::TrackCollection> (edm::InputTag("displacedStandAloneMuons"));
     consumes<reco::PFMETCollection> (edm::InputTag("pfMet"));
+    if( doPATMET_ ){
+        consumes<pat::METCollection> (edm::InputTag("slimmedMETs"));
+    }
     consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVerticesWithBS"));
     consumes<reco::VertexCollection> (edm::InputTag("offlinePrimaryVertices"));
     consumes<reco::VertexCollection> (edm::InputTag("inclusiveSecondaryVertices"));
@@ -552,10 +575,16 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
   calojet_alphazero = 0;
   calojet_alphaneg = 0;
 
+  // event_.event = 2147483647 + 100;
+  // OUTPUT(event_.event);
   event_.run   = iEvent.id().run();
   event_.event = iEvent.id().event();
   event_.lumi  = iEvent.id().luminosityBlock();
   event_.bx    = iEvent.bunchCrossing();
+  if (nopvtest) OUTPUT(event_.run);
+  if (nopvtest) OUTPUT(event_.lumi);
+  if (nopvtest) OUTPUT(iEvent.id().event());
+  if (nopvtest) OUTPUT(event_.event);
 
   // Retrieve HLT info
   {
@@ -587,6 +616,44 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // else {
     //   std::cout << "0\n";
     // }
+  }
+
+  // Retrieve MET filter results
+  if( doMETFilter_ )
+  {
+    edm::Handle<edm::TriggerResults> trigResults; //our trigger result object
+    iEvent.getByToken(metFilterResultsToken_, trigResults);
+    if (trigResults.isValid()) {
+      const edm::TriggerNames& trigNames = iEvent.triggerNames(*trigResults);
+      // MET Filters retrieved from miniAOD
+      event_.metFilter_HBHENoise                    = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    );
+      event_.metFilter_HBHENoiseIso                 = triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 );
+      event_.metFilter_EcalDeadCellTriggerPrimitive = triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" );
+      event_.metFilter_goodVertices                 = triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       );
+      event_.metFilter_eeBadSc                      = triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      );
+      event_.metFilter_globalTightHalo2016          = triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseFilter"                    ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_HBHENoiseIsoFilter"                 ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_EcalDeadCellTriggerPrimitiveFilter" ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_goodVertices"                       ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_eeBadScFilter"                      ) );
+      DEBUG_OUTPUT( triggerfired(iEvent ,trigResults ,"Flag_globalTightHalo2016Filter"          ) );
+    }
+    else {
+      std::cout << "Met Filter TriggerResults is not valid!" << std::endl;
+    }
+
+    // True is good for these filters, means passed filter
+    edm::Handle<bool> ifilterbadChCand;
+    iEvent.getByToken(BadChCandFilterToken_, ifilterbadChCand);
+    bool  filterbadChCandidate = *ifilterbadChCand;
+    edm::Handle<bool> ifilterbadPFMuon;
+    iEvent.getByToken(BadPFMuonFilterToken_, ifilterbadPFMuon);
+    bool filterbadPFMuon = *ifilterbadPFMuon;
+    // OUTPUT(filterbadChCandidate);
+    // OUTPUT(filterbadPFMuon);
+    event_.metFilter_badChargedCandidate = !(   filterbadChCandidate   );
+    event_.metFilter_badPFMuon           = !(   filterbadPFMuon        );
   }
 
   // Retrieve offline beam spot (Used to constrain vertexing)
@@ -631,13 +698,16 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     VertexHigherPtSquared vertexPt2Calculator;
     for (auto ipv = primary_verticesH_->begin(); ipv != primary_verticesH_->end(); ++ipv) {
       double pt2sum = vertexPt2Calculator.sumPtSquared(*ipv);
-      if (pt2sum > pt2sumMax) {
+      // OUTPUT(pt2sum);
+      if (pt2sum >= pt2sumMax) {
         pt2sumMax = pt2sum;
         pv_indexInColl = pv_index;
       }
       // OUTPUT(pt2sum);
       pv_index++;
     }
+    primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
+    DEBUG_OUTPUT(primary_vertex_->x());
     if (pv_indexInColl != -1) {
       primary_vertex_ = &( primary_verticesH_->at(pv_indexInColl) );
       // std::cout << "offlinePrimaryVerticesWithBS\n";
@@ -660,6 +730,9 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
       // event_.pv_pt2sum      = pt2sum;
       // event_.pv_nTracks     = nTracks;
       // event_.pv_indexInColl = pv_indexInColl;
+    }
+    else {
+      OUTPUT(primary_verticesH_->at(-1).x());
     }
   }
 
@@ -749,12 +822,74 @@ EmJetAnalyzer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
     findDarkPionVertices();
   }
 
+
   // Calculate MET :EVENTLEVEL:
   {
     edm::Handle<reco::PFMETCollection> pfmet;
     iEvent.getByLabel("pfMet",pfmet);
     event_.met_pt = pfmet->begin()->pt();
     event_.met_phi = pfmet->begin()->phi();
+
+    if( doPATMET_ ){
+       // Get PAT MET
+       edm::Handle<pat::METCollection> mets;
+       // iEvent.getByToken(metToken_, mets);
+       iEvent.getByLabel("slimmedMETs", mets);
+       const pat::MET &met = mets->front();
+       event_.metT1_pt    = met.pt()    ;
+       event_.metT1_phi   = met.phi()   ;
+       event_.metT1_sumEt = met.sumEt() ;
+       // Raw MET uncertainty
+       event_.met_pt_JetResUp   = (met.shiftedPt(pat::MET::JetResUp, pat::MET::Raw));
+       event_.met_pt_JetResDown = (met.shiftedPt(pat::MET::JetResDown, pat::MET::Raw));
+       event_.met_pt_JetEnUp    = (met.shiftedPt(pat::MET::JetEnUp, pat::MET::Raw));
+       event_.met_pt_JetEnDown  = (met.shiftedPt(pat::MET::JetEnDown, pat::MET::Raw));
+       event_.met_pt_UnclEnUp   = (met.shiftedPt(pat::MET::UnclusteredEnUp, pat::MET::Raw));
+       event_.met_pt_UnclEnDown = (met.shiftedPt(pat::MET::UnclusteredEnDown, pat::MET::Raw));
+       DEBUG_OUTPUT(event_.met_pt);
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResUp, pat::MET::Raw));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResDown, pat::MET::Raw));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnUp, pat::MET::Raw));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnDown, pat::MET::Raw));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnUp, pat::MET::Raw));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnDown, pat::MET::Raw));
+       // T1 MET uncertainty
+		   event_.metT1_pt_JetResUp   = (met.shiftedPt(pat::MET::JetResUp));
+		   event_.metT1_pt_JetResDown = (met.shiftedPt(pat::MET::JetResDown));
+		   event_.metT1_pt_JetEnUp    = (met.shiftedPt(pat::MET::JetEnUp));
+		   event_.metT1_pt_JetEnDown  = (met.shiftedPt(pat::MET::JetEnDown));
+		   event_.metT1_pt_UnclEnUp   = (met.shiftedPt(pat::MET::UnclusteredEnUp));
+		   event_.metT1_pt_UnclEnDown = (met.shiftedPt(pat::MET::UnclusteredEnDown));
+       DEBUG_OUTPUT(event_.metT1_pt);
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResUp));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetResDown));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnUp));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::JetEnDown));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnUp));
+       DEBUG_OUTPUT(met.shiftedPt(pat::MET::UnclusteredEnDown));
+       // Unused uncertainties
+       // See link for explanation of JetResUpSmear (Essentially redundant with JetResUp for us)
+       // https://hypernews.cern.ch/HyperNews/CMS/get/met/565.html?inline=-1
+       // {
+       //   OUTPUT(met.shiftedPt(pat::MET::MuonEnUp));
+       //   OUTPUT(met.shiftedPt(pat::MET::ElectronEnUp));
+       //   OUTPUT(met.shiftedPt(pat::MET::PhotonEnUp));
+       //   OUTPUT(met.shiftedPt(pat::MET::TauEnUp));
+       //   // These two don't seem to be work
+       //   // OUTPUT(met.shiftedPt(pat::MET::JetResUpSmear));
+       //   // OUTPUT(met.shiftedPt(pat::MET::JetResDownSmear));
+       // }
+       // OUTPUT(met.shiftedPt(pat::MET::METFullUncertaintySize));
+       // OUTPUT(met.shiftedPt(pat::MET::METUncertaintySize));
+       // // Raw MET uncertainty
+       // OUTPUT("Raw MET uncertainty");
+       // event_.met_ptUnc   = met.shiftedPt(pat::MET::METUncertaintySize, pat::MET::Raw) ;
+       //   printf("Raw, Uncorr: %5.1f, %5.1f\n", pfmet->begin()->pt(), met.uncorPt() );
+         // printf("MET: pt %5.1f, phi %+4.2f, sumEt (%.1f). genMET %.1f. MET with JES up/down: %.1f/%.1f\n",
+         //        met.pt(), met.phi(), met.sumEt(),
+         //        met.genMET()->pt(), 
+         //        met.shiftedPt(pat::MET::JetEnUp), met.shiftedPt(pat::MET::JetEnDown));
+    }
   }
 
   // Retrieve selectedJets
@@ -1886,6 +2021,9 @@ EmJetAnalyzer::fillPrimaryVertices() {
   }
   // Sort primary vertices in descending order of pt2Sum
   std::sort(event_.pv_vector.begin(), event_.pv_vector.end(), [](const emjet::PrimaryVertex a, const emjet::PrimaryVertex b){ return a.pt2sum > b.pt2sum; });
+  if (nopvtest) OUTPUT(event_.pv_vector[0].x);
+  if (nopvtest) OUTPUT(event_.pv_vector[0].y);
+  if (nopvtest) OUTPUT(event_.pv_vector[0].z);
 }
 
 void
@@ -2007,20 +2145,28 @@ double
 EmJetAnalyzer::compute_alpha(reco::TrackRefVector& trackRefs) const
 {
   double alpha = -1.;
-  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
-  double jet_pt_sum = 0.;
-  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-    jet_pt_sum += (*ijt)->pt();
-  } // End of track loop
+  // // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  // double jet_pt_sum = 0.;
+  // for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //   jet_pt_sum += (*ijt)->pt();
+  // } // End of track loop
 
-  const reco::Vertex& primary_vertex = *primary_vertex_;
-  double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
-    double trackWeight = primary_vertex.trackWeight(*ijt);
-    if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
-  } // End of track loop
-  // Calculate alpha
-  alpha = vertex_pt_sum / jet_pt_sum;
+  // const reco::Vertex& primary_vertex = *primary_vertex_;
+  // double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // for (reco::TrackRefVector::iterator ijt = trackRefs.begin(); ijt != trackRefs.end(); ++ijt) {
+  //   // if ((*ijt)->trackBaseRef().isNull()) {
+  //   // if ((*ijt)->trackBaseRef().isNull()) {
+  //   //   // trackBaseRef is null
+  //   //   STDOUT("compute_alpha: trackBaseRef is null");
+  //   //   continue;
+  //   // }
+  //   OUTPUT((*ijt)->pt());
+  //   auto ijt_track = *ijt;
+  //   double trackWeight = primary_vertex.trackWeight(ijt_track);
+  //   if (trackWeight > 0) vertex_pt_sum += (*ijt)->pt();
+  // } // End of track loop
+  // // Calculate alpha
+  // alpha = vertex_pt_sum / jet_pt_sum;
   return alpha;
 }
 
@@ -2029,25 +2175,25 @@ double
 EmJetAnalyzer::compute_alpha(vector<reco::TransientTrack> tracks) const
 {
   double alpha = -1.;
-  // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
-  double jet_pt_sum = 0.;
-  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-    jet_pt_sum += (ijt)->track().pt();
-  } // End of track loop
+  // // Loop over all tracks and calculate scalar pt-sum of all tracks in current jet
+  // double jet_pt_sum = 0.;
+  // for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+  //   jet_pt_sum += (ijt)->track().pt();
+  // } // End of track loop
 
-  const reco::Vertex& primary_vertex = *primary_vertex_;
-  double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
-  for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
-    if ((ijt)->trackBaseRef().isNull()) {
-      // trackBaseRef is null
-      STDOUT("compute_alpha: trackBaseRef is null");
-      continue;
-    }
-    double trackWeight = primary_vertex.trackWeight((ijt)->trackBaseRef());
-    if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
-  } // End of track loop
-  // Calculate alpha
-  alpha = vertex_pt_sum / jet_pt_sum;
+  // const reco::Vertex& primary_vertex = *primary_vertex_;
+  // double vertex_pt_sum = 0.; // scalar pt contribution of vertex to jet
+  // for (auto ijt = tracks.begin(); ijt != tracks.end(); ++ijt) {
+  //   if ((ijt)->trackBaseRef().isNull()) {
+  //     // trackBaseRef is null
+  //     STDOUT("compute_alpha: trackBaseRef is null");
+  //     continue;
+  //   }
+  //   double trackWeight = primary_vertex.trackWeight((ijt)->trackBaseRef());
+  //   if (trackWeight > 0) vertex_pt_sum += (ijt)->track().pt();
+  // } // End of track loop
+  // // Calculate alpha
+  // alpha = vertex_pt_sum / jet_pt_sum;
   return alpha;
 }
 

@@ -36,13 +36,29 @@ Var = namedtuple('Var', ['name', 'cpptype', 'level', ] )
 event_vars = [
     Var("run"                 , "int"   , 0 , ) ,
     Var("lumi"                , "int"   , 0 , ) ,
-    Var("event"               , "int"   , 0 , ) ,
+    Var("event"               , "unsigned long long"   , 0 , ) ,
+    # Var("event"               , "int"   , 0 , ) ,
     Var("bx"                  , "int"   , 0 , ) ,
     Var("nVtx"                , "int"   , 0 , ) ,
     Var("nGoodVtx"            , "int"   , 0 , ) ,
     Var("nTrueInt"            , "int"   , 0 , ) ,
     Var("met_pt"              , "float" , 0 , ) ,
     Var("met_phi"             , "float" , 0 , ) ,
+    Var("met_pt_JetResUp"     , "float" , 0 , ) ,
+    Var("met_pt_JetResDown"   , "float" , 0 , ) ,
+    Var("met_pt_JetEnUp"      , "float" , 0 , ) ,
+    Var("met_pt_JetEnDown"    , "float" , 0 , ) ,
+    Var("met_pt_UnclEnUp"     , "float" , 0 , ) ,
+    Var("met_pt_UnclEnDown"   , "float" , 0 , ) ,
+    Var("metT1_pt"            , "float" , 0 , ) ,
+    Var("metT1_phi"           , "float" , 0 , ) ,
+    Var("metT1_sumEt"         , "float" , 0 , ) ,
+    Var("metT1_pt_JetResUp"   , "float" , 0 , ) ,
+    Var("metT1_pt_JetResDown" , "float" , 0 , ) ,
+    Var("metT1_pt_JetEnUp"    , "float" , 0 , ) ,
+    Var("metT1_pt_JetEnDown"  , "float" , 0 , ) ,
+    Var("metT1_pt_UnclEnUp"   , "float" , 0 , ) ,
+    Var("metT1_pt_UnclEnDown" , "float" , 0 , ) ,
     Var("nTracks"             , "int"   , 0 , ) ,
     Var("alpha_event"         , "float" , 0 , ) ,
     # PDF information
@@ -65,6 +81,14 @@ event_vars = [
     Var("HLT_HT350"           , "bool"  , 0 , ) , #HT350_DisplacedDijet40_DisplacedTrack
     Var("HLT_HT400"           , "bool"  , 0 , ) , #HT400_DisplacedDijet40_Inclusive
     Var("HLT_HT500"           , "bool"  , 0 , ) , #HT500_DisplacedDijet40_Inclusive
+    Var("metFilter_HBHENoise"                        , "bool"  , 0 , ) ,
+    Var("metFilter_HBHENoiseIso"                     , "bool"  , 0 , ) ,
+    Var("metFilter_EcalDeadCellTriggerPrimitive"     , "bool"  , 0 , ) ,
+    Var("metFilter_goodVertices"                     , "bool"  , 0 , ) ,
+    Var("metFilter_eeBadSc"                          , "bool"  , 0 , ) ,
+    Var("metFilter_globalTightHalo2016"              , "bool"  , 0 , ) ,
+    Var("metFilter_badChargedCandidate"              , "bool"  , 0 , ) ,
+    Var("metFilter_badPFMuon"                        , "bool"  , 0 , ) ,
 
 ]
 jet_vars = [
